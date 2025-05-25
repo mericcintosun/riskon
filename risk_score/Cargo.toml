@@ -1,0 +1,10 @@
+[package]
+name = "risk_score"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]   # Wasm çıkışı için şart
+
+[dependencies]
+soroban-sdk = "22.0.7"            # güncel kararlı sürüm  [oai_citation:2‡GitHub](https://github.com/stellar/rs-soroban-sdk?utm_source=chatgpt.com)

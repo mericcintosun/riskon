@@ -9,9 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^1.7.3",
+    "@stellar/stellar-sdk": "^13.3.0",
+    "@tensorflow/tfjs": "^4.22.0",
+    "next": "^15.3.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.1.8"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "postcss": "^8",
