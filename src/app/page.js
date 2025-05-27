@@ -9,7 +9,6 @@ import {
   XBULL_ID,
   FREIGHTER_ID
 } from '@creit.tech/stellar-wallets-kit';
-import { useRiskScore } from "./lib/useRiskScore";
 import { writeScoreToBlockchain } from "./lib/writeScore";
 import { testContractExists, getContractInfo } from "./lib/testContract";
 
@@ -31,15 +30,35 @@ export default function RiskScoringApp() {
   const [transactionHash, setTransactionHash] = useState("");
   const [contractStatus, setContractStatus] = useState("unknown"); // unknown, exists, missing
 
-  // Risk score calculation
-  const features = [
-    parseFloat(txCount) / 100,    // Normalize to 0-1
-    parseFloat(avgHours) / 24,    // Normalize to 0-1  
-    parseFloat(assetTypes) / 10   // Normalize to 0-1
-  ];
-  
-  const isValidInput = features.every(f => !isNaN(f) && f >= 0 && f <= 1);
-  const riskScore = useRiskScore(isValidInput ? features : null);
+  // Basit risk skoru hesaplama - AI olmadan
+  const calculateRiskScore = () => {
+    const txCountNum = parseFloat(txCount);
+    const avgHoursNum = parseFloat(avgHours);
+    const assetTypesNum = parseFloat(assetTypes);
+    
+    // Değerlerin geçerli olup olmadığını kontrol et
+    if (isNaN(txCountNum) || isNaN(avgHoursNum) || isNaN(assetTypesNum) ||
+        txCountNum < 0 || txCountNum > 100 ||
+        avgHoursNum < 0 || avgHoursNum > 24 ||
+        assetTypesNum < 0 || assetTypesNum > 10) {
+      return null;
+    }
+
+    // Basit risk hesaplama algoritması
+    // Yüksek işlem sayısı = düşük risk
+    // Düşük saat aralığı = yüksek risk (çok sık işlem)
+    // Çok varlık çeşidi = yüksek risk (komplekslik)
+    
+    const txRisk = Math.max(0, (100 - txCountNum) * 0.4); // %40 ağırlık
+    const timeRisk = Math.max(0, (24 - avgHoursNum) * 2); // %40 ağırlık (24-avgHours)*2 = 0-48, normalize to 0-100
+    const assetRisk = Math.min(100, assetTypesNum * 10); // %20 ağırlık
+    
+    const totalRisk = (txRisk * 0.4) + (timeRisk * 0.4) + (assetRisk * 0.2);
+    return Math.round(Math.min(100, Math.max(0, totalRisk)));
+  };
+
+  const riskScore = calculateRiskScore();
+  const isValidInput = riskScore !== null;
 
   // Initialize Stellar Wallets Kit
   useEffect(() => {
@@ -191,7 +210,7 @@ export default function RiskScoringApp() {
             🌟 Stellar Risk Scoring
           </h1>
           <p className="text-gray-600">
-            AI destekli DeFi risk değerlendirmesi - Blockchain'de güvenli kayıt
+            Basit algoritma ile DeFi risk değerlendirmesi - Blockchain'de güvenli kayıt
           </p>
         </div>
 
@@ -291,6 +310,7 @@ export default function RiskScoringApp() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Örn: 25"
               />
+              <p className="text-xs text-gray-500 mt-1">Son 30 günde yaptığınız işlem sayısı</p>
             </div>
 
             <div>
@@ -307,6 +327,7 @@ export default function RiskScoringApp() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Örn: 6.5"
               />
+              <p className="text-xs text-gray-500 mt-1">İşlemler arası geçen ortalama süre</p>
             </div>
 
             <div>
@@ -322,6 +343,7 @@ export default function RiskScoringApp() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Örn: 3"
               />
+              <p className="text-xs text-gray-500 mt-1">Portföyünüzdeki farklı varlık sayısı</p>
             </div>
           </div>
 
@@ -405,11 +427,11 @@ export default function RiskScoringApp() {
           <h3 className="text-lg font-semibold mb-3">ℹ️ Bilgi</h3>
           <div className="text-sm text-gray-600 space-y-2">
             <p>• Bu uygulama Stellar Testnet kullanır</p>
-            <p>• Risk skoru AI modeli ile hesaplanır</p>
+            <p>• Risk skoru basit algoritma ile hesaplanır</p>
             <p>• Verileriniz blockchain'de güvenli şekilde saklanır</p>
             <p>• Desteklenen wallet'lar: Albedo, xBull, Freighter, WalletConnect</p>
             <p>• Testnet XLM gereklidir (ücretsiz)</p>
-            <p>• Contract ID: CCD725SO4ESXSSH5IMAYLB47MHJJSP2VDPBA72WHIRPY43ZAER6WE7E7</p>
+            <p>• Risk Algoritması: İşlem sıklığı, zaman aralığı ve varlık çeşitliliği</p>
           </div>
         </div>
       </div>
