@@ -22,6 +22,13 @@ export default function RiskScoringApp() {
   const [txCount, setTxCount] = useState("");
   const [avgHours, setAvgHours] = useState("");
   const [assetTypes, setAssetTypes] = useState("");
+  const [avgAmount, setAvgAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [nightDayRatio, setNightDayRatio] = useState("");
+  
+  // Help modal state
+  const [helpModal, setHelpModal] = useState({ isOpen: false, content: "" });
+  const [showAdvanced, setShowAdvanced] = useState(false);
   
   // App state
   const [isLoading, setIsLoading] = useState(false);
@@ -30,30 +37,72 @@ export default function RiskScoringApp() {
   const [transactionHash, setTransactionHash] = useState("");
   const [contractStatus, setContractStatus] = useState("unknown"); // unknown, exists, missing
 
-  // Basit risk skoru hesaplama - AI olmadan
-  const calculateRiskScore = () => {
-    const txCountNum = parseFloat(txCount);
-    const avgHoursNum = parseFloat(avgHours);
-    const assetTypesNum = parseFloat(assetTypes);
+  // Feature normalization helper functions
+  const normalizeFeature = (value, min, max) => {
+    if (max === min) return 0;
+    return Math.max(0, Math.min(1, (value - min) / (max - min)));
+  };
+
+  // Geliştirilmiş risk skoru hesaplama - 6 alan model
+  const calculateRiskScore = (
+    txCountInput = txCount, 
+    medianHoursInput = avgHours, 
+    assetKindsInput = assetTypes,
+    avgAmtInput = avgAmount || 0,
+    maxAmtInput = maxAmount || 0, 
+    nightRatioInput = nightDayRatio || 0
+  ) => {
+    // Feature extraction with fallback values
+    const features = [
+      parseFloat(txCountInput) || 0,      // txCount
+      parseFloat(medianHoursInput) || 0,  // medianHours  
+      parseFloat(assetKindsInput) || 0,   // assetKinds
+      parseFloat(avgAmtInput) || 0,       // avgAmt
+      parseFloat(maxAmtInput) || 0,       // maxAmt
+      parseFloat(nightRatioInput) || 0    // nightRatio
+    ];
     
-    // Değerlerin geçerli olup olmadığını kontrol et
-    if (isNaN(txCountNum) || isNaN(avgHoursNum) || isNaN(assetTypesNum) ||
-        txCountNum < 0 || txCountNum > 100 ||
-        avgHoursNum < 0 || avgHoursNum > 24 ||
-        assetTypesNum < 0 || assetTypesNum > 10) {
+    // Temel alanların validation (geriye dönük uyum için)
+    if (isNaN(parseFloat(txCountInput)) || isNaN(parseFloat(medianHoursInput)) || isNaN(parseFloat(assetKindsInput)) ||
+        features[0] < 0 || features[0] > 100 ||
+        features[1] < 0 || features[1] > 24 ||
+        features[2] < 0 || features[2] > 10) {
       return null;
     }
 
-    // Basit risk hesaplama algoritması
-    // Yüksek işlem sayısı = düşük risk
-    // Düşük saat aralığı = yüksek risk (çok sık işlem)
-    // Çok varlık çeşidi = yüksek risk (komplekslik)
+    // Feature scaling - Min-Max normalization to 0-1 range
+    const normalizedFeatures = [
+      normalizeFeature(features[0], 0, 100),    // txCount: 0-100 -> 0-1
+      normalizeFeature(features[1], 0, 24),     // medianHours: 0-24 -> 0-1  
+      normalizeFeature(features[2], 0, 10),     // assetKinds: 0-10 -> 0-1
+      normalizeFeature(features[3], 0, 10000),  // avgAmt: 0-10000 XLM -> 0-1
+      normalizeFeature(features[4], 0, 50000),  // maxAmt: 0-50000 XLM -> 0-1
+      normalizeFeature(features[5], 0, 100)     // nightRatio: 0-100% -> 0-1
+    ];
+
+    // Model weights - geriye dönük uyumlu ağırlıklar
+    const weights = [
+      0.30,  // txCount (ana faktör - artırıldı)
+      0.30,  // medianHours (ana faktör - artırıldı) 
+      0.25,  // assetKinds (önemli faktör)
+      0.10,  // avgAmt (yeni - küçük başlangıç)
+      0.10,  // maxAmt (yeni - küçük başlangıç)
+      0.10   // nightRatio (yeni - küçük başlangıç)
+    ];
+
+    // Risk calculation using normalized features
+    // Inverse logic for some features (high values = low risk)
+    const riskFactors = [
+      (1 - normalizedFeatures[0]) * weights[0] * 100,  // Düşük işlem sayısı = yüksek risk
+      normalizedFeatures[1] * weights[1] * 100,        // Yüksek saat aralığı = düşük aktivite risk
+      normalizedFeatures[2] * weights[2] * 100,        // Çok varlık çeşidi = komplekslik riski
+      normalizedFeatures[3] * weights[3] * 100,        // Yüksek ortalama tutar = risk
+      normalizedFeatures[4] * weights[4] * 100,        // Yüksek max tutar = volatilite riski  
+      Math.abs(0.5 - normalizedFeatures[5]) * 2 * weights[5] * 100  // 50%'den sapma = anormal davranış
+    ];
     
-    const txRisk = Math.max(0, (100 - txCountNum) * 0.4); // %40 ağırlık
-    const timeRisk = Math.max(0, (24 - avgHoursNum) * 2); // %40 ağırlık (24-avgHours)*2 = 0-48, normalize to 0-100
-    const assetRisk = Math.min(100, assetTypesNum * 10); // %20 ağırlık
+    const totalRisk = riskFactors.reduce((sum, risk) => sum + risk, 0);
     
-    const totalRisk = (txRisk * 0.4) + (timeRisk * 0.4) + (assetRisk * 0.2);
     return Math.round(Math.min(100, Math.max(0, totalRisk)));
   };
 
@@ -296,7 +345,8 @@ export default function RiskScoringApp() {
             📊 Risk Skoru Hesaplama
           </h2>
           
-          <div className="space-y-4">
+          {/* Temel Alanlar - 2x3 Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 İşlem Sayısı (0-100)
@@ -311,6 +361,15 @@ export default function RiskScoringApp() {
                 placeholder="Örn: 25"
               />
               <p className="text-xs text-gray-500 mt-1">Son 30 günde yaptığınız işlem sayısı</p>
+              <button 
+                onClick={() => setHelpModal({ 
+                  isOpen: true, 
+                  content: "txCount" 
+                })}
+                className="text-xs text-gray-500 underline hover:text-blue-600 mt-1"
+              >
+                Nasıl bulurum?
+              </button>
             </div>
 
             <div>
@@ -328,6 +387,15 @@ export default function RiskScoringApp() {
                 placeholder="Örn: 6.5"
               />
               <p className="text-xs text-gray-500 mt-1">İşlemler arası geçen ortalama süre</p>
+              <button 
+                onClick={() => setHelpModal({ 
+                  isOpen: true, 
+                  content: "avgHours" 
+                })}
+                className="text-xs text-gray-500 underline hover:text-blue-600 mt-1"
+              >
+                Nasıl bulurum?
+              </button>
             </div>
 
             <div>
@@ -344,7 +412,114 @@ export default function RiskScoringApp() {
                 placeholder="Örn: 3"
               />
               <p className="text-xs text-gray-500 mt-1">Portföyünüzdeki farklı varlık sayısı</p>
+              <button 
+                onClick={() => setHelpModal({ 
+                  isOpen: true, 
+                  content: "assetTypes" 
+                })}
+                className="text-xs text-gray-500 underline hover:text-blue-600 mt-1"
+              >
+                Nasıl bulurum?
+              </button>
             </div>
+          </div>
+
+          {/* Gelişmiş Ayarlar Akordeon */}
+          <div className="border-t border-gray-200 pt-4">
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              <span>🔧 Gelişmiş Ayarlar (İsteğe Bağlı)</span>
+              <svg 
+                className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {showAdvanced && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ortalama İşlem Tutarı (XLM)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={avgAmount}
+                    onChange={(e) => setAvgAmount(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Örn: 150.50"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Ortalama işlem büyüklüğü</p>
+                  <button 
+                    onClick={() => setHelpModal({ 
+                      isOpen: true, 
+                      content: "avgAmount" 
+                    })}
+                    className="text-xs text-gray-500 underline hover:text-blue-600 mt-1"
+                  >
+                    Nasıl bulurum?
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Maksimum Tek İşlem (XLM)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={maxAmount}
+                    onChange={(e) => setMaxAmount(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Örn: 1000.00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">En büyük tek işlem tutarı</p>
+                  <button 
+                    onClick={() => setHelpModal({ 
+                      isOpen: true, 
+                      content: "maxAmount" 
+                    })}
+                    className="text-xs text-gray-500 underline hover:text-blue-600 mt-1"
+                  >
+                    Nasıl bulurum?
+                  </button>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gece / Gündüz İşlem Oranı (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={nightDayRatio}
+                    onChange={(e) => setNightDayRatio(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Örn: 30"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Gece saatleri (22:00-06:00) işlem yüzdesi</p>
+                  <button 
+                    onClick={() => setHelpModal({ 
+                      isOpen: true, 
+                      content: "nightDayRatio" 
+                    })}
+                    className="text-xs text-gray-500 underline hover:text-blue-600 mt-1"
+                  >
+                    Nasıl bulurum?
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Risk Score Display */}
@@ -422,16 +597,133 @@ export default function RiskScoringApp() {
           </div>
         )}
 
+        {/* Help Modal */}
+        {helpModal.isOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    🔍 Veri Nasıl Bulunur?
+                  </h3>
+                  <button
+                    onClick={() => setHelpModal({ isOpen: false, content: "" })}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Stellar Expert Adımları */}
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">📊 Stellar Expert Üzerinden:</h4>
+                    <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                      <li><strong>stellar.expert/explorer/testnet/account/[ADRES]</strong> adresine git</li>
+                      <li><strong>"Payments"</strong> sekmesine tıkla</li>
+                      <li>Sağ üstten <strong>"Export CSV"</strong> düğmesine bas</li>
+                      <li>CSV dosyasını Excel veya Google Sheets ile aç</li>
+                    </ol>
+                  </div>
+
+                  {/* Alan-Spesifik Yardım */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3">📋 Excel/Sheets Formülleri:</h4>
+                    
+                    {helpModal.content === "txCount" && (
+                      <div className="space-y-2">
+                        <p className="text-sm"><strong>İşlem Sayısı:</strong> Son 30 günde yaptığınız toplam işlem sayısı</p>
+                        <p className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                          =ROWS(A:A)-1  (toplam satır sayısı - başlık)
+                        </p>
+                      </div>
+                    )}
+
+                    {helpModal.content === "avgHours" && (
+                      <div className="space-y-2">
+                        <p className="text-sm"><strong>Ortalama Saat Aralığı:</strong> İşlemler arası geçen ortalama süre</p>
+                        <p className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                          Tarih sütunundaki zaman farkları hesaplanır
+                        </p>
+                      </div>
+                    )}
+
+                    {helpModal.content === "assetTypes" && (
+                      <div className="space-y-2">
+                        <p className="text-sm"><strong>Varlık Çeşidi:</strong> Farklı token/varlık sayısı</p>
+                        <p className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                          Asset sütununda benzersiz değer sayısı
+                        </p>
+                      </div>
+                    )}
+
+                    {helpModal.content === "avgAmount" && (
+                      <div className="space-y-2">
+                        <p className="text-sm"><strong>Ortalama İşlem Tutarı:</strong> Ortalama işlem büyüklüğü</p>
+                        <p className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                          =AVERAGE(C:C)  (Amount sütunu ortalaması)
+                        </p>
+                      </div>
+                    )}
+
+                    {helpModal.content === "maxAmount" && (
+                      <div className="space-y-2">
+                        <p className="text-sm"><strong>Maksimum İşlem:</strong> En büyük tek işlem tutarı</p>
+                        <p className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                          =MAX(C:C)  (Amount sütunu maksimumu)
+                        </p>
+                      </div>
+                    )}
+
+                    {helpModal.content === "nightDayRatio" && (
+                      <div className="space-y-2">
+                        <p className="text-sm"><strong>Gece/Gündüz Oranı:</strong> Gece saatleri (22:00-06:00) işlem yüzdesi</p>
+                        <p className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                          =COUNTIFS(D:D,"&gt;=22:00")+COUNTIFS(D:D,"&lt;=06:00")/ROWS(A:A)*100
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Örnekler */}
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <h4 className="font-medium text-green-900 mb-2">✅ Örnek Değerler:</h4>
+                    <div className="text-sm text-green-800 space-y-1">
+                      <p>• İşlem Sayısı: 25 (ayda 25 işlem)</p>
+                      <p>• Ortalama Saat: 6.5 (işlemler arası 6.5 saat)</p>
+                      <p>• Varlık Çeşidi: 3 (XLM, USDC, BTC)</p>
+                      <p>• Ortalama Tutar: 150.50 XLM</p>
+                      <p>• Maksimum Tutar: 1000.00 XLM</p>
+                      <p>• Gece Oranı: 30% (işlemlerin %30'u gece)</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={() => setHelpModal({ isOpen: false, content: "" })}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Anladım
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Info Card */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold mb-3">ℹ️ Bilgi</h3>
           <div className="text-sm text-gray-600 space-y-2">
             <p>• Bu uygulama Stellar Testnet kullanır</p>
-            <p>• Risk skoru basit algoritma ile hesaplanır</p>
+            <p>• Risk skoru gelişmiş algoritma ile hesaplanır (6 faktör)</p>
             <p>• Verileriniz blockchain'de güvenli şekilde saklanır</p>
             <p>• Desteklenen wallet'lar: Albedo, xBull, Freighter, WalletConnect</p>
             <p>• Testnet XLM gereklidir (ücretsiz)</p>
-            <p>• Risk Algoritması: İşlem sıklığı, zaman aralığı ve varlık çeşitliliği</p>
+            <p>• Gelişmiş alanlar isteğe bağlıdır (boş bırakılabilir)</p>
           </div>
         </div>
       </div>
