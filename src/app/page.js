@@ -11,6 +11,7 @@ import {
 } from '@creit.tech/stellar-wallets-kit';
 import { writeScoreToBlockchain } from "./lib/writeScore";
 import { testContractExists, getContractInfo } from "./lib/testContract";
+import BlendDashboard from "../components/BlendDashboard.jsx";
 
 export default function RiskScoringApp() {
   // Wallet state
@@ -36,6 +37,7 @@ export default function RiskScoringApp() {
   const [messageType, setMessageType] = useState(""); // success, error, info
   const [transactionHash, setTransactionHash] = useState("");
   const [contractStatus, setContractStatus] = useState("unknown"); // unknown, exists, missing
+  const [showBlendDashboard, setShowBlendDashboard] = useState(false);
 
   // Feature normalization helper functions
   const normalizeFeature = (value, min, max) => {
@@ -237,8 +239,11 @@ export default function RiskScoringApp() {
       });
 
       setTransactionHash(hash);
-      setMessage(`✅ Risk skoru başarıyla blockchain'e kaydedildi!`);
+      setMessage(`✅ Risk skoru başarıyla blockchain'e kaydedildi! Artık DeFi özelliklerini kullanabilirsiniz.`);
       setMessageType("success");
+      
+      // Show Blend Dashboard after successful risk score submission
+      setShowBlendDashboard(true);
       
       console.log("✅ Transaction successful:", hash);
     } catch (error) {
@@ -724,9 +729,25 @@ export default function RiskScoringApp() {
             <p>• Desteklenen wallet'lar: Albedo, xBull, Freighter, WalletConnect</p>
             <p>• Testnet XLM gereklidir (ücretsiz)</p>
             <p>• Gelişmiş alanlar isteğe bağlıdır (boş bırakılabilir)</p>
+            {showBlendDashboard && (
+              <p>• <strong>🌊 Blend DeFi özellikleri aktif!</strong> Teminat yatırıp borç alabilirsiniz</p>
+            )}
           </div>
         </div>
+
+        {/* Blend DeFi Dashboard - Shows after successful risk score submission */}
+        {showBlendDashboard && walletAddress && (
+          <div className="mt-8">
+            <BlendDashboard 
+              kit={kit} 
+              walletAddress={walletAddress} 
+              riskScore={riskScore}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+
