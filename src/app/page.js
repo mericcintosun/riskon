@@ -1,28 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  StellarWalletsKit,
-  WalletNetwork,
-  allowAllModules,
-  ALBEDO_ID,
-  XBULL_ID,
-  FREIGHTER_ID,
-} from "@creit.tech/stellar-wallets-kit";
 import { writeScoreToBlockchain } from "./lib/writeScore";
 import { testContractExists, getContractInfo } from "./lib/testContract";
 import BlendDashboard from "../components/BlendDashboard.jsx";
 import Header from "../components/Header.jsx";
-import LandingPage from "../components/LandingPage.jsx";
+import Link from "next/link";
+import { useWallet } from "../contexts/WalletContext";
 
 export default function RiskScoringApp() {
-  // App view state
-  const [currentView, setCurrentView] = useState("landing"); // landing, dashboard
-  
-  // Wallet state
-  const [kit, setKit] = useState(null);
-  const [connectedWallet, setConnectedWallet] = useState(null);
-  const [walletAddress, setWalletAddress] = useState("");
+  // Use global wallet context
+  const { 
+    kit, 
+    connectedWallet, 
+    walletAddress, 
+    isLoading: walletLoading,
+    connectWallet,
+    disconnectWallet 
+  } = useWallet();
 
   // Form state - simplified
   const [txCount, setTxCount] = useState("");
@@ -113,37 +108,12 @@ export default function RiskScoringApp() {
 
   const isValidInput = riskScore !== null;
 
-  // Initialize wallet kit on component mount
+  // Test contract when kit is available
   useEffect(() => {
-    const initKit = async () => {
-      try {
-        const kitInstance = new StellarWalletsKit({
-          network: WalletNetwork.TESTNET,
-          selectedWalletId: ALBEDO_ID,
-          modules: allowAllModules(),
-        });
-        setKit(kitInstance);
-        
-        // Test contract on initialization
-        testContract();
-      } catch (error) {
-        console.error("Wallet kit initialization error:", error);
-        setMessage("Failed to initialize wallet system");
-        setMessageType("error");
-      }
-    };
-
-    initKit();
-  }, []);
-
-  // Handle view changes
-  const handleGetStarted = () => {
-    setCurrentView("dashboard");
-  };
-
-  const handleBackToLanding = () => {
-    setCurrentView("landing");
-  };
+    if (kit) {
+      testContract();
+    }
+  }, [kit]);
 
   // Test contract existence
   const testContract = async () => {
@@ -170,63 +140,14 @@ export default function RiskScoringApp() {
     }
   };
 
-  // Connect wallet
-  const connectWallet = async () => {
-    if (!kit) {
-      setMessage("Wallet kit not ready yet");
-      setMessageType("error");
-      return;
-    }
-
+  // Handle wallet connection for header
+  const handleConnectWallet = async () => {
     try {
-      setIsLoading(true);
-      setMessage("Opening wallet selection modal...");
-      setMessageType("info");
-
-      await kit.openModal({
-        onWalletSelected: async (option) => {
-          try {
-            console.log("🔗 Wallet selected:", option.name);
-            kit.setWallet(option.id);
-
-            const { address } = await kit.getAddress();
-            setWalletAddress(address);
-            setConnectedWallet(option.name);
-            setMessage(`✅ ${option.name} wallet connected!`);
-            setMessageType("success");
-
-            console.log("✅ Wallet connected:", { name: option.name, address });
-          } catch (error) {
-            console.error("❌ Wallet connection error:", error);
-            setMessage(`Wallet connection error: ${error.message}`);
-            setMessageType("error");
-          }
-        },
-        onClosed: (error) => {
-          if (error) {
-            console.error("❌ Modal closed with error:", error);
-            setMessage("Wallet selection cancelled");
-            setMessageType("error");
-          }
-        },
-        modalTitle: "Select Stellar Wallet",
-        notAvailableText: "This wallet is currently unavailable",
-      });
+      await connectWallet();
     } catch (error) {
-      console.error("❌ Modal open error:", error);
-      setMessage(`Modal open error: ${error.message}`);
+      setMessage(`Wallet connection error: ${error.message}`);
       setMessageType("error");
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  // Disconnect wallet
-  const disconnectWallet = () => {
-    setWalletAddress("");
-    setConnectedWallet(null);
-    setMessage("Wallet disconnected");
-    setMessageType("info");
   };
 
   // Submit risk score to blockchain
@@ -281,72 +202,114 @@ export default function RiskScoringApp() {
       <Header 
         walletAddress={walletAddress}
         connectedWallet={connectedWallet}
-        isLoading={isLoading}
-        onConnectWallet={connectWallet}
+        isLoading={walletLoading}
+        onConnectWallet={handleConnectWallet}
         onDisconnectWallet={disconnectWallet}
       />
 
-      {/* Main Content */}
+      {/* Main Content - Risk Scoring Dashboard */}
       <main className="min-h-screen">
-        {currentView === "landing" ? (
-          // Landing Page
-          <LandingPage onGetStarted={handleGetStarted} />
-        ) : (
-          // Modern Dashboard View
-          <div className="container-modern section-compact">
-            {/* Back to Landing Button */}
-            <div className="mb-8">
-              <button
-                onClick={handleBackToLanding}
-                className="btn-ghost"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back to Home
-              </button>
-            </div>
-
-            {/* Page Header */}
-            <div className="text-center mb-12">
-              <h1 className="text-heading mb-6">
-                Calculate Your Risk Score
-              </h1>
-              <p className="text-body max-w-2xl mx-auto">
-                Enter your blockchain transaction data to get an AI-powered risk assessment
-              </p>
-            </div>
-
-            {/* Contract Status - Only show if there's an issue */}
-            {contractStatus === "missing" && (
-              <div className="card-modern border-red-500/30 mb-8 animate-fade-in">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center">
-                      <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-subheading text-red-400 mb-1">
-                      Smart Contract Not Found
-                    </h3>
-                    <p className="text-caption">
-                      Contract not deployed or inaccessible
-                    </p>
-                  </div>
-                  <button onClick={testContract} className="btn-secondary">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <div className="container-modern section-compact">
+          {/* Page Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-hero mb-8">
+              Risk <span className="text-gradient-accent">Assessment</span>
+            </h1>
+            <p className="text-body max-w-2xl mx-auto mb-8">
+              Calculate your personalized blockchain risk score using AI-powered analysis. 
+              Get tailored DeFi recommendations based on your transaction patterns.
+            </p>
+            
+            {/* Quick Navigation */}
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              <Link href="/how-it-works">
+                <button className="btn-secondary px-6 py-3">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  How It Works
+                </button>
+              </Link>
+              <Link href="/features">
+                <button className="btn-secondary px-6 py-3">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Features
+                </button>
+              </Link>
+              {!walletAddress && (
+                <Link href="/wallet">
+                  <button className="btn-primary px-6 py-3">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    Retry
+                    Connect Wallet
                   </button>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Wallet Connection Prompt */}
+          {!walletAddress && (
+            <div className="card-glass max-w-2xl mx-auto mb-12 text-center animate-fade-in">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-purple-600/10 rounded-3xl"></div>
+                <div className="relative">
+                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-subheading mb-4">Connect Your Wallet</h2>
+                  <p className="text-body mb-6">
+                    To calculate your risk score and access DeFi features, please connect your Stellar wallet first.
+                  </p>
+                  <Link href="/wallet">
+                    <button className="btn-primary text-lg px-10 py-4">
+                      <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      Connect Wallet
+                    </button>
+                  </Link>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Modern Form */}
+          {/* Contract Status - Only show if there's an issue */}
+          {contractStatus === "missing" && (
+            <div className="card-modern border-red-500/30 mb-8 animate-fade-in">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-subheading text-red-400 mb-1">
+                    Smart Contract Not Found
+                  </h3>
+                  <p className="text-caption">
+                    Contract not deployed or inaccessible
+                  </p>
+                </div>
+                <button onClick={testContract} className="btn-secondary">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Risk Scoring Form */}
+          {walletAddress && (
             <div className="card-modern max-w-2xl mx-auto mb-8 animate-slide-up">
               <div className="mb-8">
                 <h2 className="text-subheading mb-6">
@@ -465,70 +428,70 @@ export default function RiskScoringApp() {
                 </p>
               </div>
             </div>
+          )}
 
-            {/* Message Display */}
-            {message && (
-              <div className={`card-modern max-w-2xl mx-auto mb-8 ${
-                messageType === "success" ? "border-emerald-500/30" : 
-                messageType === "error" ? "border-red-500/30" : 
-                "border-amber-500/30"
-              } animate-fade-in`}>
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                      messageType === "success" ? "bg-emerald-500/20" : 
-                      messageType === "error" ? "bg-red-500/20" : 
-                      "bg-amber-500/20"
-                    }`}>
-                      {messageType === "success" ? (
-                        <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : messageType === "error" ? (
-                        <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      ) : (
-                        <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium font-montserrat text-white/90">{message}</p>
-                    {transactionHash && (
-                      <p className="text-caption mt-2 font-mono">
-                        Hash: {transactionHash.substring(0, 8)}...{transactionHash.substring(56)}
-                      </p>
+          {/* Message Display */}
+          {message && (
+            <div className={`card-modern max-w-2xl mx-auto mb-8 ${
+              messageType === "success" ? "border-emerald-500/30" : 
+              messageType === "error" ? "border-red-500/30" : 
+              "border-amber-500/30"
+            } animate-fade-in`}>
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                    messageType === "success" ? "bg-emerald-500/20" : 
+                    messageType === "error" ? "bg-red-500/20" : 
+                    "bg-amber-500/20"
+                  }`}>
+                    {messageType === "success" ? (
+                      <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : messageType === "error" ? (
+                      <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     )}
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Blend DeFi Dashboard */}
-            {showBlendDashboard && walletAddress && riskScore !== null && (
-              <div className="mt-12 animate-fade-in">
-                <div className="card-glass max-w-4xl mx-auto mb-8">
-                  <div className="text-center">
-                    <h2 className="text-heading mb-4">
-                      DeFi Dashboard
-                    </h2>
-                    <p className="text-body">
-                      Your risk score has been saved. You can now access DeFi features.
+                <div className="flex-1">
+                  <p className="font-medium font-montserrat text-white/90">{message}</p>
+                  {transactionHash && (
+                    <p className="text-caption mt-2 font-mono">
+                      Hash: {transactionHash.substring(0, 8)}...{transactionHash.substring(56)}
                     </p>
-                  </div>
+                  )}
                 </div>
-                <BlendDashboard
-                  kit={kit}
-                  walletAddress={walletAddress}
-                  riskScore={riskScore}
-                />
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* Blend DeFi Dashboard */}
+          {showBlendDashboard && walletAddress && riskScore !== null && (
+            <div className="mt-12 animate-fade-in">
+              <div className="card-glass max-w-4xl mx-auto mb-8">
+                <div className="text-center">
+                  <h2 className="text-heading mb-4">
+                    DeFi Dashboard
+                  </h2>
+                  <p className="text-body">
+                    Your risk score has been saved. You can now access DeFi features.
+                  </p>
+                </div>
+              </div>
+              <BlendDashboard
+                kit={kit}
+                walletAddress={walletAddress}
+                riskScore={riskScore}
+              />
+            </div>
+          )}
+        </div>
       </main>
     </>
   );

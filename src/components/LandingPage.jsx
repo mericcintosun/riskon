@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
-export default function LandingPage({ onGetStarted }) {
+export default function LandingPage() {
   const howItWorksSteps = [
     {
       step: "01",
@@ -65,15 +66,14 @@ export default function LandingPage({ onGetStarted }) {
 
           {/* Hero CTA */}
           <div className="mb-16 animate-scale-in">
-            <button 
-              className="btn-primary text-lg px-10 py-4 shadow-accent hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-              onClick={onGetStarted}
-            >
-              <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Get Started
-            </button>
+            <Link href="/wallet">
+              <button className="btn-primary text-lg px-10 py-4 shadow-accent hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Get Started
+              </button>
+            </Link>
           </div>
 
           {/* Hero Stats */}
@@ -237,15 +237,14 @@ export default function LandingPage({ onGetStarted }) {
               <p className="text-body mb-8">
                 Calculate your risk score and step into the world of DeFi
               </p>
-              <button 
-                className="btn-primary text-lg px-10 py-4 shadow-accent hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-                onClick={onGetStarted}
-              >
-                <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Launch App
-              </button>
+              <Link href="/wallet">
+                <button className="btn-primary text-lg px-10 py-4 shadow-accent hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                  <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Launch App
+                </button>
+              </Link>
             </div>
           </div>
         </div>
