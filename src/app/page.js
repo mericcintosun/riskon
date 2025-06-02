@@ -7,6 +7,7 @@ import BlendDashboard from "../components/BlendDashboard.jsx";
 import Header from "../components/Header.jsx";
 import Link from "next/link";
 import { useWallet } from "../contexts/WalletContext";
+import { getTier, maxBorrow } from "../lib/borrowCalc";
 
 export default function RiskScoringApp() {
   // Use global wallet context
@@ -23,6 +24,9 @@ export default function RiskScoringApp() {
   const [txCount, setTxCount] = useState("");
   const [avgHours, setAvgHours] = useState("");
   const [assetTypes, setAssetTypes] = useState("");
+
+  // Collateral calculator state
+  const [collateralAmount, setCollateralAmount] = useState("");
 
   // App state
   const [isLoading, setIsLoading] = useState(false);
@@ -489,6 +493,82 @@ export default function RiskScoringApp() {
                 walletAddress={walletAddress}
                 riskScore={riskScore}
               />
+            </div>
+          )}
+
+          {/* Teminat Hesaplayıcı */}
+          {riskScore !== null && (
+            <div className="card-modern max-w-2xl mx-auto mt-8 mb-8 animate-fade-in">
+              <div className="mb-6">
+                <h2 className="text-subheading mb-4">
+                  Teminat Hesaplayıcı
+                </h2>
+                <p className="text-caption">
+                  Risk skorunuza göre maksimum borç limitinizi hesaplayın
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
+                    Teminat (USDC)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={collateralAmount}
+                    onChange={(e) => setCollateralAmount(e.target.value)}
+                    className={`input-modern ${
+                      collateralAmount && (isNaN(parseFloat(collateralAmount)) || parseFloat(collateralAmount) < 0)
+                        ? 'border-red-500/50 focus:border-red-500'
+                        : ''
+                    }`}
+                    placeholder="0.00"
+                  />
+                  {collateralAmount && (isNaN(parseFloat(collateralAmount)) || parseFloat(collateralAmount) < 0) && (
+                    <p className="text-red-400 text-sm mt-2 font-montserrat">
+                      Geçerli tutar girin
+                    </p>
+                  )}
+                </div>
+
+                {collateralAmount && !isNaN(parseFloat(collateralAmount)) && parseFloat(collateralAmount) >= 0 && (
+                  <div className="bg-gradient-to-br from-violet-500/10 to-purple-600/10 rounded-2xl p-6 animate-scale-in">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white/90 mb-2 font-montserrat">
+                        {maxBorrow(parseFloat(collateralAmount), riskScore).toFixed(2)} USDC
+                      </div>
+                      <div className="text-caption mb-4">
+                        Maksimum borç
+                      </div>
+                      <div className="flex items-center justify-center space-x-4 text-sm">
+                        <span className={`px-3 py-1 rounded-full font-medium ${
+                          getTier(riskScore).name === 'low' ? 'bg-emerald-500/20 text-emerald-400' :
+                          getTier(riskScore).name === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          tier = {getTier(riskScore).name}
+                        </span>
+                        <span className="text-white/60">
+                          faktör = {(getTier(riskScore).collateralFactor * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!collateralAmount && (
+                  <div className="bg-gradient-to-br from-violet-500/5 to-purple-600/5 rounded-2xl p-6 text-center">
+                    <div className="text-lg text-white/60 mb-2 font-montserrat">
+                      0 USDC
+                    </div>
+                    <div className="text-caption">
+                      Maksimum borç
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -1,0 +1,9 @@
+{
+  "platform": "DemoBorrow",
+  "baseAsset": "USDC",
+  "tiers": [
+    { "name": "low",    "minScore": 70, "collateralFactor": 0.80 },
+    { "name": "medium", "minScore": 40, "collateralFactor": 0.70 },
+    { "name": "high",   "minScore":  0, "collateralFactor": 0.50 }
+  ]
+} 
