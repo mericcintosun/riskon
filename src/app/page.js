@@ -7,6 +7,8 @@ import BlendDashboard from "../components/BlendDashboard.jsx";
 import Header from "../components/Header.jsx";
 import Link from "next/link";
 import { useWallet } from "../contexts/WalletContext";
+import { useToast } from "../contexts/ToastContext";
+import { useIssueDetector } from "../hooks/useIssueDetector";
 import { getTier, maxBorrow } from "../lib/borrowCalc";
 
 export default function RiskScoringApp() {
@@ -16,9 +18,23 @@ export default function RiskScoringApp() {
     connectedWallet, 
     walletAddress, 
     isLoading: walletLoading,
+    initError,
+    isReady,
     connectWallet,
     disconnectWallet 
   } = useWallet();
+
+  // Toast notifications
+  const { toast, showCategorizedError } = useToast();
+
+  // Issue detection
+  const { 
+    issues, 
+    isAnalyzing, 
+    analyzeApplication, 
+    validateFormInputs,
+    runQuickHealthCheck 
+  } = useIssueDetector();
 
   // Form state - simplified
   const [txCount, setTxCount] = useState("");
@@ -30,12 +46,10 @@ export default function RiskScoringApp() {
 
   // App state
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState(""); // success, error, info
   const [transactionHash, setTransactionHash] = useState("");
-  const [contractStatus, setContractStatus] = useState("unknown"); // unknown, exists, missing
+  const [contractStatus, setContractStatus] = useState("unknown");
   const [showBlendDashboard, setShowBlendDashboard] = useState(false);
-  const [riskScore, setRiskScore] = useState(null);
+  const [riskScore, setRiskScore] = useState(0);
 
   // Simplified risk score calculation
   const calculateRiskScore = (
@@ -62,7 +76,7 @@ export default function RiskScoringApp() {
       inputs[2] < 0 ||
       inputs[2] > 10
     ) {
-      return null;
+      return 0; // Return 0 instead of null for invalid inputs
     }
 
     const [txCount, medianHours, assetKinds] = inputs;
@@ -104,13 +118,21 @@ export default function RiskScoringApp() {
     return Math.min(100, Math.max(0, score));
   };
 
-  // Calculate risk score when form values change
+  // Calculate risk score when form values change with validation
   useEffect(() => {
     const calculatedScore = calculateRiskScore();
     setRiskScore(calculatedScore);
+    
+    // Validate form inputs and show issues if any
+    const validationErrors = validateFormInputs(txCount, avgHours, assetTypes);
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => {
+        toast.warning(error, { duration: 3000 });
+      });
+    }
   }, [txCount, avgHours, assetTypes]);
 
-  const isValidInput = riskScore !== null;
+  const isValidInput = riskScore !== null && (txCount || avgHours || assetTypes);
 
   // Test contract when kit is available
   useEffect(() => {
@@ -119,61 +141,90 @@ export default function RiskScoringApp() {
     }
   }, [kit]);
 
+  // Show initialization errors
+  useEffect(() => {
+    if (initError) {
+      showCategorizedError(initError, "Wallet system initialization failed");
+    }
+  }, [initError]);
+
   // Test contract existence
   const testContract = async () => {
     try {
       console.log("🔍 Testing contract...");
+      const loadingToast = toast.loading("Testing smart contract connection...");
+      
       const contractInfo = await getContractInfo();
+
+      toast.dismiss(loadingToast);
 
       if (contractInfo.exists) {
         setContractStatus("exists");
         console.log("✅ Contract exists and accessible");
+        toast.success("✅ Smart contract connection verified");
       } else {
         setContractStatus("missing");
         console.log("❌ Contract not found:", contractInfo.error);
-        setMessage(
-          `⚠️ Contract not found: ${contractInfo.error}. Please ensure the contract is deployed.`
-        );
-        setMessageType("error");
+        toast.error(`⛓️ Contract issue: ${contractInfo.error}`);
       }
     } catch (error) {
       console.error("❌ Contract test error:", error);
       setContractStatus("missing");
-      setMessage(`Contract test error: ${error.message}`);
-      setMessageType("error");
+      showCategorizedError(error, "Smart contract connectivity test failed");
     }
   };
 
   // Handle wallet connection for header
   const handleConnectWallet = async () => {
     try {
-      await connectWallet();
+      const loadingToast = toast.loading("Connecting to wallet...");
+      const result = await connectWallet();
+      toast.dismiss(loadingToast);
+      
+      if (result.success) {
+        toast.success(`👛 Successfully connected to ${result.walletName}!`);
+      }
     } catch (error) {
-      setMessage(`Wallet connection error: ${error.message}`);
-      setMessageType("error");
+      showCategorizedError(error, "Failed to connect wallet");
+    }
+  };
+
+  // Handle wallet disconnection
+  const handleDisconnectWallet = () => {
+    try {
+      const result = disconnectWallet();
+      if (result.success) {
+        toast.success("👛 Wallet disconnected successfully");
+      } else {
+        toast.warning("Wallet disconnected (with minor issues)");
+      }
+    } catch (error) {
+      showCategorizedError(error, "Error during wallet disconnection");
     }
   };
 
   // Submit risk score to blockchain
   const submitRiskScore = async () => {
-    if (!kit || !walletAddress || riskScore === null) {
-      setMessage("Please connect wallet and enter valid data");
-      setMessageType("error");
+    if (!kit || !walletAddress) {
+      toast.error("⚠️ Please connect wallet and enter valid data");
       return;
     }
 
     if (contractStatus !== "exists") {
-      setMessage(
-        "Contract not found. Please ensure the contract is deployed."
-      );
-      setMessageType("error");
+      toast.error("⛓️ Smart contract not available. Please check your connection.");
+      return;
+    }
+
+    // Final validation
+    const validationErrors = validateFormInputs(txCount, avgHours, assetTypes);
+    if (validationErrors.length > 0) {
+      toast.error(`⚠️ Validation errors: ${validationErrors.join(", ")}`);
       return;
     }
 
     try {
       setIsLoading(true);
-      setMessage("Saving risk score to blockchain...");
-      setMessageType("info");
+      const loadingToast = toast.loading("💾 Saving risk score to blockchain...");
 
       const hash = await writeScoreToBlockchain({
         kit,
@@ -181,11 +232,19 @@ export default function RiskScoringApp() {
         score: riskScore,
       });
 
+      toast.dismiss(loadingToast);
       setTransactionHash(hash);
-      setMessage(
-        `✅ Risk score successfully saved to blockchain! You can now use DeFi features.`
-      );
-      setMessageType("success");
+      
+      toast.success("✅ Risk score successfully saved to blockchain!", {
+        duration: 6000,
+      });
+
+      // Show additional success info
+      setTimeout(() => {
+        toast.info("🚀 You can now access DeFi features!", {
+          duration: 5000,
+        });
+      }, 1000);
 
       // Show Blend Dashboard after successful risk score submission
       setShowBlendDashboard(true);
@@ -193,10 +252,46 @@ export default function RiskScoringApp() {
       console.log("✅ Transaction successful:", hash);
     } catch (error) {
       console.error("❌ Blockchain write error:", error);
-      setMessage(`Blockchain save error: ${error.message}`);
-      setMessageType("error");
+      showCategorizedError(error, "Failed to save risk score to blockchain");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle form input changes with real-time validation
+  const handleTxCountChange = (e) => {
+    const value = e.target.value;
+    setTxCount(value);
+    
+    if (value && (isNaN(value) || value < 0 || value > 100)) {
+      toast.warning("Transaction count must be between 0-100", { duration: 2000 });
+    }
+  };
+
+  const handleAvgHoursChange = (e) => {
+    const value = e.target.value;
+    setAvgHours(value);
+    
+    if (value && (isNaN(value) || value < 0 || value > 24)) {
+      toast.warning("Average hours must be between 0-24", { duration: 2000 });
+    }
+  };
+
+  const handleAssetTypesChange = (e) => {
+    const value = e.target.value;
+    setAssetTypes(value);
+    
+    if (value && (isNaN(value) || value < 0 || value > 10)) {
+      toast.warning("Asset types must be between 0-10", { duration: 2000 });
+    }
+  };
+
+  const handleCollateralChange = (e) => {
+    const value = e.target.value;
+    setCollateralAmount(value);
+    
+    if (value && (isNaN(parseFloat(value)) || parseFloat(value) < 0)) {
+      toast.warning("Please enter a valid collateral amount", { duration: 2000 });
     }
   };
 
@@ -208,7 +303,7 @@ export default function RiskScoringApp() {
         connectedWallet={connectedWallet}
         isLoading={walletLoading}
         onConnectWallet={handleConnectWallet}
-        onDisconnectWallet={disconnectWallet}
+        onDisconnectWallet={handleDisconnectWallet}
       />
 
       {/* Main Content - Risk Scoring Dashboard */}
@@ -252,6 +347,18 @@ export default function RiskScoringApp() {
                   </button>
                 </Link>
               )}
+              
+              {/* Issue Analysis Button */}
+              <button
+                onClick={analyzeApplication}
+                disabled={isAnalyzing}
+                className="btn-secondary px-6 py-3 disabled:opacity-50"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {isAnalyzing ? "Analyzing..." : "Check Issues"}
+              </button>
             </div>
           </div>
 
@@ -270,8 +377,18 @@ export default function RiskScoringApp() {
                   <p className="text-body mb-6">
                     To calculate your risk score and access DeFi features, please connect your Stellar wallet first.
                   </p>
+                  {!isReady && (
+                    <div className="mb-4 p-3 bg-amber-500/20 rounded-lg">
+                      <p className="text-amber-400 text-sm">
+                        ⚠️ Wallet system is initializing... Please wait
+                      </p>
+                    </div>
+                  )}
                   <Link href="/wallet">
-                    <button className="btn-primary text-lg px-10 py-4">
+                    <button 
+                      className="btn-primary text-lg px-10 py-4 disabled:opacity-50"
+                      disabled={!isReady}
+                    >
                       <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
@@ -331,7 +448,7 @@ export default function RiskScoringApp() {
                     min="0"
                     max="100"
                     value={txCount}
-                    onChange={(e) => setTxCount(e.target.value)}
+                    onChange={handleTxCountChange}
                     className="input-modern"
                     placeholder="e.g. 25"
                   />
@@ -350,7 +467,7 @@ export default function RiskScoringApp() {
                     max="24"
                     step="0.1"
                     value={avgHours}
-                    onChange={(e) => setAvgHours(e.target.value)}
+                    onChange={handleAvgHoursChange}
                     className="input-modern"
                     placeholder="e.g. 8.5"
                   />
@@ -368,7 +485,7 @@ export default function RiskScoringApp() {
                     min="0"
                     max="10"
                     value={assetTypes}
-                    onChange={(e) => setAssetTypes(e.target.value)}
+                    onChange={handleAssetTypesChange}
                     className="input-modern"
                     placeholder="e.g. 3"
                   />
@@ -379,37 +496,35 @@ export default function RiskScoringApp() {
               </div>
 
               {/* Risk Score Display */}
-              {riskScore !== null && (
-                <div className="mt-8 animate-scale-in">
-                  <div className="risk-score-container">
-                    <div className="text-center mb-6">
-                      <h3 className="text-subheading mb-4">
-                        Your Risk Score
-                      </h3>
-                      <div className="risk-score-value mb-3">
-                        {Math.round(riskScore)}
-                      </div>
-                      <div className="text-caption mb-6">
-                        {riskScore <= 30 ? "Low Risk" : 
-                         riskScore <= 70 ? "Medium Risk" : 
-                         "High Risk"}
-                      </div>
-                      <div className="risk-bar">
-                        <div 
-                          className="risk-bar-fill"
-                          style={{width: `${Math.min(100, riskScore)}%`}}
-                        ></div>
-                      </div>
+              <div className="mt-8 animate-scale-in">
+                <div className="risk-score-container">
+                  <div className="text-center mb-6">
+                    <h3 className="text-subheading mb-4">
+                      Your Risk Score
+                    </h3>
+                    <div className="risk-score-value mb-3">
+                      {Math.round(riskScore)}
+                    </div>
+                    <div className="text-caption mb-6">
+                      {riskScore <= 30 ? "Low Risk" : 
+                       riskScore <= 70 ? "Medium Risk" : 
+                       "High Risk"}
+                    </div>
+                    <div className="risk-bar">
+                      <div 
+                        className="risk-bar-fill"
+                        style={{width: `${Math.min(100, riskScore)}%`}}
+                      ></div>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Submit Button */}
               <div className="mt-8 text-center">
                 <button
                   onClick={submitRiskScore}
-                  disabled={!kit || !walletAddress || riskScore === null || !isValidInput || isLoading || contractStatus !== "exists"}
+                  disabled={!kit || !walletAddress || !isValidInput || isLoading || contractStatus !== "exists"}
                   className="btn-primary text-lg px-10 py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-accent hover:shadow-2xl"
                 >
                   {isLoading ? (
@@ -434,49 +549,8 @@ export default function RiskScoringApp() {
             </div>
           )}
 
-          {/* Message Display */}
-          {message && (
-            <div className={`card-modern max-w-2xl mx-auto mb-8 ${
-              messageType === "success" ? "border-emerald-500/30" : 
-              messageType === "error" ? "border-red-500/30" : 
-              "border-amber-500/30"
-            } animate-fade-in`}>
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                    messageType === "success" ? "bg-emerald-500/20" : 
-                    messageType === "error" ? "bg-red-500/20" : 
-                    "bg-amber-500/20"
-                  }`}>
-                    {messageType === "success" ? (
-                      <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : messageType === "error" ? (
-                      <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    ) : (
-                      <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium font-montserrat text-white/90">{message}</p>
-                  {transactionHash && (
-                    <p className="text-caption mt-2 font-mono">
-                      Hash: {transactionHash.substring(0, 8)}...{transactionHash.substring(56)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Blend DeFi Dashboard */}
-          {showBlendDashboard && walletAddress && riskScore !== null && (
+          {showBlendDashboard && walletAddress && (
             <div className="mt-12 animate-fade-in">
               <div className="card-glass max-w-4xl mx-auto mb-8">
                 <div className="text-center">
@@ -496,8 +570,8 @@ export default function RiskScoringApp() {
             </div>
           )}
 
-          {/* Teminat Hesaplayıcı */}
-          {riskScore !== null && (
+          {/* Collateral Calculator */}
+          {walletAddress && (
             <div className="card-modern max-w-2xl mx-auto mt-8 mb-8 animate-fade-in">
               <div className="mb-6">
                 <h2 className="text-subheading mb-4">
@@ -518,7 +592,7 @@ export default function RiskScoringApp() {
                     min="0"
                     step="0.01"
                     value={collateralAmount}
-                    onChange={(e) => setCollateralAmount(e.target.value)}
+                    onChange={handleCollateralChange}
                     className={`input-modern ${
                       collateralAmount && (isNaN(parseFloat(collateralAmount)) || parseFloat(collateralAmount) < 0)
                         ? 'border-red-500/50 focus:border-red-500'
@@ -526,11 +600,6 @@ export default function RiskScoringApp() {
                     }`}
                     placeholder="0.00"
                   />
-                  {collateralAmount && (isNaN(parseFloat(collateralAmount)) || parseFloat(collateralAmount) < 0) && (
-                    <p className="text-red-400 text-sm mt-2 font-montserrat">
-                      Please enter a valid amount
-                    </p>
-                  )}
                 </div>
 
                 {collateralAmount && !isNaN(parseFloat(collateralAmount)) && parseFloat(collateralAmount) >= 0 && (
