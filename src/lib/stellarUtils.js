@@ -12,34 +12,23 @@ let SorobanRpc = null;
 // Dynamic import to handle potential issues
 const initializeStellarSDK = async () => {
   try {
-    if (typeof window !== 'undefined') {
-      console.log("🔧 Loading Stellar SDK...");
-      const SDK = await import('@stellar/stellar-sdk');
+    if (typeof window !== "undefined") {
+      const SDK = await import("@stellar/stellar-sdk");
       StellarSDK = SDK;
-      
-      // Debug SDK structure
-      console.log("📋 SDK structure check:", {
-        hasDefault: !!SDK.default,
-        hasSorobanRpc: !!SDK.SorobanRpc,
-        hasServer: !!SDK.Server,
-        version: SDK.version || 'unknown'
-      });
-      
+
       // Handle different SDK export patterns
       if (SDK.default && SDK.default.SorobanRpc) {
         StellarSDK = SDK.default;
-        console.log("✅ Using SDK.default export pattern");
       } else if (SDK.SorobanRpc) {
         StellarSDK = SDK;
-        console.log("✅ Using direct SDK export pattern");
       } else {
-        console.warn("⚠️ SorobanRpc not found in expected locations, using fallback");
+        console.warn(
+          "⚠️ SorobanRpc not found in expected locations, using fallback"
+        );
         StellarSDK = SDK.default || SDK;
       }
-      
+
       SorobanRpc = StellarSDK.SorobanRpc;
-      console.log("✅ Stellar SDK loaded successfully:", StellarSDK.version || 'unknown version');
-      console.log("🔗 SorobanRpc available:", !!SorobanRpc);
       return true;
     }
   } catch (error) {
@@ -51,8 +40,8 @@ const initializeStellarSDK = async () => {
 
 // Initialize on module load
 let sdkInitialized = false;
-if (typeof window !== 'undefined') {
-  initializeStellarSDK().then(success => {
+if (typeof window !== "undefined") {
+  initializeStellarSDK().then((success) => {
     sdkInitialized = success;
   });
 }
@@ -63,13 +52,13 @@ export const STELLAR_NETWORKS = {
     networkPassphrase: "Test SDF Network ; September 2015",
     horizonUrl: "https://horizon-testnet.stellar.org",
     sorobanRpcUrl: "https://soroban-testnet.stellar.org",
-    friendbotUrl: "https://friendbot.stellar.org"
+    friendbotUrl: "https://friendbot.stellar.org",
   },
   PUBLIC: {
     networkPassphrase: "Public Global Stellar Network ; September 2015",
     horizonUrl: "https://horizon.stellar.org",
-    sorobanRpcUrl: "https://soroban-rpc.stellar.org"
-  }
+    sorobanRpcUrl: "https://soroban-rpc.stellar.org",
+  },
 };
 
 /**
@@ -77,56 +66,61 @@ export const STELLAR_NETWORKS = {
  */
 export async function testNetworkConnectivity() {
   const tests = [];
-  
+
   try {
     // Test 1: Horizon API
-    const horizonResponse = await fetch(`${STELLAR_NETWORKS.TESTNET.horizonUrl}/`);
+    const horizonResponse = await fetch(
+      `${STELLAR_NETWORKS.TESTNET.horizonUrl}/`
+    );
     tests.push({
       service: "Horizon API",
       status: horizonResponse.ok ? "✅ Connected" : "❌ Failed",
-      latency: horizonResponse.ok ? "< 1s" : "N/A"
+      latency: horizonResponse.ok ? "< 1s" : "N/A",
     });
   } catch (error) {
     tests.push({
       service: "Horizon API",
       status: "❌ Error: " + error.message,
-      latency: "N/A"
+      latency: "N/A",
     });
   }
 
   try {
     // Test 2: Soroban RPC
-    const sorobanResponse = await fetch(STELLAR_NETWORKS.TESTNET.sorobanRpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "getLatestLedger",
-        params: {}
-      })
-    });
-    
+    const sorobanResponse = await fetch(
+      STELLAR_NETWORKS.TESTNET.sorobanRpcUrl,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getLatestLedger",
+          params: {},
+        }),
+      }
+    );
+
     if (sorobanResponse.ok) {
       const data = await sorobanResponse.json();
       tests.push({
         service: "Soroban RPC",
         status: data.result ? "✅ Connected" : "⚠️ Partial",
         latency: "< 1s",
-        ledger: data.result?.sequence || "Unknown"
+        ledger: data.result?.sequence || "Unknown",
       });
     } else {
       tests.push({
         service: "Soroban RPC",
         status: "❌ HTTP Error",
-        latency: "N/A"
+        latency: "N/A",
       });
     }
   } catch (error) {
     tests.push({
       service: "Soroban RPC",
       status: "❌ Error: " + error.message,
-      latency: "N/A"
+      latency: "N/A",
     });
   }
 
@@ -137,7 +131,7 @@ export async function testNetworkConnectivity() {
  * Advanced RPC Client with multiple fallback mechanisms
  */
 export class AdvancedSorobanClient {
-  constructor(network = 'TESTNET') {
+  constructor(network = "TESTNET") {
     this.network = STELLAR_NETWORKS[network];
     this.rpcUrl = this.network.sorobanRpcUrl;
     this.requestId = 1;
@@ -148,20 +142,24 @@ export class AdvancedSorobanClient {
       const requestBody = {
         jsonrpc: "2.0",
         id: this.requestId++,
-        method
+        method,
       };
-      
+
       // Only add params if they exist and are not empty
-      if (params !== null && params !== undefined && Object.keys(params).length > 0) {
+      if (
+        params !== null &&
+        params !== undefined &&
+        Object.keys(params).length > 0
+      ) {
         requestBody.params = params;
       }
 
       const response = await fetch(this.rpcUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -169,7 +167,7 @@ export class AdvancedSorobanClient {
       }
 
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(`RPC error: ${data.error.message}`);
       }
@@ -207,8 +205,8 @@ export class AdvancedSorobanClient {
 
   async getContract(contractId) {
     try {
-      return await this.makeRpcCall("getLedgerEntries", { 
-        keys: [`CONTRACT_DATA:${contractId}`]
+      return await this.makeRpcCall("getLedgerEntries", {
+        keys: [`CONTRACT_DATA:${contractId}`],
       });
     } catch (error) {
       console.warn(`Contract ${contractId} not accessible:`, error.message);
@@ -221,23 +219,25 @@ export class AdvancedSorobanClient {
  * Contract interaction utilities
  */
 export class StellarContractManager {
-  constructor(network = 'TESTNET') {
+  constructor(network = "TESTNET") {
     this.client = new AdvancedSorobanClient(network);
     this.network = STELLAR_NETWORKS[network];
   }
 
   async testContract(contractAddress) {
     try {
-      console.log(`🔍 Testing contract: ${contractAddress}`);
-      
       // Simplified contract test - just check if address format is valid
-      if (contractAddress && contractAddress.length === 56 && contractAddress.startsWith('C')) {
+      if (
+        contractAddress &&
+        contractAddress.length === 56 &&
+        contractAddress.startsWith("C")
+      ) {
         return {
           address: contractAddress,
           exists: true, // Assume exists for now
           status: "✅ Format Valid",
           type: "Smart Contract",
-          network: "Testnet"
+          network: "Testnet",
         };
       } else {
         return {
@@ -245,7 +245,7 @@ export class StellarContractManager {
           exists: false,
           status: "❌ Invalid Format",
           type: "Smart Contract",
-          network: "Testnet"
+          network: "Testnet",
         };
       }
     } catch (error) {
@@ -254,7 +254,7 @@ export class StellarContractManager {
         exists: false,
         status: "❌ Error: " + error.message,
         type: "Smart Contract",
-        network: "Testnet"
+        network: "Testnet",
       };
     }
   }
@@ -265,7 +265,7 @@ export class StellarContractManager {
       return {
         address: contractAddress,
         data: info,
-        accessible: true
+        accessible: true,
       };
     } catch (error) {
       console.warn(`Cannot access contract ${contractAddress}:`, error);
@@ -273,7 +273,7 @@ export class StellarContractManager {
         address: contractAddress,
         data: null,
         accessible: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -289,23 +289,21 @@ export class EnhancedPoolManager {
   }
 
   async discoverActivePools(poolAddresses) {
-    console.log("🔍 Discovering active pools using multiple methods...");
-    
     const results = [];
-    
+
     for (const [name, address] of Object.entries(poolAddresses)) {
       try {
-        console.log(`Testing pool ${name}: ${address}`);
-        
         // Method 1: Direct contract check
         const contractTest = await this.contractManager.testContract(address);
-        
+
         // Method 2: Network connectivity test
         const networkHealth = await this.client.getHealth().catch(() => null);
-        
+
         // Method 3: Ledger check
-        const ledgerInfo = await this.client.getLatestLedger().catch(() => null);
-        
+        const ledgerInfo = await this.client
+          .getLatestLedger()
+          .catch(() => null);
+
         const poolInfo = {
           name,
           address,
@@ -314,12 +312,15 @@ export class EnhancedPoolManager {
           networkHealthy: !!networkHealth,
           ledgerAccessible: !!ledgerInfo,
           currentLedger: ledgerInfo?.sequence || null,
-          overallStatus: this.determinePoolStatus(contractTest.exists, !!networkHealth, !!ledgerInfo),
-          lastChecked: new Date().toISOString()
+          overallStatus: this.determinePoolStatus(
+            contractTest.exists,
+            !!networkHealth,
+            !!ledgerInfo
+          ),
+          lastChecked: new Date().toISOString(),
         };
-        
+
         results.push(poolInfo);
-        
       } catch (error) {
         console.error(`Failed to test pool ${name}:`, error);
         results.push({
@@ -331,11 +332,11 @@ export class EnhancedPoolManager {
           ledgerAccessible: false,
           overallStatus: "ERROR",
           error: error.message,
-          lastChecked: new Date().toISOString()
+          lastChecked: new Date().toISOString(),
         });
       }
     }
-    
+
     return results;
   }
 
@@ -355,7 +356,7 @@ export class EnhancedPoolManager {
     try {
       // Create operation templates based on pool status
       const poolStatus = await this.contractManager.testContract(poolAddress);
-      
+
       if (poolStatus.exists) {
         // Real operations for working contracts
         return this.createRealOperation(poolAddress, operationType);
@@ -378,7 +379,10 @@ export class EnhancedPoolManager {
       requiresWallet: true,
       blockchain: "Stellar Testnet",
       estimatedFee: "0.00001 XLM",
-      template: `Real ${operationType} operation on pool ${poolAddress.slice(0, 8)}...`
+      template: `Real ${operationType} operation on pool ${poolAddress.slice(
+        0,
+        8
+      )}...`,
     };
   }
 
@@ -391,7 +395,7 @@ export class EnhancedPoolManager {
       requiresWallet: false,
       blockchain: "Demo Mode",
       estimatedFee: "0 XLM (Demo)",
-      template: `Simulated ${operationType} operation for testing`
+      template: `Simulated ${operationType} operation for testing`,
     };
   }
 }
@@ -417,46 +421,45 @@ export class StellarBlendIntegration {
 
   async _doInitialize() {
     try {
-      console.log("🚀 Initializing Stellar Blend Integration...");
-      
       // Test network connectivity
       const connectivity = await testNetworkConnectivity();
-      console.log("Network connectivity test results:", connectivity);
-      
+
       // Test SDK availability
       const sdkAvailable = await initializeStellarSDK();
-      console.log("SDK available:", sdkAvailable);
-      
+
       // Test basic RPC functionality
       const client = new AdvancedSorobanClient();
       const health = await client.getHealth().catch(() => null);
-      console.log("RPC health check:", health ? "✅ Healthy" : "⚠️ Limited");
-      
+
       this.isInitialized = true;
-      console.log("✅ Stellar Blend Integration initialized successfully");
-      
+
       return {
         success: true,
         sdkAvailable,
         networkConnectivity: connectivity,
-        rpcHealthy: !!health
+        rpcHealthy: !!health,
       };
     } catch (error) {
-      console.error("❌ Failed to initialize Stellar Blend Integration:", error);
+      console.error(
+        "❌ Failed to initialize Stellar Blend Integration:",
+        error
+      );
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
   async getPoolsWithStatus(poolAddresses) {
     await this.initialize();
-    
+
     try {
-      const poolResults = await this.poolManager.discoverActivePools(poolAddresses);
-      
-      return poolResults.map(pool => ({
+      const poolResults = await this.poolManager.discoverActivePools(
+        poolAddresses
+      );
+
+      return poolResults.map((pool) => ({
         id: pool.address,
         name: pool.name,
         status: pool.overallStatus,
@@ -468,9 +471,9 @@ export class StellarBlendIntegration {
         health: {
           contract: pool.contractExists,
           network: pool.networkHealthy,
-          ledger: pool.ledgerAccessible
+          ledger: pool.ledgerAccessible,
         },
-        lastChecked: pool.lastChecked
+        lastChecked: pool.lastChecked,
       }));
     } catch (error) {
       console.error("Failed to get pools with status:", error);
@@ -493,26 +496,34 @@ export class StellarBlendIntegration {
 
   getPoolCapabilities(pool) {
     const capabilities = [];
-    
+
     if (pool.contractExists) capabilities.push("Contract Accessible");
     if (pool.networkHealthy) capabilities.push("Network Connected");
     if (pool.ledgerAccessible) capabilities.push("Ledger Synced");
-    
+
     if (capabilities.length === 0) {
       capabilities.push("Demo Operations");
     }
-    
+
     return capabilities;
   }
 
   async executeOperation(poolAddress, operationType, amount, asset, walletKit) {
     await this.initialize();
-    
+
     try {
-      const operation = await this.poolManager.getPoolOperations(poolAddress, operationType);
-      
+      const operation = await this.poolManager.getPoolOperations(
+        poolAddress,
+        operationType
+      );
+
       if (operation.type === "REAL_OPERATION" && walletKit) {
-        return await this.executeRealOperation(operation, amount, asset, walletKit);
+        return await this.executeRealOperation(
+          operation,
+          amount,
+          asset,
+          walletKit
+        );
       } else {
         return await this.executeSimulatedOperation(operation, amount, asset);
       }
@@ -523,27 +534,28 @@ export class StellarBlendIntegration {
   }
 
   async executeRealOperation(operation, amount, asset, walletKit) {
-    console.log("🔗 Executing real blockchain operation:", operation);
-    
     try {
       // Initialize Stellar SDK if not already done
       if (!StellarSDK) {
         await initializeStellarSDK();
       }
-      
+
       if (!StellarSDK) {
-        throw new Error("Stellar SDK not available - falling back to simulation");
+        throw new Error(
+          "Stellar SDK not available - falling back to simulation"
+        );
       }
-      
-      console.log("✅ Stellar SDK available, proceeding with real transaction");
-      
+
       // Get user's wallet address
       let userAddress;
       try {
         // Handle different wallet response formats
-        if (typeof walletKit.getAddress === 'function') {
+        if (typeof walletKit.getAddress === "function") {
           const addressResult = await walletKit.getAddress();
-          userAddress = typeof addressResult === 'string' ? addressResult : addressResult.address;
+          userAddress =
+            typeof addressResult === "string"
+              ? addressResult
+              : addressResult.address;
         } else if (walletKit.getPublicKey) {
           userAddress = walletKit.getPublicKey();
         } else if (walletKit.address) {
@@ -551,33 +563,34 @@ export class StellarBlendIntegration {
         } else {
           throw new Error("Cannot get user address from wallet");
         }
-        
+
         // Ensure we have a valid string address
-        if (typeof userAddress !== 'string' || userAddress.length < 10) {
+        if (typeof userAddress !== "string" || userAddress.length < 10) {
           throw new Error(`Invalid address format: ${typeof userAddress}`);
         }
-        
-        console.log("👤 User address:", userAddress);
       } catch (addressError) {
         console.error("Address extraction failed:", addressError);
-        
+
         // Skip account loading and proceed with enhanced simulation
-        console.log("🔄 Skipping account validation, using enhanced mode");
-        
-        const enhancedHash = `ENHANCED_NO_ACCOUNT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log("✅ Enhanced processing completed without account validation:", enhancedHash);
+
+        const enhancedHash = `ENHANCED_NO_ACCOUNT_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+
         return enhancedHash;
       }
-      
+
       // Initialize Soroban RPC server - Use our working client instead
-      console.log("🔧 Using enhanced RPC client (SDK compatibility mode)");
+
       const server = new AdvancedSorobanClient();
-      
+
       // Add missing methods to our client for compatibility
       if (!server.getAccount) {
         server.getAccount = async (address) => {
           try {
-            const response = await fetch(`${STELLAR_NETWORKS.TESTNET.horizonUrl}/accounts/${address}`);
+            const response = await fetch(
+              `${STELLAR_NETWORKS.TESTNET.horizonUrl}/accounts/${address}`
+            );
             if (!response.ok) {
               throw new Error(`Account not found: ${address}`);
             }
@@ -585,31 +598,28 @@ export class StellarBlendIntegration {
             return {
               accountId: () => address,
               sequenceNumber: () => accountData.sequence,
-              sequence: accountData.sequence
+              sequence: accountData.sequence,
             };
           } catch (error) {
             throw new Error(`Failed to load account: ${error.message}`);
           }
         };
       }
-      
+
       // Load user account
-      console.log("📋 Loading user account from network...");
+
       let account;
       try {
         account = await server.getAccount(userAddress);
-        console.log("✅ Account loaded successfully");
       } catch (accountError) {
         console.warn("⚠️ Account loading failed:", accountError.message);
-        console.log("🔄 Proceeding with enhanced mode (no account required)");
-        
+
         // Continue without account - enhanced mode
         account = null;
       }
-      
+
       // Build the transaction
-      console.log("🏗️ Building enhanced transaction (compatibility mode)...");
-      
+
       // Enhanced operation without complex SDK dependencies
       const operationData = {
         poolAddress: operation.poolAddress,
@@ -618,107 +628,110 @@ export class StellarBlendIntegration {
         asset,
         amount,
         timestamp: new Date().toISOString(),
-        accountValidated: !!account
+        accountValidated: !!account,
       };
-      
-      console.log("📝 Operation data prepared:", operationData);
-      
+
       // Process transaction with enhanced RPC client
-      console.log("🧮 Processing transaction through enhanced RPC...");
-      
+
       try {
         // Network validation
         const healthCheck = await server.getHealth().catch(() => null);
         const ledgerInfo = await server.getLatestLedger().catch(() => null);
-        
+
         if (healthCheck && ledgerInfo) {
-          console.log("✅ Network validation successful");
-          
           // Enhanced transaction with network validation
           const enhancedResult = {
             success: true,
-            hash: `STELLAR_ENHANCED_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            hash: `STELLAR_ENHANCED_${Date.now()}_${Math.random()
+              .toString(36)
+              .substr(2, 9)}`,
             operation: operationData,
             ledger: ledgerInfo.sequence,
             network: "testnet",
             status: "NETWORK_VALIDATED",
-            accountStatus: account ? "LOADED" : "BYPASSED"
+            accountStatus: account ? "LOADED" : "BYPASSED",
           };
-          
-          console.log("🎉 Enhanced transaction completed:", enhancedResult);
+
           return enhancedResult.hash;
-          
         } else {
           throw new Error("Network connectivity issues");
         }
-        
       } catch (networkError) {
-        console.warn("🔄 Network processing failed, using enhanced simulation:", networkError.message);
-        
+        console.warn(
+          "🔄 Network processing failed, using enhanced simulation:",
+          networkError.message
+        );
+
         // Final fallback - always works
-        const simulatedHash = `ENHANCED_STELLAR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log("✅ Enhanced simulation completed:", simulatedHash);
+        const simulatedHash = `ENHANCED_STELLAR_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+
         return simulatedHash;
       }
-      
     } catch (error) {
       console.error("❌ Real operation failed:", error);
-      
+
       // If it's a known recoverable error, provide helpful message
       if (error.message.includes("account not found")) {
-        throw new Error("Account not found on network. Please fund your account with testnet XLM first.");
+        throw new Error(
+          "Account not found on network. Please fund your account with testnet XLM first."
+        );
       } else if (error.message.includes("insufficient balance")) {
-        throw new Error("Insufficient balance for this operation. Please check your asset balances.");
+        throw new Error(
+          "Insufficient balance for this operation. Please check your asset balances."
+        );
       } else if (error.message.includes("rejected")) {
         throw new Error("Transaction was rejected by the wallet or network.");
       }
-      
+
       // For development, fall back to simulation but inform user
       console.warn("🔄 Falling back to simulation due to:", error.message);
       return await this.executeSimulatedOperation(operation, amount, asset);
     }
   }
-  
+
   // Helper method to convert operation type to Blend request type
   getRequestType(operationType) {
     const requestTypes = {
-      'supply': 0, // SupplyCollateral
-      'borrow': 1, // Borrow
-      'withdraw': 2, // WithdrawCollateral  
-      'repay': 3    // Repay
+      supply: 0, // SupplyCollateral
+      borrow: 1, // Borrow
+      withdraw: 2, // WithdrawCollateral
+      repay: 3, // Repay
     };
-    
+
     return requestTypes[operationType] || 0;
   }
 
   // Create Blend protocol specific contract operation
-  createBlendContractOperation(poolAddress, operationType, userAddress, asset, amount) {
-    console.log("🔧 Creating Blend contract operation:", { poolAddress, operationType, userAddress, asset, amount });
-    
+  createBlendContractOperation(
+    poolAddress,
+    operationType,
+    userAddress,
+    asset,
+    amount
+  ) {
     try {
       // Convert amount to proper format (multiply by 10^7 for stroop conversion)
       const stroopAmount = Math.floor(parseFloat(amount) * 10000000);
-      
+
       // Blend protocol uses "submit" method with request data
       const requestData = {
         request_type: this.getRequestType(operationType),
         address: asset,
-        amount: stroopAmount
+        amount: stroopAmount,
       };
-      
-      console.log("📝 Blend request data:", requestData);
-      
+
       return StellarSDK.Operation.invokeContract({
         contract: poolAddress,
         method: "submit",
         args: [
           StellarSDK.Address.fromString(userAddress).toScVal(), // from
-          StellarSDK.Address.fromString(userAddress).toScVal(), // spender  
+          StellarSDK.Address.fromString(userAddress).toScVal(), // spender
           StellarSDK.Address.fromString(userAddress).toScVal(), // to
-          StellarSDK.nativeToScVal([requestData], { type: "vec" }) // requests vector
-        ]
+          StellarSDK.nativeToScVal([requestData], { type: "vec" }), // requests vector
+        ],
       });
-      
     } catch (error) {
       console.error("❌ Failed to create Blend operation:", error);
       throw new Error(`Invalid operation parameters: ${error.message}`);
@@ -726,11 +739,9 @@ export class StellarBlendIntegration {
   }
 
   async executeSimulatedOperation(operation, amount, asset) {
-    console.log("🎮 Executing blockchain operation with enhanced integration:", operation);
-    
     // Simulate realistic operation processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     return {
       success: true,
       txHash: `ENHANCED_${Date.now()}`,
@@ -739,7 +750,7 @@ export class StellarBlendIntegration {
       asset,
       timestamp: new Date().toISOString(),
       note: "Enhanced blockchain integration completed successfully",
-      status: "BLOCKCHAIN_INTEGRATED"
+      status: "BLOCKCHAIN_INTEGRATED",
     };
   }
 }
@@ -748,4 +759,4 @@ export class StellarBlendIntegration {
 export const stellarIntegration = new StellarBlendIntegration();
 
 // Export utility functions - only export the function, not the classes
-export { initializeStellarSDK }; 
+export { initializeStellarSDK };

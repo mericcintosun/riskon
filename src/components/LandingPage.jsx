@@ -97,43 +97,35 @@ export default function LandingPage() {
       {/* How It Works Section */}
       <section id="how-it-works" className="section-compact container-modern bg-section">
         <div className="text-center mb-16">
-          <h2 className="text-heading mb-6">
+          <h2 className="text-3xl font-bold text-white mb-6">
             How It Works
           </h2>
-          <p className="text-body max-w-2xl mx-auto">
+          <p className="text-white/70 text-lg">
             Four simple steps to analyze your blockchain risk profile
           </p>
         </div>
 
-        <div className="grid-modern-4 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
           {howItWorksSteps.map((step, index) => (
-            <div key={index} className="relative">
-              <div className="card-modern card-hover text-center relative overflow-hidden">
+            <div key={index} className="text-center">
+              <div className="card-modern card-hover relative overflow-hidden">
                 {/* Step Number */}
-                <div className="absolute -top-3 -right-3 w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm font-montserrat shadow-lg">
+                <div className="absolute -top-3 -right-3 w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
                   {step.step}
                 </div>
                 
-                {/* Icon with Gradient Background */}
-                <div className="relative mb-6">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${step.color} rounded-2xl opacity-10 blur-xl`}></div>
-                  <div className="relative text-5xl mb-4 transform hover:scale-110 transition-transform duration-300">
-                    {step.icon}
-                  </div>
+                {/* Icon */}
+                <div className="text-5xl mb-4">
+                  {step.icon}
                 </div>
                 
-                <h3 className="text-subheading mb-3">
+                <h3 className="text-lg font-bold text-white mb-3">
                   {step.title}
                 </h3>
-                <p className="text-caption">
+                <p className="text-white/70 text-sm">
                   {step.description}
                 </p>
               </div>
-              
-              {/* Connection Line */}
-              {index < howItWorksSteps.length - 1 && (
-                <div className="hidden lg:block absolute top-1/2 -right-4 w-8 h-px bg-gradient-to-r from-violet-500/50 to-transparent transform -translate-y-1/2 z-10"></div>
-              )}
             </div>
           ))}
         </div>
@@ -142,15 +134,15 @@ export default function LandingPage() {
       {/* Features Section */}
       <section id="features" className="section-compact container-modern">
         <div className="text-center mb-16">
-          <h2 className="text-heading mb-6">
+          <h2 className="text-3xl font-bold text-white mb-6">
             Platform Features
           </h2>
-          <p className="text-body max-w-2xl mx-auto">
+          <p className="text-white/70 text-lg">
             Advanced blockchain technology meets AI-powered risk analysis
           </p>
         </div>
 
-        <div className="grid-modern-2 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           <div className="card-modern card-hover group">
             <div className="flex items-start space-x-6">
               <div className="flex-shrink-0">
@@ -159,10 +151,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-subheading mb-3">
+                <h3 className="text-lg font-bold text-white mb-3">
                   AI Risk Analysis
                 </h3>
-                <p className="text-body">
+                <p className="text-white/70">
                   6-factor machine learning model for personalized risk scoring
                 </p>
               </div>
@@ -177,10 +169,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-subheading mb-3">
+                <h3 className="text-lg font-bold text-white mb-3">
                   Blend DeFi
                 </h3>
-                <p className="text-body">
+                <p className="text-white/70">
                   Supply, borrow, withdraw and repay operations
                 </p>
               </div>
@@ -195,10 +187,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-subheading mb-3">
+                <h3 className="text-lg font-bold text-white mb-3">
                   Multi-Wallet Support
                 </h3>
-                <p className="text-body">
+                <p className="text-white/70">
                   Albedo, xBull, and Freighter wallet integration
                 </p>
               </div>
@@ -213,10 +205,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-subheading mb-3">
+                <h3 className="text-lg font-bold text-white mb-3">
                   Stellar Blockchain
                 </h3>
-                <p className="text-body">
+                <p className="text-white/70">
                   Secure and fast blockchain transactions
                 </p>
               </div>

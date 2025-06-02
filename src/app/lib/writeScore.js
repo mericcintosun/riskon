@@ -13,7 +13,8 @@ const {
 } = StellarSdk;
 
 // Simple destination account (we'll save risk scores as memo)
-const DESTINATION_ACCOUNT = "GDNE57HVQSG3JIGWNPEBZPJAD2F42FS3YL67RIEMJZ77JW5R75L3OE5B";
+const DESTINATION_ACCOUNT =
+  "GDNE57HVQSG3JIGWNPEBZPJAD2F42FS3YL67RIEMJZ77JW5R75L3OE5B";
 
 // Horizon API endpoints
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
@@ -25,7 +26,7 @@ async function loadAccount(accountId) {
     throw new Error(`Account not found: ${response.status}`);
   }
   const accountData = await response.json();
-  
+
   // Convert account object to Stellar SDK format
   return {
     accountId: () => accountData.account_id,
@@ -39,15 +40,15 @@ async function loadAccount(accountId) {
 // Submit transaction
 async function submitTransaction(transaction) {
   const response = await fetch(`${HORIZON_URL}/transactions`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      "Content-Type": "application/x-www-form-urlencoded",
     },
     body: `tx=${encodeURIComponent(transaction.toXDR())}`,
   });
-  
+
   const result = await response.json();
-  
+
   if (response.ok) {
     return {
       successful: true,
@@ -57,7 +58,7 @@ async function submitTransaction(transaction) {
   } else {
     return {
       successful: false,
-      result_xdr: result.extras?.result_xdr || 'Unknown error',
+      result_xdr: result.extras?.result_xdr || "Unknown error",
       result: result,
     };
   }
@@ -73,69 +74,67 @@ function createSafeMemo(scoreValue, address) {
   // Shortest format: "RS:85:ABC" (9-11 characters)
   let addressPrefix = address.slice(0, 3);
   let memo = `RS:${scoreValue}:${addressPrefix}`;
-  
+
   // If still too long, shorten further
   if (getMemoByteSize(memo) > 28) {
     // Only score: "RS:85" (5-6 characters)
     memo = `RS:${scoreValue}`;
   }
-  
+
   // Final check
   if (getMemoByteSize(memo) > 28) {
     // In this case we must use memo ID
     return null;
   }
-  
+
   return memo;
 }
 
 export async function writeScoreToBlockchain({ kit, address, score }) {
   try {
-    console.log("🚀 Writing risk score to blockchain (with Memo):", { address, score });
-    
+    "🚀 Writing risk score to blockchain (with Memo):", { address, score };
+
     if (!kit) {
       throw new Error("Wallet kit not found");
     }
-    
+
     if (!address) {
       throw new Error("Wallet address not found");
     }
-    
-    if (typeof score !== 'number' || score < 0 || score > 100) {
+
+    if (typeof score !== "number" || score < 0 || score > 100) {
       throw new Error("Invalid score value. Score must be between 0-100.");
     }
 
     const scoreValue = Math.round(score);
-    
-    console.log("📋 Risk score parameters prepared:", { 
-      address, 
-      score: scoreValue
-    });
-    
+
+    "📋 Risk score parameters prepared:",
+      {
+        address,
+        score: scoreValue,
+      };
+
     // Get account information
-    console.log("📡 Fetching account information...");
     const accountData = await loadAccount(address);
-    console.log("✅ Account information retrieved:", {
-      accountId: accountData.account_id,
-      sequence: accountData.sequence
-    });
-    
+
     // Create Stellar SDK Account object
-    const account = new StellarSdk.Account(accountData.account_id, accountData.sequence);
-    
+    const account = new StellarSdk.Account(
+      accountData.account_id,
+      accountData.sequence
+    );
+
     // Save risk score as memo
     const safeMemo = createSafeMemo(scoreValue, address);
     let transaction;
-    
+
     if (safeMemo === null) {
       console.warn("⚠️ Memo too long, using Memo ID");
       // Alternative: Use Memo ID (64-bit integer)
       // Create unique ID by combining score and timestamp
       const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp (seconds)
-      const memoId = BigInt(scoreValue) * 1000000n + BigInt(timestamp % 1000000); // Score + timestamp
-      
-      console.log("📝 Using Memo ID:", memoId.toString());
-      
+      const memoId =
+        BigInt(scoreValue) * 1000000n + BigInt(timestamp % 1000000); // Score + timestamp
+
       // Create simple payment transaction (0.0000001 XLM)
       transaction = new TransactionBuilder(account, {
         fee: BASE_FEE.toString(),
@@ -151,16 +150,8 @@ export async function writeScoreToBlockchain({ kit, address, score }) {
         .addMemo(Memo.id(memoId.toString()))
         .setTimeout(30)
         .build();
-        
-      console.log("✅ Transaction created (with Memo ID):", {
-        networkPassphrase: transaction.networkPassphrase,
-        fee: transaction.fee,
-        operations: transaction.operations.length,
-        memoId: memoId.toString()
-      });
     } else {
-      console.log("📝 Risk score memo:", safeMemo, "- Byte length:", getMemoByteSize(safeMemo));
-      
+ 
       // Create simple payment transaction (0.0000001 XLM)
       transaction = new TransactionBuilder(account, {
         fee: BASE_FEE.toString(),
@@ -176,71 +167,90 @@ export async function writeScoreToBlockchain({ kit, address, score }) {
         .addMemo(Memo.text(safeMemo))
         .setTimeout(30)
         .build();
-        
-      console.log("✅ Transaction created (with Memo Text):", {
-        networkPassphrase: transaction.networkPassphrase,
-        fee: transaction.fee,
-        operations: transaction.operations.length,
-        memo: safeMemo
-      });
     }
-    
+
     // Sign transaction with Stellar Wallets Kit
-    console.log("✍️ Signing transaction...");
     const { signedTxXdr } = await kit.signTransaction(transaction.toXDR(), {
       address,
-      networkPassphrase: Networks.TESTNET
+      networkPassphrase: Networks.TESTNET,
     });
-    
-    console.log("✅ Transaction signed");
-    
+
     // Parse signed transaction
     const signedTransaction = new Transaction(signedTxXdr, Networks.TESTNET);
-    
+
     // Send to blockchain
-    console.log("📤 Sending transaction to blockchain...");
     const result = await submitTransaction(signedTransaction);
-    console.log("📨 Transaction sent:", result);
-    
+
     if (result.successful) {
-      console.log("🎉 Transaction successful:", result.hash);
       return result.hash;
     } else {
       console.error("❌ Transaction failed:", result);
-      throw new Error(`Transaction failed: ${result.result_xdr || 'Unknown error'}`);
+      throw new Error(
+        `Transaction failed: ${result.result_xdr || "Unknown error"}`
+      );
     }
-    
   } catch (error) {
     console.error("❌ writeScoreToBlockchain detailed error:", {
       message: error.message,
       stack: error.stack,
       name: error.name,
       response: error.response?.data || error.response,
-      fullError: error
+      fullError: error,
     });
-    
+
     // User-friendly error messages
-    if (error.message?.includes("User declined") || error.message?.includes("user rejected")) {
+    if (
+      error.message?.includes("User declined") ||
+      error.message?.includes("user rejected")
+    ) {
       throw new Error("Transaction was cancelled by user.");
-    } else if (error.message?.includes("Expects string, array or buffer, max 28 bytes")) {
-      throw new Error("Memo too long. Please use a shorter memo or update the application.");
-    } else if (error.message?.includes("account not found") || error.message?.includes("Account not found")) {
-      throw new Error("Account not found. Make sure your wallet is active on Testnet.");
-    } else if (error.message?.includes("insufficient balance") || error.message?.includes("underfunded")) {
-      throw new Error("Insufficient balance. You need Testnet XLM: https://laboratory.stellar.org/#account-creator");
-    } else if (error.message?.includes("timeout") || error.message?.includes("network")) {
+    } else if (
+      error.message?.includes("Expects string, array or buffer, max 28 bytes")
+    ) {
+      throw new Error(
+        "Memo too long. Please use a shorter memo or update the application."
+      );
+    } else if (
+      error.message?.includes("account not found") ||
+      error.message?.includes("Account not found")
+    ) {
+      throw new Error(
+        "Account not found. Make sure your wallet is active on Testnet."
+      );
+    } else if (
+      error.message?.includes("insufficient balance") ||
+      error.message?.includes("underfunded")
+    ) {
+      throw new Error(
+        "Insufficient balance. You need Testnet XLM: https://laboratory.stellar.org/#account-creator"
+      );
+    } else if (
+      error.message?.includes("timeout") ||
+      error.message?.includes("network")
+    ) {
       throw new Error("Network connection error. Please try again.");
-    } else if (error.message?.includes("invalid") && error.message?.includes("parameter")) {
+    } else if (
+      error.message?.includes("invalid") &&
+      error.message?.includes("parameter")
+    ) {
       throw new Error(`Invalid parameters: ${error.message}`);
     } else if (error.response?.status === 400) {
-      throw new Error(`Server error (400): ${JSON.stringify(error.response.data || error.response)}`);
+      throw new Error(
+        `Server error (400): ${JSON.stringify(
+          error.response.data || error.response
+        )}`
+      );
     } else if (error.response?.status === 404) {
-      throw new Error("Account not found. Make sure your wallet is active on Testnet.");
+      throw new Error(
+        "Account not found. Make sure your wallet is active on Testnet."
+      );
     } else if (error.response?.status >= 500) {
       throw new Error("Server error. Please try again later.");
     }
-    
+
     // If no specific error is caught, throw the original error
-    throw new Error(`Blockchain error: ${error.message || JSON.stringify(error)}`);
+    throw new Error(
+      `Blockchain error: ${error.message || JSON.stringify(error)}`
+    );
   }
-} 
+}

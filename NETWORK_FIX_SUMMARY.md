@@ -99,7 +99,6 @@ const health = await server.getHealth(); // Could fail
 // ✅ Robust health checking
 try {
   const health = await server.getHealth();
-  console.log("✅ SDK health check passed");
 } catch (sdkError) {
   // Intelligent fallback system
   // 1. Try Horizon

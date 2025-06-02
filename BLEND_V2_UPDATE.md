@@ -102,14 +102,12 @@ All contract addresses are sourced from the official Blend repository:
 ```javascript
 // Test pool loading with official V2 address
 const poolData = await loadPoolData("CAMKTT6LIXNOKZJVFI64EBEQE25UYAQZBTHDIQ4LEDJLTCM6YVME6IIY");
-console.log("Pool loaded:", poolData.isActive && !poolData.isPending);
 ```
 
 ### Asset Configuration Test
 ```javascript
 // Verify all assets are properly configured
 const config = getCurrentBlendConfig();
-console.log("Assets:", Object.keys(config.ASSETS)); // Should show XLM, USDC, BLND, wETH, wBTC
 ```
 
 ## Next Steps

@@ -5,39 +5,49 @@
  * Uses custom Stellar utilities to avoid SDK conflicts
  */
 
-import { stellarIntegration } from './stellarUtils.js';
-import { getCurrentBlendConfig, formatAmount, isActivePool } from './blendConfig.js';
+import { stellarIntegration } from "./stellarUtils.js";
+import {
+  getCurrentBlendConfig,
+  formatAmount,
+  isActivePool,
+} from "./blendConfig.js";
 
 // Initialize integration on module load
 let integrationReady = false;
-stellarIntegration.initialize().then(() => {
-  integrationReady = true;
-}).catch(error => {
-  console.warn("Integration initialization failed, using fallback modes:", error);
-});
+stellarIntegration
+  .initialize()
+  .then(() => {
+    integrationReady = true;
+  })
+  .catch((error) => {
+    console.warn(
+      "Integration initialization failed, using fallback modes:",
+      error
+    );
+  });
 
 /**
  * Enhanced pool data loading with multiple strategies
  */
 export async function loadPoolData(poolId) {
   try {
-    console.log("🔍 Enhanced pool data loading for:", poolId);
-    
     const config = getCurrentBlendConfig();
-    
+
     // Check pool type first
     if (isActivePool(poolId)) {
-      console.log("🚀 Active pool detected - using enhanced discovery");
-      
       try {
         // Use our enhanced integration for pool discovery
-        const poolResults = await stellarIntegration.getPoolsWithStatus({ [poolId]: poolId });
-        
+        const poolResults = await stellarIntegration.getPoolsWithStatus({
+          [poolId]: poolId,
+        });
+
         if (poolResults.length > 0) {
           const poolInfo = poolResults[0];
-          
+
           return {
-            pool: poolInfo.isReal ? createRealPoolData(poolInfo) : createCompatibilityPoolData(poolInfo),
+            pool: poolInfo.isReal
+              ? createRealPoolData(poolInfo)
+              : createCompatibilityPoolData(poolInfo),
             poolOracle: poolInfo.health?.network ? createMockOracle() : null,
             poolEstimate: poolInfo.canOperate ? createMockEstimate() : null,
             reserves: poolInfo.canOperate ? createMockReserves() : new Map(),
@@ -47,8 +57,10 @@ export async function loadPoolData(poolId) {
             status: poolInfo.status,
             capabilities: poolInfo.capabilities,
             health: poolInfo.health,
-            loadingMethod: poolInfo.isReal ? "enhanced_real" : "enhanced_compatibility",
-            lastChecked: poolInfo.lastChecked
+            loadingMethod: poolInfo.isReal
+              ? "enhanced_real"
+              : "enhanced_compatibility",
+            lastChecked: poolInfo.lastChecked,
           };
         }
       } catch (error) {
@@ -56,11 +68,10 @@ export async function loadPoolData(poolId) {
         return createErrorPoolData(poolId, error);
       }
     }
-    
+
     // Unknown pool type
     console.warn("⚠️ Unknown pool type");
     return createErrorPoolData(poolId, new Error("Unknown pool type"));
-    
   } catch (error) {
     console.error("❌ Critical error in enhanced loadPoolData:", error);
     return createErrorPoolData(poolId, error);
@@ -72,15 +83,11 @@ export async function loadPoolData(poolId) {
  */
 export async function loadUserPosition(poolId, userAddress) {
   try {
-    console.log("👤 Enhanced user position loading for:", { poolId, userAddress });
-    
     const config = getCurrentBlendConfig();
-    
+
     if (isActivePool(poolId)) {
-      console.log("🚀 Active pool detected - checking pool status");
-      
       const poolData = await loadPoolData(poolId);
-      
+
       if (poolData.isPending || poolData.error) {
         return {
           poolUser: null,
@@ -89,31 +96,30 @@ export async function loadUserPosition(poolId, userAddress) {
           emissions: [],
           isActive: true,
           isPending: true,
-          error: poolData.error || "Pool not ready"
+          error: poolData.error || "Pool not ready",
         };
       }
-      
+
       if (poolData.loadingMethod === "enhanced_compatibility") {
         // Return compatible position data
         return createCompatibilityPosition();
       }
-      
+
       if (poolData.loadingMethod === "enhanced_real") {
         // For real pools, we'd fetch actual position data
         // For now, return mock data until full SDK integration
         return createCompatibilityPosition();
       }
     }
-    
+
     // Return empty position for unknown pools
     return {
       poolUser: null,
       positionEstimate: null,
       positions: new Map(),
       emissions: [],
-      error: "Unknown pool type"
+      error: "Unknown pool type",
     };
-    
   } catch (error) {
     console.error("❌ Error in enhanced loadUserPosition:", error);
     return {
@@ -121,7 +127,7 @@ export async function loadUserPosition(poolId, userAddress) {
       positionEstimate: null,
       positions: new Map(),
       emissions: [],
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -129,17 +135,16 @@ export async function loadUserPosition(poolId, userAddress) {
 /**
  * Enhanced operation creation using multiple strategies
  */
-export async function createBlendOperation(poolId, userAddress, operationType, assetAddress, amount) {
+export async function createBlendOperation(
+  poolId,
+  userAddress,
+  operationType,
+  assetAddress,
+  amount
+) {
   try {
-    console.log("⚡ Creating enhanced Blend operation:", {
-      poolId,
-      operationType,
-      assetAddress,
-      amount: amount.toString()
-    });
-    
     const config = getCurrentBlendConfig();
-    
+
     if (isActivePool(poolId)) {
       // Use enhanced integration for operation creation
       const operation = await stellarIntegration.executeOperation(
@@ -149,7 +154,7 @@ export async function createBlendOperation(poolId, userAddress, operationType, a
         assetAddress,
         null // wallet kit passed separately
       );
-      
+
       return {
         operation: null, // Enhanced operations handle differently
         operationData: operation,
@@ -157,25 +162,28 @@ export async function createBlendOperation(poolId, userAddress, operationType, a
         amount,
         asset: assetAddress,
         enhanced: true,
-        poolId
+        poolId,
       };
     }
-    
+
     throw new Error("Only active pools support operations");
-    
   } catch (error) {
     console.error("❌ Error creating enhanced operation:", error);
-    throw new Error(`Failed to create ${operationType} operation: ${error.message}`);
+    throw new Error(
+      `Failed to create ${operationType} operation: ${error.message}`
+    );
   }
 }
 
 /**
  * Enhanced operation execution
  */
-export async function executeEnhancedOperation(kit, userAddress, operationData) {
+export async function executeEnhancedOperation(
+  kit,
+  userAddress,
+  operationData
+) {
   try {
-    console.log("🚀 Executing enhanced operation:", operationData.type);
-    
     if (operationData.enhanced) {
       // Use enhanced integration
       const result = await stellarIntegration.executeOperation(
@@ -185,14 +193,13 @@ export async function executeEnhancedOperation(kit, userAddress, operationData) 
         operationData.asset,
         kit
       );
-      
+
       return result.txHash;
     }
-    
+
     // Fallback to simulation
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     return `ENHANCED_SIM_${Date.now()}`;
-    
   } catch (error) {
     console.error("❌ Error executing enhanced operation:", error);
     throw new Error(`Failed to execute enhanced operation: ${error.message}`);
@@ -204,19 +211,17 @@ export async function executeEnhancedOperation(kit, userAddress, operationData) 
  */
 export async function getAvailablePools() {
   try {
-    console.log("🔍 Enhanced pool discovery starting...");
-    
     const config = getCurrentBlendConfig();
-    
+
     // Enhanced discovery for active pools
     const activePools = [];
-    
+
     if (Object.keys(config.ACTIVE_POOLS).length > 0) {
-      console.log("🚀 Discovering active pools with enhanced integration...");
-      
       try {
-        const poolResults = await stellarIntegration.getPoolsWithStatus(config.ACTIVE_POOLS);
-        
+        const poolResults = await stellarIntegration.getPoolsWithStatus(
+          config.ACTIVE_POOLS
+        );
+
         for (const pool of poolResults) {
           const poolInfo = {
             id: pool.id,
@@ -229,16 +234,16 @@ export async function getAvailablePools() {
             status: pool.status,
             capabilities: pool.capabilities,
             health: pool.health,
-            lastChecked: pool.lastChecked
+            lastChecked: pool.lastChecked,
           };
-          
+
           // Set pool info based on status
           if (pool.status === "FULLY_OPERATIONAL") {
             poolInfo.totalSupplied = "Live Data";
             poolInfo.totalBorrowed = "Live Data";
             poolInfo.apr = {
               supply: "Live APR",
-              borrow: "Live APR"
+              borrow: "Live APR",
             };
             poolInfo.name += " (Fully Operational)";
           } else if (pool.status === "NETWORK_READY") {
@@ -246,7 +251,7 @@ export async function getAvailablePools() {
             poolInfo.totalBorrowed = "Network Ready";
             poolInfo.apr = {
               supply: "Est: 4.5%",
-              borrow: "Est: 7.2%"
+              borrow: "Est: 7.2%",
             };
             poolInfo.name += " (Network Ready)";
           } else if (pool.status === "CONTRACT_EXISTS") {
@@ -254,7 +259,7 @@ export async function getAvailablePools() {
             poolInfo.totalBorrowed = "Contract Found";
             poolInfo.apr = {
               supply: "Demo: 4.0%",
-              borrow: "Demo: 6.8%"
+              borrow: "Demo: 6.8%",
             };
             poolInfo.name += " (Contract Mode)";
           } else {
@@ -262,17 +267,19 @@ export async function getAvailablePools() {
             poolInfo.totalBorrowed = "Enhanced Demo";
             poolInfo.apr = {
               supply: "Demo: 3.5%",
-              borrow: "Demo: 6.0%"
+              borrow: "Demo: 6.0%",
             };
             poolInfo.name += " (Enhanced Demo)";
           }
-          
+
           activePools.push(poolInfo);
         }
-        
       } catch (discoveryError) {
-        console.warn("⚠️ Enhanced pool discovery failed, using fallback:", discoveryError);
-        
+        console.warn(
+          "⚠️ Enhanced pool discovery failed, using fallback:",
+          discoveryError
+        );
+
         // Add fallback pool entries
         for (const [poolKey, poolId] of Object.entries(config.ACTIVE_POOLS)) {
           activePools.push({
@@ -281,35 +288,27 @@ export async function getAvailablePools() {
             description: "Enhanced discovery failed - using fallback mode",
             assets: ["XLM", "USDC", "BLND"],
             totalSupplied: "Discovery Failed",
-            totalBorrowed: "Discovery Failed", 
+            totalBorrowed: "Discovery Failed",
             apr: {
               supply: "N/A",
-              borrow: "N/A"
+              borrow: "N/A",
             },
             isActive: true,
             isDemo: false,
             isPending: true,
             error: discoveryError.message,
-            canRetry: true
+            canRetry: true,
           });
         }
       }
     }
-    
+
     const allPools = activePools;
-    
-    console.log("✅ Enhanced pool discovery completed:", {
-      total: allPools.length,
-      active: allPools.length,
-      operational: allPools.filter(p => p.status === "FULLY_OPERATIONAL").length,
-      pending: allPools.filter(p => p.isPending).length
-    });
-    
+
     return allPools;
-    
   } catch (error) {
     console.error("❌ Critical error in enhanced pool discovery:", error);
-    
+
     // Return empty array if no pools available
     return [];
   }
@@ -322,10 +321,10 @@ function createRealPoolData(poolInfo) {
     id: poolInfo.id,
     loadUser: async (address) => ({
       positions: createMockPositions(),
-      emissions: []
+      emissions: [],
     }),
     reserves: createMockReserves(),
-    config: createMockConfig()
+    config: createMockConfig(),
   };
 }
 
@@ -334,10 +333,10 @@ function createCompatibilityPoolData(poolInfo) {
     id: poolInfo.id,
     loadUser: async (address) => ({
       positions: createMockPositions(),
-      emissions: []
+      emissions: [],
     }),
     reserves: new Map(),
-    config: null
+    config: null,
   };
 }
 
@@ -352,7 +351,7 @@ function createErrorPoolData(poolId, error) {
     isPending: true,
     error: error.message,
     errorType: "ENHANCED_ERROR",
-    canRetry: true
+    canRetry: true,
   };
 }
 
@@ -360,12 +359,12 @@ function createCompatibilityPosition() {
   return {
     poolUser: {
       positions: createMockPositions(),
-      emissions: []
+      emissions: [],
     },
     positionEstimate: createMockEstimate(),
     positions: createMockPositions(),
     emissions: [],
-    isActive: true
+    isActive: true,
   };
 }
 
@@ -384,13 +383,13 @@ function createMockReserves() {
 function createMockConfig() {
   return {
     oracle: "mock_oracle",
-    backstop: "mock_backstop"
+    backstop: "mock_backstop",
   };
 }
 
 function createMockOracle() {
   return {
-    getPrices: () => new Map()
+    getPrices: () => new Map(),
   };
 }
 
@@ -398,7 +397,7 @@ function createMockEstimate() {
   return {
     totalEffectiveCollateral: 0,
     totalEffectiveLiabilities: 0,
-    borrowLimit: 0
+    borrowLimit: 0,
   };
 }
 
@@ -407,17 +406,21 @@ function createMockEstimate() {
  */
 export function calculateHealthFactor(positionEstimate) {
   try {
-    if (!positionEstimate || !positionEstimate.totalEffectiveCollateral || !positionEstimate.totalEffectiveLiabilities) {
+    if (
+      !positionEstimate ||
+      !positionEstimate.totalEffectiveCollateral ||
+      !positionEstimate.totalEffectiveLiabilities
+    ) {
       return null;
     }
-    
+
     const collateral = Number(positionEstimate.totalEffectiveCollateral);
     const liabilities = Number(positionEstimate.totalEffectiveLiabilities);
-    
+
     if (liabilities === 0) {
       return Infinity;
     }
-    
+
     return collateral / liabilities;
   } catch (error) {
     console.error("❌ Error calculating health factor:", error);
@@ -431,7 +434,7 @@ export function calculateHealthFactor(positionEstimate) {
 export function formatPositionData(userPosition) {
   try {
     const { poolUser, positionEstimate } = userPosition;
-    
+
     if (!poolUser || !poolUser.positions) {
       return {
         supplies: [],
@@ -439,69 +442,96 @@ export function formatPositionData(userPosition) {
         totalSupplied: "0",
         totalBorrowed: "0",
         healthFactor: null,
-        borrowLimit: "0"
+        borrowLimit: "0",
       };
     }
-    
+
     const supplies = [];
     const borrows = [];
-    
+
     // Process positions with enhanced logic
     for (const [assetAddress, position] of poolUser.positions) {
       const supplyAmount = formatAmount(position.supply || 0);
       const borrowAmount = formatAmount(position.liabilities || 0);
-      
+
       if (Number(supplyAmount) > 0) {
         supplies.push({
           asset: assetAddress,
           amount: supplyAmount,
-          value: positionEstimate ? formatAmount(positionEstimate.totalEffectiveCollateral || 0) : "0"
+          value: positionEstimate
+            ? formatAmount(positionEstimate.totalEffectiveCollateral || 0)
+            : "0",
         });
       }
-      
+
       if (Number(borrowAmount) > 0) {
         borrows.push({
           asset: assetAddress,
           amount: borrowAmount,
-          value: positionEstimate ? formatAmount(positionEstimate.totalEffectiveLiabilities || 0) : "0"
+          value: positionEstimate
+            ? formatAmount(positionEstimate.totalEffectiveLiabilities || 0)
+            : "0",
         });
       }
     }
-    
+
     return {
       supplies,
       borrows,
-      totalSupplied: positionEstimate ? formatAmount(positionEstimate.totalEffectiveCollateral || 0) : "0",
-      totalBorrowed: positionEstimate ? formatAmount(positionEstimate.totalEffectiveLiabilities || 0) : "0",
+      totalSupplied: positionEstimate
+        ? formatAmount(positionEstimate.totalEffectiveCollateral || 0)
+        : "0",
+      totalBorrowed: positionEstimate
+        ? formatAmount(positionEstimate.totalEffectiveLiabilities || 0)
+        : "0",
       healthFactor: calculateHealthFactor(positionEstimate),
-      borrowLimit: positionEstimate ? formatAmount(positionEstimate.borrowLimit || 0) : "0",
-      enhanced: true
+      borrowLimit: positionEstimate
+        ? formatAmount(positionEstimate.borrowLimit || 0)
+        : "0",
+      enhanced: true,
     };
   } catch (error) {
     console.error("❌ Error formatting position data:", error);
     return {
       supplies: [],
       borrows: [],
-      totalSupplied: "0", 
+      totalSupplied: "0",
       totalBorrowed: "0",
       healthFactor: null,
       borrowLimit: "0",
-      enhanced: false
+      enhanced: false,
     };
   }
 }
 
 // Legacy function aliases for backward compatibility
-export const createSupplyOperation = (poolId, userAddress, assetAddress, amount) => 
-  createBlendOperation(poolId, userAddress, "supply", assetAddress, amount);
+export const createSupplyOperation = (
+  poolId,
+  userAddress,
+  assetAddress,
+  amount
+) => createBlendOperation(poolId, userAddress, "supply", assetAddress, amount);
 
-export const createBorrowOperation = (poolId, userAddress, assetAddress, amount) => 
-  createBlendOperation(poolId, userAddress, "borrow", assetAddress, amount);
+export const createBorrowOperation = (
+  poolId,
+  userAddress,
+  assetAddress,
+  amount
+) => createBlendOperation(poolId, userAddress, "borrow", assetAddress, amount);
 
-export const createWithdrawOperation = (poolId, userAddress, assetAddress, amount) => 
+export const createWithdrawOperation = (
+  poolId,
+  userAddress,
+  assetAddress,
+  amount
+) =>
   createBlendOperation(poolId, userAddress, "withdraw", assetAddress, amount);
 
-export const createRepayOperation = (poolId, userAddress, assetAddress, amount) => 
-  createBlendOperation(poolId, userAddress, "repay", assetAddress, amount);
+export const createRepayOperation = (
+  poolId,
+  userAddress,
+  assetAddress,
+  amount
+) => createBlendOperation(poolId, userAddress, "repay", assetAddress, amount);
 
-export const executeBlendOperation = executeEnhancedOperation; 
+export const executeBlendOperation = executeEnhancedOperation;

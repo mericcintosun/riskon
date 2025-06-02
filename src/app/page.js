@@ -151,7 +151,7 @@ export default function RiskScoringApp() {
   // Test contract existence
   const testContract = async () => {
     try {
-      console.log("🔍 Testing contract...");
+
       const loadingToast = toast.loading("Testing smart contract connection...");
       
       const contractInfo = await getContractInfo();
@@ -160,11 +160,11 @@ export default function RiskScoringApp() {
 
       if (contractInfo.exists) {
         setContractStatus("exists");
-        console.log("✅ Contract exists and accessible");
+
         toast.success("✅ Smart contract connection verified");
       } else {
         setContractStatus("missing");
-        console.log("❌ Contract not found:", contractInfo.error);
+
         toast.error(`⛓️ Contract issue: ${contractInfo.error}`);
       }
     } catch (error) {
@@ -249,7 +249,7 @@ export default function RiskScoringApp() {
       // Show Blend Dashboard after successful risk score submission
       setShowBlendDashboard(true);
 
-      console.log("✅ Transaction successful:", hash);
+
     } catch (error) {
       console.error("❌ Blockchain write error:", error);
       showCategorizedError(error, "Failed to save risk score to blockchain");

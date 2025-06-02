@@ -11,12 +11,11 @@ export default function WalletProvider({ children }) {
     // Freighter API'sinin hazır olup olmadığını kontrol et
     const checkFreighterAPI = () => {
       const hasAPI = !!(window.freighterApi || window.freighter);
-      console.log("WalletProvider: Freighter API kontrolü:", hasAPI);
-      
+
       if (hasAPI) {
         setIsFreighterReady(true);
       }
-      
+
       // API olsun olmasın provider'ı render et
       setShouldRenderProvider(true);
     };
@@ -59,8 +58,9 @@ export default function WalletProvider({ children }) {
             },
             {
               id: "mainnet",
-              name: "Mainnet", 
-              networkPassphrase: "Public Global Stellar Network ; September 2015",
+              name: "Mainnet",
+              networkPassphrase:
+                "Public Global Stellar Network ; September 2015",
               rpcUrl: "https://soroban-rpc.stellar.org",
               networkUrl: "https://horizon.stellar.org",
             },
@@ -79,9 +79,12 @@ export default function WalletProvider({ children }) {
         <div className="min-h-screen bg-gray-50">
           <div className="container mx-auto px-4 py-8">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <h2 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Wallet Provider Hatası</h2>
+              <h2 className="text-lg font-semibold text-yellow-800 mb-2">
+                ⚠️ Wallet Provider Hatası
+              </h2>
               <p className="text-yellow-700 text-sm mb-3">
-                SorobanReactProvider başlatılamadı. Bu genellikle Freighter extension sorunlarından kaynaklanır.
+                SorobanReactProvider başlatılamadı. Bu genellikle Freighter
+                extension sorunlarından kaynaklanır.
               </p>
               <button
                 onClick={() => window.location.reload()}
