@@ -27,11 +27,21 @@ export default function Header() {
       <div className="container-modern">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="group flex items-center space-x-3 transition-transform duration-300 hover:scale-105">
-            <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg group-hover:shadow-violet-500/25 transition-all duration-300">
-              <span className="text-xl font-bold text-white">R</span>
+          <Link href="/" className="group flex items-center space-x-4 transition-transform duration-300 hover:scale-105">
+            <div 
+              className="flex items-center justify-center w-12 h-12 aspect-square shadow-lg group-hover:shadow-violet-500/25 transition-all duration-300 overflow-hidden"
+              style={{ 
+                borderRadius: '50%',
+                clipPath: 'circle(50% at 50% 50%)'
+              }}
+            >
+              <img 
+                src="/logo.png" 
+                alt="Riskon Logo" 
+                className="w-10 h-10 object-contain filter brightness-110"
+              />
             </div>
-            <div className="text-2xl font-bold text-gradient-modern font-montserrat">
+            <div className="text-3xl font-bold text-gradient-modern font-montserrat">
               Riskon
             </div>
           </Link>

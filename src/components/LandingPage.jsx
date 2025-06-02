@@ -142,7 +142,7 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div className="card-modern card-hover group">
             <div className="flex items-start space-x-6">
               <div className="flex-shrink-0">
@@ -214,6 +214,42 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+
+          <div className="card-modern card-hover group">
+            <div className="flex items-start space-x-6">
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 bg-gradient-to-br from-teal-500/20 to-cyan-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-3xl">📈</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-3">
+                  Portfolio Optimization
+                </h3>
+                <p className="text-white/70">
+                  Get personalized recommendations for your DeFi portfolio
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card-modern card-hover group">
+            <div className="flex items-start space-x-6">
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-3xl">🔒</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-3">
+                  Smart Security
+                </h3>
+                <p className="text-white/70">
+                  Audited smart contracts for maximum security
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -245,14 +281,18 @@ export default function LandingPage() {
       {/* Modern Footer */}
       <footer className="py-12 border-t border-white/10">
         <div className="container-modern text-center">
-          <div className="flex items-center justify-center space-x-4 mb-6">
+          <div className="flex items-center justify-center space-x-5 mb-6">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold font-montserrat">R</span>
+              <div className="w-12 h-12 aspect-square bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                <img 
+                  src="/logo.png" 
+                  alt="Riskon Logo" 
+                  className="w-10 h-10 object-contain filter brightness-110"
+                />
               </div>
               <div className="absolute -inset-1 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl opacity-20 blur"></div>
             </div>
-            <span className="text-xl font-bold font-montserrat text-gradient-modern">
+            <span className="text-2xl font-bold font-montserrat text-gradient-modern">
               Riskon
             </span>
           </div>

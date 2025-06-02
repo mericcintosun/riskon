@@ -40,6 +40,12 @@ export default function FeaturesPage() {
       description: "Monitor your portfolio performance and risk metrics with live dashboard updates.",
       icon: "📊",
       color: "from-indigo-500 to-purple-500"
+    },
+    {
+      title: "Portfolio Optimization",
+      description: "Get personalized recommendations to optimize your DeFi portfolio based on your risk profile.",
+      icon: "📈",
+      color: "from-teal-500 to-cyan-500"
     }
   ];
 

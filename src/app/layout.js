@@ -14,6 +14,23 @@ const montserrat = Montserrat({
 export const metadata = {
   title: "Riskon - AI-Powered Blockchain Risk Scoring",
   description: "Calculate personalized blockchain risk scores and access DeFi features through Blend Protocol integration on Stellar network.",
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      { url: '/apple-icon.png' },
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  manifest: '/manifest.json',
+  themeColor: '#8b5cf6',
+  viewport: 'width=device-width, initial-scale=1',
 };
 
 export default function RootLayout({ children }) {
