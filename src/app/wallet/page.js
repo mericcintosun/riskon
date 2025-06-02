@@ -79,7 +79,7 @@ export default function WalletPage() {
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
       <Header 
         walletAddress={walletAddress}
@@ -90,7 +90,7 @@ export default function WalletPage() {
       />
 
       {/* Main Content */}
-      <main className="min-h-screen">
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="section-compact container-modern text-center">
           <div className="max-w-4xl mx-auto animate-fade-in">
@@ -315,6 +315,6 @@ export default function WalletPage() {
           </section>
         )}
       </main>
-    </>
+    </div>
   );
 } 

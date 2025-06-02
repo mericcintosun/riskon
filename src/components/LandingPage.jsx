@@ -277,30 +277,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* Modern Footer */}
-      <footer className="py-12 border-t border-white/10">
-        <div className="container-modern text-center">
-          <div className="flex items-center justify-center space-x-5 mb-6">
-            <div className="relative">
-              <div className="w-12 h-12 aspect-square bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                <img 
-                  src="/logo.png" 
-                  alt="Riskon Logo" 
-                  className="w-10 h-10 object-contain filter brightness-110"
-                />
-              </div>
-              <div className="absolute -inset-1 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl opacity-20 blur"></div>
-            </div>
-            <span className="text-2xl font-bold font-montserrat text-gradient-modern">
-              Riskon
-            </span>
-          </div>
-          <p className="text-caption">
-            © 2024 Riskon. Stellar Hackathon project.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 } 

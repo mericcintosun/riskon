@@ -3,6 +3,7 @@ import "./globals.css";
 import { WalletProvider } from "../contexts/WalletContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import ErrorBoundary from "../components/ErrorBoundary";
+import Footer from "../components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 const montserrat = Montserrat({ 
@@ -36,11 +37,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.className} ${montserrat.variable}`}>
-      <body className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen text-white antialiased">
+      <body className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen text-white antialiased flex flex-col">
         <ErrorBoundary>
           <ToastProvider>
             <WalletProvider>
-              {children}
+              <div className="flex-1">
+                {children}
+              </div>
+              <Footer />
             </WalletProvider>
           </ToastProvider>
         </ErrorBoundary>

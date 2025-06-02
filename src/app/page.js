@@ -296,7 +296,7 @@ export default function RiskScoringApp() {
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       {/* Header Navigation */}
       <Header 
         walletAddress={walletAddress}
@@ -307,7 +307,7 @@ export default function RiskScoringApp() {
       />
 
       {/* Main Content - Risk Scoring Dashboard */}
-      <main className="min-h-screen">
+      <main className="flex-1 pb-8">
         <div className="container-modern section-compact">
           {/* Page Header */}
           <div className="text-center mb-12">
@@ -642,6 +642,6 @@ export default function RiskScoringApp() {
           )}
         </div>
       </main>
-    </>
+    </div>
   );
 }

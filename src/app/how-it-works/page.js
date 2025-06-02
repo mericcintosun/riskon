@@ -7,47 +7,61 @@ export default function HowItWorksPage() {
   const steps = [
     {
       step: "01",
-      title: "Connect Your Wallet",
-      description: "Securely connect your Stellar wallet using Albedo, xBull, or Freighter.",
+      title: "Connect Wallet",
+      description: "Authenticate in one click with Albedo, xBull or Freighter.",
       icon: "🔗",
       color: "from-blue-500 to-cyan-500"
     },
     {
       step: "02", 
-      title: "Enter Transaction Data",
-      description: "Input your blockchain transaction history for AI analysis.",
+      title: "Local Analytics",
+      description: "Six on-chain factors from your last-30-day activity are processed entirely in the browser.",
       icon: "📊",
       color: "from-emerald-500 to-green-500"
     },
     {
       step: "03",
-      title: "AI Risk Assessment",
-      description: "Our advanced AI models calculate your personalized risk score.",
+      title: "Risk Score",
+      description: "A TensorFlow.js model outputs a personal score between 0 and 100.",
       icon: "🧠",
       color: "from-violet-500 to-purple-500"
     },
     {
       step: "04",
-      title: "Access DeFi Features",
-      description: "Use Blend Protocol with personalized recommendations.",
-      icon: "🌊",
+      title: "On-Chain Record",
+      description: "The score is written immutably to a Soroban smart contract on Stellar Testnet.",
+      icon: "⛓️",
       color: "from-orange-500 to-red-500"
+    },
+    {
+      step: "05",
+      title: "Badge NFT",
+      description: "An NFT matching your tier appears in your wallet.",
+      icon: "🏆",
+      color: "from-pink-500 to-rose-500"
+    },
+    {
+      step: "06",
+      title: "Collateral Hint",
+      description: "A score-driven collateral factor shows your maximum borrow limit via the Blend demo.",
+      icon: "💰",
+      color: "from-indigo-500 to-purple-500"
     }
   ];
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="min-h-screen">
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="section-compact container-modern text-center">
           <div className="max-w-3xl mx-auto animate-fade-in">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               How <span className="text-gradient-accent">Riskon</span> Works
-            </h1>
+            </h1> 
             <p className="text-lg text-white/70 mb-16">
-              Four simple steps to analyze your blockchain risk profile
+              Six simple steps to calculate your blockchain risk profile and access DeFi features
             </p>
           </div>
         </section>
@@ -90,7 +104,7 @@ export default function HowItWorksPage() {
               Ready to Get Started?
             </h2>
             <p className="text-white/70 mb-8 text-lg">
-              Connect your wallet and begin your DeFi journey
+              Connect your wallet and get your personalized risk score
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/wallet">
@@ -107,6 +121,6 @@ export default function HowItWorksPage() {
           </div>
         </section>
       </main>
-    </>
+    </div>
   );
 } 

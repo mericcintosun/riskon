@@ -6,54 +6,48 @@ import Link from "next/link";
 export default function FeaturesPage() {
   const features = [
     {
-      title: "AI-Powered Risk Analysis",
-      description: "Advanced machine learning algorithms analyze your blockchain transaction patterns to calculate personalized risk scores.",
+      title: "On-browser AI scoring",
+      description: "No private keys or raw data leave the user's device.",
       icon: "🧠",
       color: "from-violet-500 to-purple-500"
     },
     {
-      title: "Blend Protocol Integration",
-      description: "Seamlessly access DeFi features with risk-adjusted strategies through the Blend Protocol.",
-      icon: "🌊",
+      title: "Soroban + Stellar backbone",
+      description: "Fast, low-fee transactions secured by the Stellar Consensus Protocol.",
+      icon: "⚡",
       color: "from-blue-500 to-cyan-500"
     },
     {
-      title: "Multi-Wallet Support",
-      description: "Connect with your preferred Stellar wallet for maximum flexibility and security.",
-      icon: "💼",
+      title: "Badge NFT minting",
+      description: "Showcase your risk tier on-chain.",
+      icon: "🏆",
       color: "from-emerald-500 to-green-500"
     },
     {
-      title: "Stellar Blockchain",
-      description: "Built on Stellar's fast, secure, and cost-effective blockchain infrastructure.",
-      icon: "⚡",
+      title: "Blend integration",
+      description: "Supply, borrow, repay and withdraw flows that adapt to your score.",
+      icon: "🌊",
       color: "from-orange-500 to-red-500"
     },
     {
-      title: "Smart Contract Security",
-      description: "All operations are secured by audited Soroban smart contracts on the Stellar network.",
-      icon: "🔒",
+      title: "Live leaderboard",
+      description: "Real-time feed of the latest scores and lowest-risk addresses.",
+      icon: "📊",
       color: "from-pink-500 to-rose-500"
     },
     {
-      title: "Real-Time Analytics",
-      description: "Monitor your portfolio performance and risk metrics with live dashboard updates.",
-      icon: "📊",
+      title: "PWA and multi-wallet",
+      description: "Installable mobile app; Albedo, xBull and Freighter supported out of the box.",
+      icon: "📱",
       color: "from-indigo-500 to-purple-500"
-    },
-    {
-      title: "Portfolio Optimization",
-      description: "Get personalized recommendations to optimize your DeFi portfolio based on your risk profile.",
-      icon: "📈",
-      color: "from-teal-500 to-cyan-500"
     }
   ];
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="min-h-screen">
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="section-compact container-modern text-center">
           <div className="max-w-3xl mx-auto animate-fade-in">
@@ -127,9 +121,9 @@ export default function FeaturesPage() {
                 <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-2xl flex items-center justify-center">
                   <span className="text-3xl">🤖</span>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">AI Models</h3>
+                <h3 className="text-xl font-bold text-white mb-3">TensorFlow.js</h3>
                 <p className="text-white/70">
-                  Machine learning trained on blockchain transaction patterns
+                  Machine learning models running entirely in the browser
                 </p>
               </div>
             </div>
@@ -143,7 +137,7 @@ export default function FeaturesPage() {
               Experience the Power
             </h2>
             <p className="text-white/70 mb-8 text-lg">
-              Join thousands of users who trust Riskon for their DeFi needs
+              Join users who trust Riskon for their DeFi risk assessment needs
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/wallet">
@@ -160,6 +154,6 @@ export default function FeaturesPage() {
           </div>
         </section>
       </main>
-    </>
+    </div>
   );
 } 

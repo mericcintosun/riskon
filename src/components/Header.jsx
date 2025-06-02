@@ -60,6 +60,12 @@ export default function Header() {
             >
               How It Works
             </Link>
+            <Link
+              href="/about"
+              className="nav-link"
+            >
+              About
+            </Link>
           </nav>
 
           {/* Wallet Connection */}
@@ -131,6 +137,13 @@ export default function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 How It Works
+              </Link>
+              <Link
+                href="/about"
+                className="nav-link text-left"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                About
               </Link>
               
               {/* Mobile Wallet Connection */}
