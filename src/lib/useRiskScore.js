@@ -43,7 +43,7 @@ export function useRiskScore(features) {
         // Memory cleanup
         tf.dispose([input, output]);
       } catch (error) {
-        console.error("Risk skoru hesaplama hatası:", error);
+        console.error("Risk score calculation error:", error);
         if (!cancelled) {
           setScore(null);
         }

@@ -47,7 +47,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
   const loadAvailablePools = async () => {
     try {
       setIsLoading(true);
-      setMessage("🔍 Enhanced pool discovery başlatılıyor...");
+      setMessage("🔍 Enhanced pool discovery starting...");
       setMessageType("info");
 
       const pools = await getAvailablePools();
@@ -63,16 +63,16 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         );
 
         setMessage(
-          `✅ Pool keşfi tamamlandı! ${pools.length} pool bulundu (${operationalPools.length} tam işlevsel, ${activePools.length} aktif)`
+          `✅ Pool discovery completed! ${pools.length} pools found (${operationalPools.length} fully operational, ${activePools.length} active)`
         );
         setMessageType("success");
       } else {
-        setMessage("⚠️ Kullanılabilir pool bulunamadı");
+        setMessage("⚠️ No available pools found");
         setMessageType("warning");
       }
     } catch (error) {
       console.error("Error loading pools:", error);
-      setMessage(`❌ Pool yükleme hatası: ${error.message}`);
+      setMessage(`❌ Pool loading error: ${error.message}`);
       setMessageType("error");
     } finally {
       setIsLoading(false);
@@ -104,7 +104,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
 
   const handleBlendOperation = async () => {
     if (!kit || !walletAddress || !selectedPool || !selectedAsset) {
-      setMessage("Lütfen wallet bağlayın ve gerekli alanları doldurun");
+      setMessage("Please connect wallet and fill in required fields");
       setMessageType("error");
       return;
     }
@@ -116,16 +116,16 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       switch (selectedPool.status) {
         case "FULLY_OPERATIONAL":
           statusMessage =
-            "🚀 Tam işlevsel pool - gerçek blockchain işlemi yapılacak";
+            "🚀 Fully operational pool - real blockchain transaction will be executed";
           break;
         case "NETWORK_READY":
-          statusMessage = "🔗 Network hazır - uyumluluk modunda işlem";
+          statusMessage = "🔗 Network ready - transaction in compatibility mode";
           break;
         case "CONTRACT_EXISTS":
-          statusMessage = "📄 Contract bulundu - temel modda işlem";
+          statusMessage = "📄 Contract found - transaction in basic mode";
           break;
         default:
-          statusMessage = "🎮 Enhanced demo modunda işlem";
+          statusMessage = "🎮 Transaction in enhanced demo mode";
       }
 
       setMessage(statusMessage);
@@ -136,20 +136,20 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
     if (selectedPool.isPending) {
       if (selectedPool.canRetry) {
         setMessage(
-          "⚠️ Pool yükleniyor... Lütfen bekleyin veya yeniden deneyin."
+          "⚠️ Pool loading... Please wait or try again."
         );
         setMessageType("warning");
 
         // Offer retry option
         setTimeout(() => {
           setMessage(
-            "🔄 Pool durumu kontrol ediliyor... Retry için Refresh butonunu kullanın."
+            "🔄 Pool status being checked... Use Refresh button to retry."
           );
           setMessageType("info");
         }, 3000);
       } else {
         setMessage(
-          "❌ Seçili pool şu anda kullanılamıyor. Lütfen başka bir pool seçin."
+          "❌ Selected pool is currently unavailable. Please select another pool."
         );
         setMessageType("error");
       }
@@ -158,7 +158,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
 
     try {
       setIsLoading(true);
-      setMessage("Enhanced DeFi işlemi hazırlanıyor...");
+      setMessage("Enhanced DeFi transaction being prepared...");
       setMessageType("info");
 
       let operationData;
@@ -169,7 +169,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
           : parseAmount(borrowAmount);
 
       if (!amount || amount <= 0) {
-        throw new Error("Geçerli bir miktar girin");
+        throw new Error("Please enter a valid amount");
       }
 
       // Use enhanced operation creation
@@ -181,7 +181,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         amount
       );
 
-      setMessage("İşlem blockchain'e gönderiliyor...");
+      setMessage("Transaction being sent to blockchain...");
 
       // Execute enhanced operation
       const result = await executeEnhancedOperation(
@@ -193,7 +193,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       // Check if we got a transaction hash (real operation)
       if (result && typeof result === "string" && result.length === 64) {
         setMessage(
-          `✅ İşlem başarılı! Transaction Hash: ${result.substring(
+          `✅ Transaction successful! Transaction Hash: ${result.substring(
             0,
             8
           )}...${result.substring(56)}`
@@ -201,13 +201,13 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
 
         // Add link to Stellar Explorer
         setTimeout(() => {
-          setMessage(`✅ İşlem başarılı! 
+          setMessage(`✅ Transaction successful! 
           Hash: ${result.substring(0, 8)}...${result.substring(56)}
           🔗 View on Stellar Explorer: https://stellar.expert/explorer/testnet/tx/${result}`);
         }, 2000);
       } else {
         // Simulation result
-        setMessage("✅ İşlem başarılı! Blockchain entegrasyonu tamamlandı");
+        setMessage("✅ Transaction successful! Blockchain integration completed");
       }
 
       // Clear forms on success
@@ -219,8 +219,8 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         loadUserPositionData();
       }, 2000);
     } catch (error) {
-      console.error("DeFi işlem hatası:", error);
-      setMessage(`❌ İşlem hatası: ${error.message}`);
+      console.error("DeFi transaction error:", error);
+      setMessage(`❌ Transaction error: ${error.message}`);
       setMessageType("error");
     } finally {
       setIsLoading(false);
@@ -229,7 +229,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
 
   // Enhanced retry mechanism
   const handleRetryPool = async () => {
-    setMessage("🔄 Pool durumu yenileniyor...");
+    setMessage("🔄 Pool status being refreshed...");
     setMessageType("info");
     setIsLoading(true);
 
@@ -248,33 +248,33 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
 
     if (riskScore <= 30) {
       return {
-        level: "Düşük Risk",
+        level: "Low Risk",
         color: "green",
         recommendations: [
-          "Güvenli lending/borrowing için ideal profil",
-          "Teminat oranını %75-80 aralığında tutabilirsiniz",
-          "Stablecoin'ler üzerinde daha agresif pozisyon alabilirsiniz",
+          "Ideal profile for safe lending/borrowing",
+          "You can maintain collateral ratio between 75-80%",
+          "You can take more aggressive positions on stablecoins",
         ],
       };
     } else if (riskScore <= 70) {
       return {
-        level: "Orta Risk",
+        level: "Medium Risk",
         color: "yellow",
         recommendations: [
-          "Teminat oranını %60-70 aralığında tutun",
-          "Pozisyon büyüklüklerinizi moderate seviyede tutun",
-          "Çeşitli varlıklar arasında risk dağıtımı yapın",
+          "Keep collateral ratio between 60-70%",
+          "Keep your position sizes at moderate levels",
+          "Distribute risk across various assets",
         ],
       };
     } else {
       return {
-        level: "Yüksek Risk",
+        level: "High Risk",
         color: "red",
         recommendations: [
-          "Düşük teminat oranları (%40-50) kullanın",
-          "Küçük pozisyonlarla başlayın",
-          "Likidite yüksek varlıklara odaklanın",
-          "Sık sık pozisyon durumunuzu kontrol edin",
+          "Use low collateral ratios (40-50%)",
+          "Start with small positions",
+          "Focus on high liquidity assets",
+          "Check your position status frequently",
         ],
       };
     }
@@ -437,7 +437,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                 </div>
                 {selectedPool.lastChecked && (
                   <p className="text-xs mt-2 opacity-75">
-                    Son kontrol:{" "}
+                    Last check:{" "}
                     {new Date(selectedPool.lastChecked).toLocaleString()}
                   </p>
                 )}
@@ -450,7 +450,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                     onClick={handleRetryPool}
                     className="text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded hover:bg-orange-200 transition-colors"
                   >
-                    🔄 Durumu Yenile
+                    🔄 Refresh Status
                   </button>
                 )}
               </div>
@@ -503,7 +503,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                 : "text-red-800"
             }`}
           >
-            🎯 Risk Skorunuza Özel DeFi Önerileri ({riskRecommendations.level})
+            🎯 DeFi Recommendations Based on Your Risk Score ({riskRecommendations.level})
           </h3>
           <ul
             className={`mt-2 text-sm list-disc list-inside ${
@@ -531,7 +531,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Pool'lar yükleniyor...</p>
+              <p className="mt-2 text-gray-600">Loading pools...</p>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -608,7 +608,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
           {!walletAddress ? (
             <div className="text-center py-8">
               <p className="text-gray-600">
-                Pozisyonunuzu görmek için wallet bağlayın
+                Connect your wallet to view your position
               </p>
             </div>
           ) : selectedPool?.isPending ? (
@@ -628,24 +628,24 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                   />
                 </svg>
                 <p className="text-orange-800 font-medium">
-                  Pool Konfigürasyon Sorunu
+                  Pool Configuration Issue
                 </p>
                 <p className="text-orange-600 text-sm mt-2">
-                  Seçili pool şu anda kullanılamıyor. Pozisyon bilgisi
-                  alınamıyor.
+                  Selected pool is currently unavailable. Position information
+                  cannot be retrieved.
                 </p>
                 <button
                   onClick={handleRetryPool}
                   className="mt-4 bg-orange-100 text-orange-800 px-4 py-2 rounded-lg hover:bg-orange-200 transition-colors"
                 >
-                  🔄 Pool'ları Tekrar Yükle
+                  🔄 Reload Pools
                 </button>
               </div>
             </div>
           ) : isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Pozisyon yükleniyor...</p>
+              <p className="mt-2 text-gray-600">Loading position...</p>
             </div>
           ) : userPosition ? (
             <div className="grid md:grid-cols-2 gap-6">
@@ -676,7 +676,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-green-600">Henüz teminat yatırılmamış</p>
+                  <p className="text-green-600">No collateral deposited yet</p>
                 )}
               </div>
 
@@ -707,7 +707,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-red-600">Henüz borç alınmamış</p>
+                  <p className="text-red-600">No debt taken yet</p>
                 )}
               </div>
 
@@ -731,10 +731,10 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                       : userPosition.healthFactor.toFixed(2)}
                   </div>
                 ) : (
-                  <p className="text-blue-600">Hesaplanamıyor</p>
+                  <p className="text-blue-600">Cannot calculate</p>
                 )}
                 <p className="text-xs text-blue-600 mt-1">
-                  1.0'ın altında likidasyona açık
+                  Below 1.0 is subject to liquidation
                 </p>
               </div>
 
@@ -747,13 +747,13 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                   {userPosition.borrowLimit}
                 </div>
                 <p className="text-xs text-purple-600 mt-1">
-                  Maksimum borç alınabilir miktar
+                  Maximum borrowable amount
                 </p>
               </div>
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-600">Pozisyon bilgisi bulunamadı</p>
+              <p className="text-gray-600">Position information not found</p>
             </div>
           )}
         </div>

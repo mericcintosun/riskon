@@ -29,18 +29,18 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Riskon Özel Renk Paleti
+        // Riskon Custom Color Palette
         riskon: {
-          'bg': '#220041',           // Koyu mor arka plan
-          'primary': '#6A1B9A',      // Ana renk
-          'accent': '#8E24AA',       // Vurgulu renk
-          'text': '#FFFFFF',         // Beyaz yazı
-          'text-secondary': '#B39DDB', // Açık mor yazı
-          'heading': '#F3E5F5',      // Başlık rengi
-          'button': '#AB47BC',       // Buton rengi
-          'hover': '#9C27B0',        // Hover efekti
-          'card': 'rgba(139, 69, 19, 0.1)', // Kart arka planı (hafif şeffaf)
-          'border': '#8E24AA',       // Kenarlık rengi
+          'bg': '#220041',           // Dark purple background
+          'primary': '#6A1B9A',      // Primary color
+          'accent': '#8E24AA',       // Accent color
+          'text': '#FFFFFF',         // White text
+          'text-secondary': '#B39DDB', // Light purple text
+          'heading': '#F3E5F5',      // Heading color
+          'button': '#AB47BC',       // Button color
+          'hover': '#9C27B0',        // Hover effect
+          'card': 'rgba(139, 69, 19, 0.1)', // Card background (light transparent)
+          'border': '#8E24AA',       // Border color
         }
       },
       fontFamily: {

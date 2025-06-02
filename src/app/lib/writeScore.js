@@ -12,21 +12,21 @@ const {
   Memo,
 } = StellarSdk;
 
-// Basit bir destination account (risk skorlarını memo olarak kaydedeceğiz)
+// Simple destination account (we'll save risk scores as memo)
 const DESTINATION_ACCOUNT = "GDNE57HVQSG3JIGWNPEBZPJAD2F42FS3YL67RIEMJZ77JW5R75L3OE5B";
 
 // Horizon API endpoints
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 
-// Account bilgilerini fetch ile al
+// Fetch account information
 async function loadAccount(accountId) {
   const response = await fetch(`${HORIZON_URL}/accounts/${accountId}`);
   if (!response.ok) {
-    throw new Error(`Account bulunamadı: ${response.status}`);
+    throw new Error(`Account not found: ${response.status}`);
   }
   const accountData = await response.json();
   
-  // Account objesini Stellar SDK formatına çevir
+  // Convert account object to Stellar SDK format
   return {
     accountId: () => accountData.account_id,
     sequenceNumber: () => accountData.sequence,
@@ -36,7 +36,7 @@ async function loadAccount(accountId) {
   };
 }
 
-// Transaction'ı submit et
+// Submit transaction
 async function submitTransaction(transaction) {
   const response = await fetch(`${HORIZON_URL}/transactions`, {
     method: 'POST',
@@ -57,32 +57,32 @@ async function submitTransaction(transaction) {
   } else {
     return {
       successful: false,
-      result_xdr: result.extras?.result_xdr || 'Bilinmeyen hata',
+      result_xdr: result.extras?.result_xdr || 'Unknown error',
       result: result,
     };
   }
 }
 
-// Memo boyutunu kontrol eden yardımcı fonksiyon
+// Helper function to check memo byte size
 function getMemoByteSize(text) {
   return new TextEncoder().encode(text).length;
 }
 
-// Güvenli memo oluşturan fonksiyon
+// Function to create safe memo
 function createSafeMemo(scoreValue, address) {
-  // En kısa format: "RS:85:ABC" (9-11 karakter)
+  // Shortest format: "RS:85:ABC" (9-11 characters)
   let addressPrefix = address.slice(0, 3);
   let memo = `RS:${scoreValue}:${addressPrefix}`;
   
-  // Eğer hala çok uzunsa, daha da kısalt
+  // If still too long, shorten further
   if (getMemoByteSize(memo) > 28) {
-    // Sadece score: "RS:85" (5-6 karakter)
+    // Only score: "RS:85" (5-6 characters)
     memo = `RS:${scoreValue}`;
   }
   
-  // Son kontrol
+  // Final check
   if (getMemoByteSize(memo) > 28) {
-    // Bu durumda memo ID kullanmak zorundayız
+    // In this case we must use memo ID
     return null;
   }
   
@@ -91,52 +91,52 @@ function createSafeMemo(scoreValue, address) {
 
 export async function writeScoreToBlockchain({ kit, address, score }) {
   try {
-    console.log("🚀 Blockchain'e risk skoru yazılıyor (Memo ile):", { address, score });
+    console.log("🚀 Writing risk score to blockchain (with Memo):", { address, score });
     
     if (!kit) {
-      throw new Error("Wallet kit bulunamadı");
+      throw new Error("Wallet kit not found");
     }
     
     if (!address) {
-      throw new Error("Wallet adresi bulunamadı");
+      throw new Error("Wallet address not found");
     }
     
     if (typeof score !== 'number' || score < 0 || score > 100) {
-      throw new Error("Geçersiz skor değeri. Skor 0-100 arasında olmalıdır.");
+      throw new Error("Invalid score value. Score must be between 0-100.");
     }
 
     const scoreValue = Math.round(score);
     
-    console.log("📋 Risk skoru parametreleri hazırlandı:", { 
+    console.log("📋 Risk score parameters prepared:", { 
       address, 
       score: scoreValue
     });
     
-    // Account bilgilerini al
-    console.log("📡 Account bilgileri alınıyor...");
+    // Get account information
+    console.log("📡 Fetching account information...");
     const accountData = await loadAccount(address);
-    console.log("✅ Account bilgileri alındı:", {
+    console.log("✅ Account information retrieved:", {
       accountId: accountData.account_id,
       sequence: accountData.sequence
     });
     
-    // Stellar SDK Account objesi oluştur
+    // Create Stellar SDK Account object
     const account = new StellarSdk.Account(accountData.account_id, accountData.sequence);
     
-    // Risk skorunu memo olarak kaydet
+    // Save risk score as memo
     const safeMemo = createSafeMemo(scoreValue, address);
     let transaction;
     
     if (safeMemo === null) {
-      console.warn("⚠️ Memo çok uzun, Memo ID kullanılacak");
-      // Alternatif: Memo ID kullan (64-bit integer)
-      // Score'u ve timestamp'i birleştirerek unique ID oluştur
-      const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp (saniye)
+      console.warn("⚠️ Memo too long, using Memo ID");
+      // Alternative: Use Memo ID (64-bit integer)
+      // Create unique ID by combining score and timestamp
+      const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp (seconds)
       const memoId = BigInt(scoreValue) * 1000000n + BigInt(timestamp % 1000000); // Score + timestamp
       
-      console.log("📝 Memo ID kullanılıyor:", memoId.toString());
+      console.log("📝 Using Memo ID:", memoId.toString());
       
-      // Basit payment transaction oluştur (0.0000001 XLM)
+      // Create simple payment transaction (0.0000001 XLM)
       transaction = new TransactionBuilder(account, {
         fee: BASE_FEE.toString(),
         networkPassphrase: Networks.TESTNET,
@@ -145,23 +145,23 @@ export async function writeScoreToBlockchain({ kit, address, score }) {
           Operation.payment({
             destination: DESTINATION_ACCOUNT,
             asset: StellarSdk.Asset.native(), // XLM
-            amount: "0.0000001", // Minimal miktar
+            amount: "0.0000001", // Minimal amount
           })
         )
         .addMemo(Memo.id(memoId.toString()))
         .setTimeout(30)
         .build();
         
-      console.log("✅ Transaction oluşturuldu (Memo ID ile):", {
+      console.log("✅ Transaction created (with Memo ID):", {
         networkPassphrase: transaction.networkPassphrase,
         fee: transaction.fee,
         operations: transaction.operations.length,
         memoId: memoId.toString()
       });
     } else {
-      console.log("📝 Risk skoru memo'su:", safeMemo, "- Byte uzunluğu:", getMemoByteSize(safeMemo));
+      console.log("📝 Risk score memo:", safeMemo, "- Byte length:", getMemoByteSize(safeMemo));
       
-      // Basit payment transaction oluştur (0.0000001 XLM)
+      // Create simple payment transaction (0.0000001 XLM)
       transaction = new TransactionBuilder(account, {
         fee: BASE_FEE.toString(),
         networkPassphrase: Networks.TESTNET,
@@ -170,14 +170,14 @@ export async function writeScoreToBlockchain({ kit, address, score }) {
           Operation.payment({
             destination: DESTINATION_ACCOUNT,
             asset: StellarSdk.Asset.native(), // XLM
-            amount: "0.0000001", // Minimal miktar
+            amount: "0.0000001", // Minimal amount
           })
         )
         .addMemo(Memo.text(safeMemo))
         .setTimeout(30)
         .build();
         
-      console.log("✅ Transaction oluşturuldu (Memo Text ile):", {
+      console.log("✅ Transaction created (with Memo Text):", {
         networkPassphrase: transaction.networkPassphrase,
         fee: transaction.fee,
         operations: transaction.operations.length,
@@ -185,33 +185,33 @@ export async function writeScoreToBlockchain({ kit, address, score }) {
       });
     }
     
-    // Stellar Wallets Kit ile transaction'ı imzala
-    console.log("✍️ Transaction imzalanıyor...");
+    // Sign transaction with Stellar Wallets Kit
+    console.log("✍️ Signing transaction...");
     const { signedTxXdr } = await kit.signTransaction(transaction.toXDR(), {
       address,
       networkPassphrase: Networks.TESTNET
     });
     
-    console.log("✅ Transaction imzalandı");
+    console.log("✅ Transaction signed");
     
-    // İmzalı transaction'ı parse et
+    // Parse signed transaction
     const signedTransaction = new Transaction(signedTxXdr, Networks.TESTNET);
     
-    // Blockchain'e gönder
-    console.log("📤 Transaction blockchain'e gönderiliyor...");
+    // Send to blockchain
+    console.log("📤 Sending transaction to blockchain...");
     const result = await submitTransaction(signedTransaction);
-    console.log("📨 Transaction gönderildi:", result);
+    console.log("📨 Transaction sent:", result);
     
     if (result.successful) {
-      console.log("🎉 Transaction başarılı:", result.hash);
+      console.log("🎉 Transaction successful:", result.hash);
       return result.hash;
     } else {
-      console.error("❌ Transaction başarısız:", result);
-      throw new Error(`Transaction başarısız: ${result.result_xdr || 'Bilinmeyen hata'}`);
+      console.error("❌ Transaction failed:", result);
+      throw new Error(`Transaction failed: ${result.result_xdr || 'Unknown error'}`);
     }
     
   } catch (error) {
-    console.error("❌ writeScoreToBlockchain detaylı hatası:", {
+    console.error("❌ writeScoreToBlockchain detailed error:", {
       message: error.message,
       stack: error.stack,
       name: error.name,
@@ -219,28 +219,28 @@ export async function writeScoreToBlockchain({ kit, address, score }) {
       fullError: error
     });
     
-    // Kullanıcı dostu hata mesajları
+    // User-friendly error messages
     if (error.message?.includes("User declined") || error.message?.includes("user rejected")) {
-      throw new Error("İşlem kullanıcı tarafından iptal edildi.");
+      throw new Error("Transaction was cancelled by user.");
     } else if (error.message?.includes("Expects string, array or buffer, max 28 bytes")) {
-      throw new Error("Memo çok uzun. Lütfen daha kısa bir memo kullanın veya uygulamayı güncelleyin.");
-    } else if (error.message?.includes("account not found") || error.message?.includes("Account bulunamadı")) {
-      throw new Error("Hesap bulunamadı. Wallet'ınızın Testnet'te aktiv olduğundan emin olun.");
+      throw new Error("Memo too long. Please use a shorter memo or update the application.");
+    } else if (error.message?.includes("account not found") || error.message?.includes("Account not found")) {
+      throw new Error("Account not found. Make sure your wallet is active on Testnet.");
     } else if (error.message?.includes("insufficient balance") || error.message?.includes("underfunded")) {
-      throw new Error("Yetersiz bakiye. Testnet XLM'ye ihtiyacınız var: https://laboratory.stellar.org/#account-creator");
+      throw new Error("Insufficient balance. You need Testnet XLM: https://laboratory.stellar.org/#account-creator");
     } else if (error.message?.includes("timeout") || error.message?.includes("network")) {
-      throw new Error("Ağ bağlantı hatası. Lütfen tekrar deneyin.");
+      throw new Error("Network connection error. Please try again.");
     } else if (error.message?.includes("invalid") && error.message?.includes("parameter")) {
-      throw new Error(`Geçersiz parametreler: ${error.message}`);
+      throw new Error(`Invalid parameters: ${error.message}`);
     } else if (error.response?.status === 400) {
-      throw new Error(`Sunucu hatası (400): ${JSON.stringify(error.response.data || error.response)}`);
+      throw new Error(`Server error (400): ${JSON.stringify(error.response.data || error.response)}`);
     } else if (error.response?.status === 404) {
-      throw new Error("Hesap bulunamadı. Wallet'ınızın Testnet'te aktiv olduğundan emin olun.");
+      throw new Error("Account not found. Make sure your wallet is active on Testnet.");
     } else if (error.response?.status >= 500) {
-      throw new Error("Sunucu hatası. Lütfen daha sonra tekrar deneyin.");
+      throw new Error("Server error. Please try again later.");
     }
     
-    // Eğer hiçbir spesifik hata yakalanmazsa, orijinal hatayı fırlat
-    throw new Error(`Blockchain hatası: ${error.message || JSON.stringify(error)}`);
+    // If no specific error is caught, throw the original error
+    throw new Error(`Blockchain error: ${error.message || JSON.stringify(error)}`);
   }
 } 

@@ -12,87 +12,87 @@ import {
 import { Server } from "@stellar/stellar-sdk/rpc";
 import { signTransaction } from "@stellar/freighter-api";
 
-/* --- 1. Ortak RPC nesnesi ------------------------------------------ */
+/* --- 1. Common RPC object ------------------------------------------ */
 const server = new Server("https://soroban-testnet.stellar.org");
 
-/* --- 2. Skoru sözleşmeye yazan fonksiyon --------------------------- */
+/* --- 2. Function to write score to contract --------------------------- */
 export async function writeScore({ address, score }) {
   try {
-    console.log("writeScore başlatılıyor:", { address, score });
+    console.log("writeScore starting:", { address, score });
     
     const contractId = process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID;
     
     if (!contractId) {
-      throw new Error("Sözleşme ID'si tanımlanmamış. .env.local dosyasını kontrol edin.");
+      throw new Error("Contract ID is not defined. Check your .env.local file.");
     }
     
     if (!address) {
-      throw new Error("Cüzdan adresi bulunamadı. Lütfen cüzdanınızı bağlayın.");
+      throw new Error("Wallet address not found. Please connect your wallet.");
     }
     
     if (typeof score !== 'number' || score < 0 || score > 100) {
-      throw new Error("Geçersiz skor değeri. Skor 0-100 arasında olmalıdır.");
+      throw new Error("Invalid score value. Score must be between 0-100.");
     }
 
-    console.log("Sözleşme ID:", contractId);
+    console.log("Contract ID:", contractId);
     console.log("Network:", Networks.TESTNET);
     
     const contract = new Contract(contractId);
     
-    // Address ve score parametrelerini doğru formatta hazırla
+    // Prepare address and score parameters in correct format
     const addrVal = Address.fromString(address).toScVal();
     const scoreVal = nativeToScVal(Math.round(score), { type: "u32" });
     
-    console.log("Parametreler hazırlandı:", { 
+    console.log("Parameters prepared:", { 
       address, 
       score: Math.round(score),
       contractId,
       network: Networks.TESTNET
     });
     
-    // Hesap bilgilerini al
-    console.log("Hesap bilgileri alınıyor...");
+    // Get account information
+    console.log("Fetching account information...");
     const account = await server.getAccount(address);
-    console.log("Hesap bilgileri alındı:", {
+    console.log("Account information retrieved:", {
       accountId: account.accountId(),
       sequence: account.sequenceNumber()
     });
     
-    // İşlem oluştur - TESTNET kullan
-    console.log("İşlem oluşturuluyor...");
+    // Create transaction - use TESTNET
+    console.log("Creating transaction...");
     const tx = new TransactionBuilder(account, {
       fee: (BASE_FEE * 100).toString(),
-      networkPassphrase: Networks.TESTNET, // Açıkça TESTNET belirt
+      networkPassphrase: Networks.TESTNET, // Explicitly specify TESTNET
     })
       .addOperation(contract.call("set_score", addrVal, scoreVal))
       .setTimeout(30)
       .build();
     
-    console.log("İşlem oluşturuldu:", {
+    console.log("Transaction created:", {
       networkPassphrase: tx.networkPassphrase,
       fee: tx.fee,
       operations: tx.operations.length
     });
     
-    console.log("İşlem imzalanıyor...");
+    console.log("Signing transaction...");
     
-    // Freighter ile imza - basit format
+    // Sign with Freighter - simple format
     const signedXdr = await signTransaction(tx.toXDR(), {
       network: "TESTNET",
       networkPassphrase: Networks.TESTNET,
     });
     
-    console.log("İşlem imzalandı, gönderiliyor...");
+    console.log("Transaction signed, sending...");
     
-    // İmzalı işlemi parse et - Transaction constructor kullan
+    // Parse signed transaction - use Transaction constructor
     const signedTx = new Transaction(signedXdr, Networks.TESTNET);
     
-    // Ağa gönder
+    // Send to network
     const result = await server.sendTransaction(signedTx);
-    console.log("İşlem gönderildi:", result);
+    console.log("Transaction sent:", result);
     
     if (result.status === "PENDING") {
-      // İşlem onayını bekle
+      // Wait for transaction confirmation
       let attempts = 0;
       const maxAttempts = 10;
       
@@ -102,10 +102,10 @@ export async function writeScore({ address, score }) {
         try {
           const txResult = await server.getTransaction(result.hash);
           if (txResult.status === "SUCCESS") {
-            console.log("İşlem başarılı:", txResult);
+            console.log("Transaction successful:", txResult);
             return result.hash;
           } else if (txResult.status === "FAILED") {
-            throw new Error(`İşlem başarısız: ${txResult.resultXdr}`);
+            throw new Error(`Transaction failed: ${txResult.resultXdr}`);
           }
         } catch (err) {
           if (err.response?.status !== 404) {
@@ -116,16 +116,16 @@ export async function writeScore({ address, score }) {
         attempts++;
       }
       
-      throw new Error("İşlem onayı zaman aşımına uğradı");
+      throw new Error("Transaction confirmation timed out");
     } else if (result.status === "ERROR") {
-      const errorDetails = result.extras?.result_codes || result.extras || 'Bilinmeyen hata';
-      throw new Error(`İşlem hatası: ${JSON.stringify(errorDetails)}`);
+      const errorDetails = result.extras?.result_codes || result.extras || 'Unknown error';
+      throw new Error(`Transaction error: ${JSON.stringify(errorDetails)}`);
     }
     
     return result.hash;
     
   } catch (error) {
-    console.error("writeScore hatası - Detaylı:", {
+    console.error("writeScore error - Detailed:", {
       message: error.message,
       stack: error.stack,
       name: error.name,
@@ -133,30 +133,30 @@ export async function writeScore({ address, score }) {
       fullError: error
     });
     
-    // Daha spesifik hata mesajları
+    // More specific error messages
     if (error.message?.includes("User declined") || error.message?.includes("user rejected")) {
-      throw new Error("İşlem kullanıcı tarafından iptal edildi.");
+      throw new Error("Transaction was cancelled by user.");
     } else if (error.message?.includes("account not found")) {
-      throw new Error("Hesap bulunamadı. Cüzdanınızın Testnet'te aktif olduğundan emin olun.");
+      throw new Error("Account not found. Make sure your wallet is active on Testnet.");
     } else if (error.message?.includes("insufficient balance") || error.message?.includes("underfunded")) {
-      throw new Error("Yetersiz bakiye. Testnet XLM'ye ihtiyacınız var.");
+      throw new Error("Insufficient balance. You need Testnet XLM.");
     } else if (error.message?.includes("timeout") || error.message?.includes("network")) {
-      throw new Error("Ağ bağlantı hatası. Lütfen tekrar deneyin.");
+      throw new Error("Network connection error. Please try again.");
     } else if (error.message?.includes("invalid") && error.message?.includes("parameter")) {
-      throw new Error(`Geçersiz parametreler: ${error.message}`);
+      throw new Error(`Invalid parameters: ${error.message}`);
     } else if (error.message?.includes("switch is not a function")) {
-      throw new Error("Stellar SDK uyumluluk hatası. Lütfen sayfayı yenileyin.");
+      throw new Error("Stellar SDK compatibility error. Please refresh the page.");
     } else if (error.message?.includes("Public Global Stellar Network")) {
-      throw new Error("Network uyumsuzluğu: Freighter Testnet'e ayarlı ama işlem Mainnet için oluşturulmuş. Lütfen sayfayı yenileyin.");
+      throw new Error("Network mismatch: Freighter is set to Testnet but transaction was created for Mainnet. Please refresh the page.");
     } else if (error.response?.status === 400) {
-      throw new Error(`Sunucu hatası (400): ${JSON.stringify(error.response.data || error.response)}`);
+      throw new Error(`Server error (400): ${JSON.stringify(error.response.data || error.response)}`);
     } else if (error.response?.status === 404) {
-      throw new Error("Sözleşme bulunamadı. Contract ID'sini kontrol edin.");
+      throw new Error("Contract not found. Check your Contract ID.");
     } else if (error.response?.status >= 500) {
-      throw new Error("Sunucu hatası. Lütfen daha sonra tekrar deneyin.");
+      throw new Error("Server error. Please try again later.");
     }
     
-    // Eğer hiçbir spesifik hata yakalanmazsa, orijinal hatayı fırlat
-    throw new Error(`Beklenmeyen hata: ${error.message || JSON.stringify(error)}`);
+    // If no specific error is caught, throw the original error
+    throw new Error(`Unexpected error: ${error.message || JSON.stringify(error)}`);
   }
 }

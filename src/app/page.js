@@ -501,17 +501,17 @@ export default function RiskScoringApp() {
             <div className="card-modern max-w-2xl mx-auto mt-8 mb-8 animate-fade-in">
               <div className="mb-6">
                 <h2 className="text-subheading mb-4">
-                  Teminat Hesaplayıcı
+                  Collateral Calculator
                 </h2>
                 <p className="text-caption">
-                  Risk skorunuza göre maksimum borç limitinizi hesaplayın
+                  Calculate your maximum borrowing limit based on your risk score
                 </p>
               </div>
 
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                    Teminat (USDC)
+                    Collateral (USDC)
                   </label>
                   <input
                     type="number"
@@ -528,7 +528,7 @@ export default function RiskScoringApp() {
                   />
                   {collateralAmount && (isNaN(parseFloat(collateralAmount)) || parseFloat(collateralAmount) < 0) && (
                     <p className="text-red-400 text-sm mt-2 font-montserrat">
-                      Geçerli tutar girin
+                      Please enter a valid amount
                     </p>
                   )}
                 </div>
@@ -540,7 +540,7 @@ export default function RiskScoringApp() {
                         {maxBorrow(parseFloat(collateralAmount), riskScore).toFixed(2)} USDC
                       </div>
                       <div className="text-caption mb-4">
-                        Maksimum borç
+                        Maximum borrowing
                       </div>
                       <div className="flex items-center justify-center space-x-4 text-sm">
                         <span className={`px-3 py-1 rounded-full font-medium ${
@@ -551,7 +551,7 @@ export default function RiskScoringApp() {
                           tier = {getTier(riskScore).name}
                         </span>
                         <span className="text-white/60">
-                          faktör = {(getTier(riskScore).collateralFactor * 100).toFixed(0)}%
+                          factor = {(getTier(riskScore).collateralFactor * 100).toFixed(0)}%
                         </span>
                       </div>
                     </div>
@@ -564,7 +564,7 @@ export default function RiskScoringApp() {
                       0 USDC
                     </div>
                     <div className="text-caption">
-                      Maksimum borç
+                      Maximum borrowing
                     </div>
                   </div>
                 )}
