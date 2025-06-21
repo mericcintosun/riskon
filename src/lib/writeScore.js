@@ -40,8 +40,48 @@ export async function writeScore({ address, score }) {
     const addrVal = Address.fromString(address).toScVal();
     const scoreVal = nativeToScVal(Math.round(score), { type: "u32" });
 
-    // Get account information
-    const account = await server.getAccount(address);
+    // Get account information with auto-creation
+    let account;
+    try {
+      account = await server.getAccount(address);
+    } catch (accountError) {
+      if (
+        accountError.message?.includes("not found") ||
+        accountError.response?.status === 404
+      ) {
+        console.log(
+          `⚠️ Account not found, attempting to create testnet account: ${address}`
+        );
+
+        // Try to create the account using friendbot
+        try {
+          const friendbotResponse = await fetch(
+            `https://friendbot.stellar.org?addr=${encodeURIComponent(address)}`
+          );
+
+          if (friendbotResponse.ok) {
+            console.log(`✅ Account created successfully via friendbot`);
+
+            // Wait a moment for account to be available
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+
+            // Try to get account again
+            account = await server.getAccount(address);
+          } else {
+            throw new Error(
+              `Friendbot request failed: ${friendbotResponse.status}`
+            );
+          }
+        } catch (friendbotError) {
+          console.error(`❌ Failed to create testnet account:`, friendbotError);
+          throw new Error(
+            `Account not found and creation failed. Please manually fund your wallet at https://laboratory.stellar.org/#account-creator`
+          );
+        }
+      } else {
+        throw accountError;
+      }
+    }
 
     // Create transaction - use TESTNET
 
