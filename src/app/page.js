@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { writeScoreToBlockchain } from "./lib/writeScore";
 import { testContractExists, getContractInfo } from "./lib/testContract";
+import { performAutoRiskAnalysis } from "../lib/autoRiskAnalyzer";
 import BlendDashboard from "../components/BlendDashboard.jsx";
+import EnhancedLiquidityPools from "../components/EnhancedLiquidityPools.jsx";
+import UserRiskProfile from "../components/UserRiskProfile.jsx";
 import Header from "../components/Header.jsx";
 import Link from "next/link";
 import { useWallet } from "../contexts/WalletContext";
@@ -36,10 +39,15 @@ export default function RiskScoringApp() {
     runQuickHealthCheck,
   } = useIssueDetector();
 
-  // Form state - simplified
+  // Form state - simplified (keeping for fallback)
   const [txCount, setTxCount] = useState("");
   const [avgHours, setAvgHours] = useState("");
   const [assetTypes, setAssetTypes] = useState("");
+
+  // Auto risk analysis state
+  const [autoAnalysisResult, setAutoAnalysisResult] = useState(null);
+  const [isAnalyzingWallet, setIsAnalyzingWallet] = useState(false);
+  const [analysisMode, setAnalysisMode] = useState("auto"); // "auto" or "manual"
 
   // Collateral calculator state
   const [collateralAmount, setCollateralAmount] = useState("");
@@ -49,6 +57,9 @@ export default function RiskScoringApp() {
   const [transactionHash, setTransactionHash] = useState("");
   const [contractStatus, setContractStatus] = useState("unknown");
   const [showBlendDashboard, setShowBlendDashboard] = useState(false);
+  const [showEnhancedPools, setShowEnhancedPools] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [selectedTier, setSelectedTier] = useState(null);
   const [riskScore, setRiskScore] = useState(0);
 
   // Simplified risk score calculation
@@ -118,22 +129,39 @@ export default function RiskScoringApp() {
     return Math.min(100, Math.max(0, score));
   };
 
-  // Calculate risk score when form values change with validation
+  // Auto risk analysis when wallet connects
   useEffect(() => {
-    const calculatedScore = calculateRiskScore();
-    setRiskScore(calculatedScore);
-
-    // Validate form inputs and show issues if any
-    const validationErrors = validateFormInputs(txCount, avgHours, assetTypes);
-    if (validationErrors.length > 0) {
-      validationErrors.forEach((error) => {
-        toast.warning(error, { duration: 3000 });
-      });
+    if (walletAddress && analysisMode === "auto" && !autoAnalysisResult) {
+      performWalletAnalysis();
     }
-  }, [txCount, avgHours, assetTypes]);
+  }, [walletAddress, analysisMode]);
+
+  // Calculate risk score when form values change with validation (manual mode)
+  useEffect(() => {
+    if (analysisMode === "manual") {
+      const calculatedScore = calculateRiskScore();
+      setRiskScore(calculatedScore);
+
+      // Validate form inputs and show issues if any
+      const validationErrors = validateFormInputs(
+        txCount,
+        avgHours,
+        assetTypes
+      );
+      if (validationErrors.length > 0) {
+        validationErrors.forEach((error) => {
+          toast.warning(error, { duration: 3000 });
+        });
+      }
+    } else if (autoAnalysisResult) {
+      setRiskScore(autoAnalysisResult.riskScore);
+    }
+  }, [txCount, avgHours, assetTypes, analysisMode, autoAnalysisResult]);
 
   const isValidInput =
-    riskScore !== null && (txCount || avgHours || assetTypes);
+    analysisMode === "auto"
+      ? autoAnalysisResult && autoAnalysisResult.riskScore !== null
+      : riskScore !== null && (txCount || avgHours || assetTypes);
 
   // Test contract when kit is available
   useEffect(() => {
@@ -196,12 +224,72 @@ export default function RiskScoringApp() {
     try {
       const result = disconnectWallet();
       if (result.success) {
+        // Reset analysis when wallet disconnects
+        setAutoAnalysisResult(null);
+        setRiskScore(0);
         toast.success("👛 Wallet disconnected successfully");
       } else {
         toast.warning("Wallet disconnected (with minor issues)");
       }
     } catch (error) {
       showCategorizedError(error, "Error during wallet disconnection");
+    }
+  };
+
+  // Perform automatic wallet analysis
+  const performWalletAnalysis = async () => {
+    if (!walletAddress) return;
+
+    try {
+      setIsAnalyzingWallet(true);
+      const loadingToast = toast.loading(
+        "🔍 Analyzing wallet transaction history..."
+      );
+
+      console.log("🚀 Starting automatic risk analysis for:", walletAddress);
+
+      const analysisResult = await performAutoRiskAnalysis(walletAddress);
+
+      toast.dismiss(loadingToast);
+      setAutoAnalysisResult(analysisResult);
+
+      // Show analysis results to user
+      toast.success(
+        `✅ Automatic analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
+        { duration: 6000 }
+      );
+
+      // Show detailed factors
+      setTimeout(() => {
+        toast.info(
+          `📊 Analysis: ${analysisResult.analysis.txCount} transactions, ${analysisResult.analysis.assetTypes} assets, ${analysisResult.analysis.avgHours}h avg interval`,
+          {
+            duration: 8000,
+          }
+        );
+      }, 2000);
+    } catch (error) {
+      console.error("❌ Auto analysis error:", error);
+      toast.dismiss();
+
+      if (
+        error.message.includes("404") ||
+        error.message.includes("not found")
+      ) {
+        toast.warning(
+          "⚠️ No transaction history found. Switch to manual mode or fund your wallet first.",
+          {
+            duration: 6000,
+          }
+        );
+        setAnalysisMode("manual");
+      } else {
+        showCategorizedError(error, "Automatic wallet analysis failed");
+        // Fallback to manual mode on error
+        setAnalysisMode("manual");
+      }
+    } finally {
+      setIsAnalyzingWallet(false);
     }
   };
 
@@ -263,8 +351,9 @@ export default function RiskScoringApp() {
         });
       }, 1000);
 
-      // Show Blend Dashboard after successful risk score submission
+      // Show Enhanced Liquidity Pools after successful risk score submission
       setShowBlendDashboard(true);
+      setShowEnhancedPools(true);
     } catch (error) {
       console.error("❌ Blockchain write error:", error);
       showCategorizedError(error, "Failed to save risk score to blockchain");
@@ -533,68 +622,249 @@ export default function RiskScoringApp() {
           {/* Risk Scoring Form */}
           {walletAddress && (
             <div className="card-modern max-w-2xl mx-auto mb-8 animate-slide-up">
-              <div className="mb-8">
-                <h2 className="text-subheading mb-6">
-                  Transaction Information
-                </h2>
-              </div>
+              <div className="mb-6">
+                <h2 className="text-subheading mb-4">Risk Score Analysis</h2>
 
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                    Transaction Count (0-100)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={txCount}
-                    onChange={handleTxCountChange}
-                    className="input-modern"
-                    placeholder="e.g. 25"
-                  />
-                  <p className="text-caption mt-2">
-                    Number of transactions in the last 30 days
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                    Average Time Interval (0-24 hours)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="24"
-                    step="0.1"
-                    value={avgHours}
-                    onChange={handleAvgHoursChange}
-                    className="input-modern"
-                    placeholder="e.g. 8.5"
-                  />
-                  <p className="text-caption mt-2">
-                    Average time between transactions
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                    Asset Types (0-10)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={assetTypes}
-                    onChange={handleAssetTypesChange}
-                    className="input-modern"
-                    placeholder="e.g. 3"
-                  />
-                  <p className="text-caption mt-2">
-                    Number of different asset/token types used
-                  </p>
+                {/* Analysis Mode Toggle */}
+                <div className="flex items-center justify-center space-x-4 mb-6">
+                  <button
+                    onClick={() => setAnalysisMode("auto")}
+                    className={`px-6 py-3 rounded-lg transition-all duration-200 ${
+                      analysisMode === "auto"
+                        ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                        : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                    }`}
+                  >
+                    <svg
+                      className="w-5 h-5 mr-2 inline"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    Auto Analysis
+                  </button>
+                  <button
+                    onClick={() => setAnalysisMode("manual")}
+                    className={`px-6 py-3 rounded-lg transition-all duration-200 ${
+                      analysisMode === "manual"
+                        ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                        : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                    }`}
+                  >
+                    <svg
+                      className="w-5 h-5 mr-2 inline"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                    Manual Entry
+                  </button>
                 </div>
               </div>
+
+              {/* Auto Analysis Display */}
+              {analysisMode === "auto" && (
+                <div className="space-y-6">
+                  {!autoAnalysisResult && !isAnalyzingWallet && (
+                    <div className="text-center p-8 bg-gradient-to-br from-violet-500/10 to-purple-600/10 rounded-2xl">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-violet-500/20 rounded-2xl flex items-center justify-center">
+                        <svg
+                          className="w-8 h-8 text-violet-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white/90 mb-2">
+                        Ready for Auto Analysis
+                      </h3>
+                      <p className="text-white/70 mb-4">
+                        Click the button below to analyze your wallet's
+                        transaction history automatically
+                      </p>
+                      <button
+                        onClick={performWalletAnalysis}
+                        disabled={isAnalyzing}
+                        className="btn-primary px-6 py-3"
+                      >
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                          />
+                        </svg>
+                        Analyze Wallet
+                      </button>
+                    </div>
+                  )}
+
+                  {isAnalyzing && (
+                    <div className="text-center p-8 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-2xl">
+                      <div className="loading-modern mb-4">
+                        <div className="loading-dot"></div>
+                        <div className="loading-dot"></div>
+                        <div className="loading-dot"></div>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white/90 mb-2">
+                        Analyzing Transaction History
+                      </h3>
+                      <p className="text-white/70">
+                        Fetching data from Stellar Horizon API...
+                      </p>
+                    </div>
+                  )}
+
+                  {autoAnalysisResult && (
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-br from-emerald-500/10 to-green-600/10 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold text-emerald-400 mb-4">
+                          Analysis Results
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-white/70">Transactions:</span>
+                            <span className="text-white/90 ml-2 font-mono">
+                              {autoAnalysisResult.analysis.txCount}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/70">Avg Hours:</span>
+                            <span className="text-white/90 ml-2 font-mono">
+                              {autoAnalysisResult.analysis.avgHours}h
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/70">Asset Types:</span>
+                            <span className="text-white/90 ml-2 font-mono">
+                              {autoAnalysisResult.analysis.assetTypes}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/70">Confidence:</span>
+                            <span
+                              className={`ml-2 font-semibold ${
+                                autoAnalysisResult.confidence === "High"
+                                  ? "text-emerald-400"
+                                  : autoAnalysisResult.confidence === "Medium"
+                                  ? "text-amber-400"
+                                  : "text-red-400"
+                              }`}
+                            >
+                              {autoAnalysisResult.confidence}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <p className="text-sm text-white/70 mb-2">
+                            Risk Factors:
+                          </p>
+                          <ul className="text-xs text-white/60 space-y-1">
+                            {autoAnalysisResult.factors
+                              .slice(0, 3)
+                              .map((factor, index) => (
+                                <li key={index}>• {factor}</li>
+                              ))}
+                          </ul>
+                        </div>
+                        <button
+                          onClick={performWalletAnalysis}
+                          className="btn-secondary text-sm px-4 py-2 mt-4"
+                        >
+                          Refresh Analysis
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Manual Entry Form */}
+              {analysisMode === "manual" && (
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
+                      Transaction Count (0-100)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={txCount}
+                      onChange={handleTxCountChange}
+                      className="input-modern"
+                      placeholder="e.g. 25"
+                    />
+                    <p className="text-caption mt-2">
+                      Number of transactions in the last 30 days
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
+                      Average Time Interval (0-24 hours)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="24"
+                      step="0.1"
+                      value={avgHours}
+                      onChange={handleAvgHoursChange}
+                      className="input-modern"
+                      placeholder="e.g. 8.5"
+                    />
+                    <p className="text-caption mt-2">
+                      Average time between transactions
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
+                      Asset Types (0-10)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={assetTypes}
+                      onChange={handleAssetTypesChange}
+                      className="input-modern"
+                      placeholder="e.g. 3"
+                    />
+                    <p className="text-caption mt-2">
+                      Number of different asset/token types used
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Risk Score Display */}
               <div className="mt-8 animate-scale-in">
@@ -622,47 +892,124 @@ export default function RiskScoringApp() {
               </div>
 
               {/* Submit Button */}
-              <div className="mt-8 text-center">
-                <button
-                  onClick={submitRiskScore}
-                  disabled={
-                    !kit ||
-                    !walletAddress ||
-                    !isValidInput ||
-                    isLoading ||
-                    contractStatus !== "exists"
-                  }
-                  className="btn-primary text-lg px-10 py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-accent hover:shadow-2xl"
-                >
-                  {isLoading ? (
-                    <div className="loading-modern">
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
-                    </div>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-6 h-6 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Save Risk Score
-                    </>
-                  )}
-                </button>
-                <p className="text-caption mt-3">
-                  Your risk score will be saved to the blockchain
-                </p>
+              <div className="mt-8 space-y-4">
+                {/* Submit Risk Score Button */}
+                <div className="text-center">
+                  <button
+                    onClick={submitRiskScore}
+                    disabled={
+                      !kit ||
+                      !walletAddress ||
+                      !isValidInput ||
+                      isLoading ||
+                      contractStatus !== "exists"
+                    }
+                    className="btn-primary text-lg px-10 py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-accent hover:shadow-2xl"
+                  >
+                    {isLoading ? (
+                      <div className="loading-modern">
+                        <div className="loading-dot"></div>
+                        <div className="loading-dot"></div>
+                        <div className="loading-dot"></div>
+                      </div>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-6 h-6 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        Save Risk Score to Blockchain
+                      </>
+                    )}
+                  </button>
+                  <p className="text-caption mt-3">
+                    {analysisMode === "auto" && autoAnalysisResult
+                      ? `Automatically calculated score: ${riskScore} (${autoAnalysisResult.confidence} confidence)`
+                      : analysisMode === "manual"
+                      ? "Manual entry - your risk score will be saved to the blockchain"
+                      : "Complete analysis to save your risk score"}
+                  </p>
+                </div>
+
+                {/* Next Steps Buttons */}
+                {transactionHash && (
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button
+                      onClick={() => setShowUserProfile(true)}
+                      className="btn-secondary px-8 py-3 flex items-center justify-center"
+                    >
+                      <span className="mr-2">👤</span>
+                      View Risk Profile & Pool Access
+                    </button>
+                    <button
+                      onClick={() => setShowEnhancedPools(true)}
+                      className="btn-accent px-8 py-3 flex items-center justify-center"
+                    >
+                      <span className="mr-2">🎯</span>
+                      Explore Investment Pools
+                    </button>
+                  </div>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* User Risk Profile */}
+          {showUserProfile && walletAddress && (
+            <div className="mt-12 animate-fade-in">
+              <div className="card-glass max-w-4xl mx-auto mb-8">
+                <div className="text-center">
+                  <h2 className="text-heading mb-4">
+                    👤 Your Risk Profile & Investment Guide
+                  </h2>
+                  <p className="text-body">
+                    Understand your risk profile and get personalized investment
+                    recommendations
+                  </p>
+                </div>
+              </div>
+              <UserRiskProfile
+                walletAddress={walletAddress}
+                riskScore={riskScore}
+                onTierSelect={(tier) => {
+                  setSelectedTier(tier);
+                  setShowEnhancedPools(true);
+                  setShowUserProfile(false);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Enhanced Liquidity Pools */}
+          {showEnhancedPools && walletAddress && (
+            <div className="mt-12 animate-fade-in">
+              <div className="card-glass max-w-4xl mx-auto mb-8">
+                <div className="text-center">
+                  <h2 className="text-heading mb-4">
+                    🎯 Risk-Based Liquidity Pools
+                  </h2>
+                  <p className="text-body">
+                    Access tier-classified liquidity pools based on your risk
+                    score. Following Goldfinch/Maple methodology for responsible
+                    DeFi.
+                    {selectedTier && (
+                      <span className="block mt-2 text-accent">
+                        Showing {selectedTier} pools based on your selection
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <EnhancedLiquidityPools selectedTier={selectedTier} />
             </div>
           )}
 
@@ -671,10 +1018,10 @@ export default function RiskScoringApp() {
             <div className="mt-12 animate-fade-in">
               <div className="card-glass max-w-4xl mx-auto mb-8">
                 <div className="text-center">
-                  <h2 className="text-heading mb-4">DeFi Dashboard</h2>
+                  <h2 className="text-heading mb-4">🌊 Blend DeFi Dashboard</h2>
                   <p className="text-body">
-                    Your risk score has been saved. You can now access DeFi
-                    features.
+                    Traditional DeFi operations with demo pools. Your risk
+                    score: {riskScore}
                   </p>
                 </div>
               </div>
