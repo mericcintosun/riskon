@@ -17,43 +17,49 @@ export function useIssueDetector() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
+
         // Try Horizon first (more reliable)
         let networkOk = false;
-        
+
         try {
-          const horizonResponse = await fetch('https://horizon-testnet.stellar.org', {
-            method: 'GET',
-            signal: controller.signal,
-            headers: {
-              'Accept': 'application/hal+json'
+          const horizonResponse = await fetch(
+            "https://horizon-testnet.stellar.org",
+            {
+              method: "GET",
+              signal: controller.signal,
+              headers: {
+                Accept: "application/hal+json",
+              },
             }
-          });
-          
+          );
+
           if (horizonResponse.ok) {
             networkOk = true;
           }
         } catch (horizonError) {
           console.warn("Horizon check failed:", horizonError.message);
         }
-        
+
         // If Horizon fails, try Soroban RPC with proper method
         if (!networkOk) {
           try {
-            const sorobanResponse = await fetch('https://soroban-testnet.stellar.org', {
-              method: 'POST',
-              signal: controller.signal,
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: 1,
-                method: "getHealth"
-              })
-            });
-            
+            const sorobanResponse = await fetch(
+              "https://soroban-testnet.stellar.org",
+              {
+                method: "POST",
+                signal: controller.signal,
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+                body: JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "getHealth",
+                }),
+              }
+            );
+
             if (sorobanResponse.ok) {
               networkOk = true;
             }
@@ -61,35 +67,40 @@ export function useIssueDetector() {
             console.warn("Soroban RPC check failed:", sorobanError.message);
           }
         }
-        
+
         clearTimeout(timeoutId);
-        
+
         if (!networkOk) {
-          detectedIssues.push("Stellar Testnet endpoints are unreachable - network connectivity issue");
+          detectedIssues.push(
+            "Stellar Testnet endpoints are unreachable - network connectivity issue"
+          );
         }
-        
       } catch (error) {
-        if (error.name === 'AbortError') {
-          detectedIssues.push("Network request timed out - Stellar Testnet may be slow");
+        if (error.name === "AbortError") {
+          detectedIssues.push(
+            "Network request timed out - Stellar Testnet may be slow"
+          );
         } else {
-          detectedIssues.push("Failed to connect to Stellar Testnet - network may be down");
+          detectedIssues.push(
+            "Failed to connect to Stellar Testnet - network may be down"
+          );
         }
       }
 
       // Check 2: localStorage availability
       try {
-        localStorage.setItem('test', 'test');
-        localStorage.removeItem('test');
+        localStorage.setItem("test", "test");
+        localStorage.removeItem("test");
       } catch (error) {
-        detectedIssues.push("LocalStorage is not available - wallet connections may not persist");
+        detectedIssues.push(
+          "LocalStorage is not available - wallet connections may not persist"
+        );
       }
 
       // Check 3: Environment variables
-      const requiredEnvVars = [
-        'NEXT_PUBLIC_RISKSCORE_CONTRACT_ID'
-      ];
-      
-      requiredEnvVars.forEach(envVar => {
+      const requiredEnvVars = ["NEXT_PUBLIC_RISKSCORE_CONTRACT_ID"];
+
+      requiredEnvVars.forEach((envVar) => {
         if (!process.env[envVar]) {
           detectedIssues.push(`Missing environment variable: ${envVar}`);
         }
@@ -98,26 +109,34 @@ export function useIssueDetector() {
       // Check 4: Contract ID format validation
       const contractId = process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID;
       if (contractId && contractId.length !== 56) {
-        detectedIssues.push("Contract ID format appears invalid - should be 56 characters");
+        detectedIssues.push(
+          "Contract ID format appears invalid - should be 56 characters"
+        );
       }
 
       // Check 5: Browser compatibility
       if (!window.crypto || !window.crypto.subtle) {
-        detectedIssues.push("Browser lacks required cryptographic APIs for wallet operations");
+        detectedIssues.push(
+          "Browser lacks required cryptographic APIs for wallet operations"
+        );
       }
 
       // Check 6: Memory usage (basic check)
       if (performance.memory) {
-        const memoryUsage = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit;
+        const memoryUsage =
+          performance.memory.usedJSHeapSize /
+          performance.memory.jsHeapSizeLimit;
         if (memoryUsage > 0.8) {
-          detectedIssues.push("High memory usage detected - application may become unstable");
+          detectedIssues.push(
+            "High memory usage detected - application may become unstable"
+          );
         }
       }
 
       // Check 7: Console errors check
       const originalError = console.error;
       let errorCount = 0;
-      console.error = function(...args) {
+      console.error = function (...args) {
         errorCount++;
         originalError.apply(console, args);
       };
@@ -126,56 +145,72 @@ export function useIssueDetector() {
       setTimeout(() => {
         console.error = originalError;
         if (errorCount > 5) {
-          detectedIssues.push(`High console error rate detected (${errorCount} errors)`);
+          detectedIssues.push(
+            `High console error rate detected (${errorCount} errors)`
+          );
         }
       }, 2000);
 
       // Check 8: Wallet availability
       if (!window.stellar && !window.albedo && !window.freighter) {
-        detectedIssues.push("No Stellar wallets detected - users may need to install wallet extensions");
+        detectedIssues.push(
+          "No Stellar wallets detected - users may need to install wallet extensions"
+        );
       }
 
       // Check 9: Bundle size warning (static check)
-      const performanceEntries = performance.getEntriesByType('navigation');
+      const performanceEntries = performance.getEntriesByType("navigation");
       if (performanceEntries.length > 0) {
-        const loadTime = performanceEntries[0].loadEventEnd - performanceEntries[0].fetchStart;
+        const loadTime =
+          performanceEntries[0].loadEventEnd - performanceEntries[0].fetchStart;
         if (loadTime > 5000) {
-          detectedIssues.push("Slow page load detected - bundle size may be too large");
+          detectedIssues.push(
+            "Slow page load detected - bundle size may be too large"
+          );
         }
       }
 
       // Check 10: React version compatibility
       const reactVersion = React.version;
-      if (reactVersion && !reactVersion.startsWith('18') && !reactVersion.startsWith('19')) {
-        detectedIssues.push(`React version ${reactVersion} may have compatibility issues with Next.js 15`);
+      if (
+        reactVersion &&
+        !reactVersion.startsWith("18") &&
+        !reactVersion.startsWith("19")
+      ) {
+        detectedIssues.push(
+          `React version ${reactVersion} may have compatibility issues with Next.js 15`
+        );
       }
-
     } catch (error) {
       detectedIssues.push(`Issue analysis failed: ${error.message}`);
     }
 
     setIssues(detectedIssues);
     setIsAnalyzing(false);
-    
+
     // Show results via toast
     showIssueReport(detectedIssues);
-    
+
     return detectedIssues;
   };
 
   const checkWalletConnection = () => {
     const walletIssues = [];
-    
+
     // Check stored wallet data
-    const storedWallet = localStorage.getItem('connectedWallet');
-    const storedAddress = localStorage.getItem('walletAddress');
-    
+    const storedWallet = localStorage.getItem("connectedWallet");
+    const storedAddress = localStorage.getItem("walletAddress");
+
     if (storedWallet && !storedAddress) {
-      walletIssues.push("Wallet name stored but address missing - connection corrupted");
+      walletIssues.push(
+        "Wallet name stored but address missing - connection corrupted"
+      );
     }
-    
+
     if (storedAddress && !storedWallet) {
-      walletIssues.push("Wallet address stored but wallet name missing - connection incomplete");
+      walletIssues.push(
+        "Wallet address stored but wallet name missing - connection incomplete"
+      );
     }
 
     return walletIssues;
@@ -183,11 +218,14 @@ export function useIssueDetector() {
 
   const checkContractStatus = async () => {
     const contractIssues = [];
-    
+
     try {
       // Basic contract ID validation
-      const contractId = process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID;
-      if (!contractId) {
+      const contractId =
+        process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID ||
+        process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID ||
+        "CD6NTP2JCX4F3V4RLIJFLGSG7SVTAPXMKKD3BTF4DY5NCV7YAO3OLABN";
+      if (!contractId || contractId === "your_risk_tier_contract_id_here") {
         contractIssues.push("Risk score contract ID not configured");
         return contractIssues;
       }
@@ -199,56 +237,64 @@ export function useIssueDetector() {
       // Test network connection to Stellar with working endpoints
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
+
       let networkWorking = false;
-      
+
       try {
         // Primary: Horizon API (most reliable)
-        const horizonResponse = await fetch('https://horizon-testnet.stellar.org', {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/hal+json'
+        const horizonResponse = await fetch(
+          "https://horizon-testnet.stellar.org",
+          {
+            method: "GET",
+            signal: controller.signal,
+            headers: {
+              Accept: "application/hal+json",
+            },
           }
-        });
-        
+        );
+
         if (horizonResponse.ok) {
           networkWorking = true;
         } else {
           // Secondary: Soroban RPC with JSON-RPC
-          const rpcResponse = await fetch('https://soroban-testnet.stellar.org', {
-            method: 'POST',
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: 1,
-              method: "getHealth"
-            })
-          });
-          
+          const rpcResponse = await fetch(
+            "https://soroban-testnet.stellar.org",
+            {
+              method: "POST",
+              signal: controller.signal,
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "getHealth",
+              }),
+            }
+          );
+
           if (rpcResponse.ok) {
             networkWorking = true;
           }
         }
-        
+
         clearTimeout(timeoutId);
-        
+
         if (!networkWorking) {
-          contractIssues.push("Cannot reach Stellar testnet - contract operations will fail");
+          contractIssues.push(
+            "Cannot reach Stellar testnet - contract operations will fail"
+          );
         }
-        
       } catch (fetchError) {
         clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          contractIssues.push("Stellar testnet connection timeout - network may be slow");
+        if (fetchError.name === "AbortError") {
+          contractIssues.push(
+            "Stellar testnet connection timeout - network may be slow"
+          );
         } else {
           contractIssues.push("Contract connectivity check failed");
         }
       }
-
     } catch (error) {
       contractIssues.push("Contract connectivity check failed");
     }
@@ -267,7 +313,10 @@ export function useIssueDetector() {
       validationIssues.push("Average hours must be between 0-24");
     }
 
-    if (assetTypes !== "" && (isNaN(assetTypes) || assetTypes < 0 || assetTypes > 10)) {
+    if (
+      assetTypes !== "" &&
+      (isNaN(assetTypes) || assetTypes < 0 || assetTypes > 10)
+    ) {
       validationIssues.push("Asset types must be between 0-10");
     }
 
@@ -276,11 +325,11 @@ export function useIssueDetector() {
 
   const runQuickHealthCheck = async () => {
     const healthIssues = [];
-    
+
     // Quick checks
     const walletIssues = checkWalletConnection();
     const contractIssues = await checkContractStatus();
-    
+
     healthIssues.push(...walletIssues);
     healthIssues.push(...contractIssues);
 
@@ -309,4 +358,4 @@ export function useIssueDetector() {
     validateFormInputs,
     runQuickHealthCheck,
   };
-} 
+}

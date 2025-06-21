@@ -5,7 +5,8 @@ import { Server } from "@stellar/stellar-sdk/rpc";
 const server = new Server("https://soroban-testnet.stellar.org");
 const CONTRACT_ID =
   process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID ||
-  "CCD725SO4ESXSSH5IMAYLB47MHJJSP2VDPBA72WHIRPY43ZAER6WE7E7";
+  process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID ||
+  "CD6NTP2JCX4F3V4RLIJFLGSG7SVTAPXMKKD3BTF4DY5NCV7YAO3OLABN";
 
 export async function testContractExists() {
   try {
@@ -87,7 +88,6 @@ export async function getContractInfo() {
       };
     }
 
-
     // Enhanced contract validation using SDK
     try {
       // Try to get latest ledger to verify connectivity
@@ -101,7 +101,7 @@ export async function getContractInfo() {
           "INSTANCE"
         );
 
-        if (contractData) { 
+        if (contractData) {
           return {
             exists: true,
             data: {

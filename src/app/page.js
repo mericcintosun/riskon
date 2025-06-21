@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { writeScoreToBlockchain } from "./lib/writeScore";
+import { writeScoreToBlockchainEnhanced } from "./lib/writeScore";
 import { testContractExists, getContractInfo } from "./lib/testContract";
 import { performAutoRiskAnalysis } from "../lib/autoRiskAnalyzer";
 import BlendDashboard from "../components/BlendDashboard.jsx";
@@ -327,22 +327,45 @@ export default function RiskScoringApp() {
 
     try {
       setIsLoading(true);
+      console.log("🔍 Before calling writeScoreToBlockchain:");
+      console.log("  - walletAddress:", walletAddress);
+      console.log("  - walletAddress type:", typeof walletAddress);
+      console.log("  - kit:", kit);
+      console.log("  - riskScore:", riskScore);
+
       const loadingToast = toast.loading(
         "💾 Saving risk score to blockchain..."
       );
 
-      const hash = await writeScoreToBlockchain({
+      const result = await writeScoreToBlockchainEnhanced({
         kit,
         address: walletAddress,
         score: riskScore,
       });
 
+      console.log("🎯 Enhanced result:", result);
+
+      const hash = result.hash;
+
       toast.dismiss(loadingToast);
       setTransactionHash(hash);
 
-      toast.success("✅ Risk score successfully saved to blockchain!", {
-        duration: 6000,
-      });
+      // Show success message based on storage method
+      if (
+        result.method === "local_storage" ||
+        result.method === "memory_only"
+      ) {
+        toast.success("✅ Risk score calculated successfully!", {
+          duration: 6000,
+        });
+        toast.info(result.note, {
+          duration: 8000,
+        });
+      } else {
+        toast.success("✅ Risk score successfully saved to blockchain!", {
+          duration: 6000,
+        });
+      }
 
       // Show additional success info
       setTimeout(() => {
@@ -352,11 +375,26 @@ export default function RiskScoringApp() {
       }, 1000);
 
       // Show Enhanced Liquidity Pools after successful risk score submission
+      // This should ALWAYS happen regardless of storage method
       setShowBlendDashboard(true);
       setShowEnhancedPools(true);
     } catch (error) {
       console.error("❌ Blockchain write error:", error);
       showCategorizedError(error, "Failed to save risk score to blockchain");
+
+      // Even if there's an error, if we have a valid risk score, show the pools
+      if (riskScore > 0) {
+        console.log("🔄 Showing pools despite error - risk score exists");
+        setShowBlendDashboard(true);
+        setShowEnhancedPools(true);
+
+        toast.info(
+          "💡 Risk score calculated - you can still explore features!",
+          {
+            duration: 5000,
+          }
+        );
+      }
     } finally {
       setIsLoading(false);
     }
