@@ -7,6 +7,7 @@ import { performAutoRiskAnalysis } from "../lib/autoRiskAnalyzer";
 import BlendDashboard from "../components/BlendDashboard.jsx";
 import EnhancedLiquidityPools from "../components/EnhancedLiquidityPools.jsx";
 import UserRiskProfile from "../components/UserRiskProfile.jsx";
+import AutomatedRiskAnalyzer from "../components/AutomatedRiskAnalyzer.jsx";
 import Header from "../components/Header.jsx";
 import Link from "next/link";
 import { useWallet } from "../contexts/WalletContext";
@@ -47,7 +48,7 @@ export default function RiskScoringApp() {
   // Auto risk analysis state
   const [autoAnalysisResult, setAutoAnalysisResult] = useState(null);
   const [isAnalyzingWallet, setIsAnalyzingWallet] = useState(false);
-  const [analysisMode, setAnalysisMode] = useState("auto"); // "auto" or "manual"
+  const [analysisMode, setAnalysisMode] = useState("enhanced"); // "enhanced", "auto" or "manual"
 
   // Collateral calculator state
   const [collateralAmount, setCollateralAmount] = useState("");
@@ -686,17 +687,40 @@ export default function RiskScoringApp() {
                 <h2 className="text-subheading mb-4">Risk Score Analysis</h2>
 
                 {/* Analysis Mode Toggle */}
-                <div className="flex items-center justify-center space-x-4 mb-6">
+                <div className="flex items-center justify-center space-x-2 mb-6 flex-wrap">
+                  <button
+                    onClick={() => setAnalysisMode("enhanced")}
+                    className={`px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
+                      analysisMode === "enhanced"
+                        ? "bg-gradient-to-r from-emerald-500/20 to-blue-500/20 text-emerald-400 border border-emerald-500/30"
+                        : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                    }`}
+                  >
+                    <svg
+                      className="w-4 h-4 mr-2 inline"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                    🧠 AI Enhanced
+                  </button>
                   <button
                     onClick={() => setAnalysisMode("auto")}
-                    className={`px-6 py-3 rounded-lg transition-all duration-200 ${
+                    className={`px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
                       analysisMode === "auto"
                         ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
                         : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
                     }`}
                   >
                     <svg
-                      className="w-5 h-5 mr-2 inline"
+                      className="w-4 h-4 mr-2 inline"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -708,18 +732,18 @@ export default function RiskScoringApp() {
                         d="M13 10V3L4 14h7v7l9-11h-7z"
                       />
                     </svg>
-                    Auto Analysis
+                    Quick Auto
                   </button>
                   <button
                     onClick={() => setAnalysisMode("manual")}
-                    className={`px-6 py-3 rounded-lg transition-all duration-200 ${
+                    className={`px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
                       analysisMode === "manual"
                         ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
                         : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
                     }`}
                   >
                     <svg
-                      className="w-5 h-5 mr-2 inline"
+                      className="w-4 h-4 mr-2 inline"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -731,10 +755,13 @@ export default function RiskScoringApp() {
                         d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                       />
                     </svg>
-                    Manual Entry
+                    Manual
                   </button>
                 </div>
               </div>
+
+              {/* Enhanced AI Analysis */}
+              {analysisMode === "enhanced" && <AutomatedRiskAnalyzer />}
 
               {/* Auto Analysis Display */}
               {analysisMode === "auto" && (
