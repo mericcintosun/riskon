@@ -355,16 +355,25 @@ export default function RiskScoringApp() {
         result.method === "local_storage" ||
         result.method === "memory_only"
       ) {
-        toast.success("✅ Risk score calculated successfully!", {
+        toast.warning("⚠️ Blockchain storage failed - using local storage", {
           duration: 6000,
         });
-        toast.info(result.note, {
+        toast.info(result.note || "Risk score stored locally as backup", {
           duration: 8000,
         });
       } else {
         toast.success("✅ Risk score successfully saved to blockchain!", {
           duration: 6000,
         });
+        if (
+          hash &&
+          hash !== `local_${Date.now()}` &&
+          hash !== `fallback_${Date.now()}`
+        ) {
+          toast.info(`🔗 Transaction hash: ${hash.substring(0, 8)}...`, {
+            duration: 5000,
+          });
+        }
       }
 
       // Show additional success info
@@ -380,7 +389,20 @@ export default function RiskScoringApp() {
       setShowEnhancedPools(true);
     } catch (error) {
       console.error("❌ Blockchain write error:", error);
-      showCategorizedError(error, "Failed to save risk score to blockchain");
+      toast.dismiss(loadingToast);
+
+      // Check if user cancelled transaction
+      if (
+        error.message?.includes("cancelled") ||
+        error.message?.includes("User rejected") ||
+        error.message?.includes("denied")
+      ) {
+        toast.info("ℹ️ Transaction was cancelled by user", {
+          duration: 4000,
+        });
+      } else {
+        showCategorizedError(error, "Failed to save risk score to blockchain");
+      }
 
       // Even if there's an error, if we have a valid risk score, show the pools
       if (riskScore > 0) {
