@@ -4,7 +4,21 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "rlib"]   # Wasm çıkışı için şart
+crate-type = ["cdylib"]
 
 [dependencies]
-soroban-sdk = "22.0.7"            # güncel kararlı sürüm  [oai_citation:2‡GitHub](https://github.com/stellar/rs-soroban-sdk?utm_source=chatgpt.com)
+soroban-sdk = "22.0.8"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true
