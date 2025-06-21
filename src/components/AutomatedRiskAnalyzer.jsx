@@ -18,6 +18,7 @@ import {
 import { writeScoreToBlockchainEnhanced } from "../app/lib/writeScore";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
+import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
 
 /**
  * Automated Risk Analyzer Component
@@ -32,6 +33,7 @@ export default function AutomatedRiskAnalyzer() {
   const [analysisData, setAnalysisData] = useState(null);
   const [riskAnalysis, setRiskAnalysis] = useState(null);
   const [isUpdatingScore, setIsUpdatingScore] = useState(false);
+  const [blendScoreImpact, setBlendScoreImpact] = useState(null);
 
   // Rate limiting state
   const [rateLimitStatus, setRateLimitStatus] = useState(null);
@@ -125,7 +127,25 @@ export default function AutomatedRiskAnalyzer() {
 
       const riskAnalysisResult = calculateRiskScore(horizonData.metrics);
 
-      // Step 3: Check data quality
+      // Step 3: Apply Blend history impact if available
+      if (blendScoreImpact && blendScoreImpact.totalChange) {
+        const adjustedScore = Math.max(
+          0,
+          Math.min(
+            100,
+            riskAnalysisResult.riskScore + blendScoreImpact.totalChange
+          )
+        );
+        riskAnalysisResult.riskScore = adjustedScore;
+        riskAnalysisResult.blendImpact = blendScoreImpact;
+        riskAnalysisResult.explanation.unshift(
+          `🏦 Blend geçmişi: ${blendScoreImpact.totalChange > 0 ? "+" : ""}${
+            blendScoreImpact.totalChange
+          } puan`
+        );
+      }
+
+      // Step 4: Check data quality
       const dataQuality = getDataQualityScore(horizonData.metrics);
 
       toast.dismiss(calculatingToast);
@@ -366,7 +386,7 @@ export default function AutomatedRiskAnalyzer() {
 
           {/* Tier Badge */}
           {riskAnalysis && (
-            <div className="mb-6">
+            <div className="mb-6 space-y-3">
               <span
                 className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${
                   getTierBadge(riskAnalysis.tier).class
@@ -374,6 +394,24 @@ export default function AutomatedRiskAnalyzer() {
               >
                 {getTierBadge(riskAnalysis.tier).text}
               </span>
+
+              {/* Blend Impact Badge */}
+              {riskAnalysis.blendImpact &&
+                riskAnalysis.blendImpact.totalChange !== 0 && (
+                  <div>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        riskAnalysis.blendImpact.totalChange > 0
+                          ? "bg-purple-100 text-purple-800 border border-purple-200"
+                          : "bg-orange-100 text-orange-800 border border-orange-200"
+                      }`}
+                    >
+                      🏦 Blend:{" "}
+                      {riskAnalysis.blendImpact.totalChange > 0 ? "+" : ""}
+                      {riskAnalysis.blendImpact.totalChange} puan
+                    </span>
+                  </div>
+                )}
             </div>
           )}
 
@@ -623,6 +661,11 @@ export default function AutomatedRiskAnalyzer() {
             </div>
           </div>
         )}
+
+      {/* Blend Historical Performance */}
+      {walletAddress && (
+        <BlendHistoryPerformance onScoreImpactChange={setBlendScoreImpact} />
+      )}
     </div>
   );
 }
