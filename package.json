@@ -14,6 +14,7 @@
     "@stellar/stellar-sdk": "13.3.0",
     "@tensorflow/tfjs": "^4.22.0",
     "next": "^15.3.2",
+    "passkey-kit": "^0.10.24",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2"

@@ -8,13 +8,16 @@ import { useWallet } from "../../contexts/WalletContext";
 
 export default function WalletPage() {
   const router = useRouter();
-  const { 
-    kit, 
-    connectedWallet, 
-    walletAddress, 
+  const {
+    kit,
+    connectedWallet,
+    walletAddress,
     isLoading,
+    passkeySupport,
     connectWallet,
-    disconnectWallet 
+    disconnectWallet,
+    connectPasskey,
+    getStoredPasskeys,
   } = useWallet();
 
   const [message, setMessage] = useState("");
@@ -26,29 +29,37 @@ export default function WalletPage() {
       name: "Albedo",
       description: "Web-based Stellar wallet with advanced security features",
       icon: "💫",
-      color: "from-blue-500 to-cyan-500"
+      color: "from-blue-500 to-cyan-500",
     },
     {
       id: "xbull",
       name: "xBull",
       description: "Feature-rich Stellar wallet with DeFi integration",
       icon: "🐂",
-      color: "from-emerald-500 to-green-500"
+      color: "from-emerald-500 to-green-500",
     },
     {
       id: "freighter",
       name: "Freighter",
       description: "Browser extension wallet for easy Stellar access",
       icon: "🚀",
-      color: "from-violet-500 to-purple-500"
-    }
+      color: "from-violet-500 to-purple-500",
+    },
+    {
+      id: "passkey",
+      name: "Passkey",
+      description: "Biometric authentication with smart wallet technology",
+      icon: "🔐",
+      color: "from-pink-500 to-rose-500",
+      isPasskey: true,
+    },
   ];
 
   // Redirect to dashboard if wallet is already connected
   useEffect(() => {
     if (walletAddress) {
       const timer = setTimeout(() => {
-        router.push('/');
+        router.push("/");
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -61,14 +72,14 @@ export default function WalletPage() {
       setMessageType("info");
 
       const result = await connectWallet(walletId);
-      
+
       if (result.success) {
         setMessage(`✅ ${result.walletName} wallet connected successfully!`);
         setMessageType("success");
-        
+
         // Redirect to dashboard after 2 seconds
         setTimeout(() => {
-          router.push('/');
+          router.push("/");
         }, 2000);
       }
     } catch (error) {
@@ -78,10 +89,34 @@ export default function WalletPage() {
     }
   };
 
+  // Handle passkey wallet connection
+  const handleConnectPasskey = async () => {
+    try {
+      setMessage("Creating Passkey wallet...");
+      setMessageType("info");
+
+      const result = await connectPasskey();
+
+      if (result.success) {
+        setMessage(`✅ Passkey wallet created successfully!`);
+        setMessageType("success");
+
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          router.push("/");
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("❌ Passkey connection error:", error);
+      setMessage(`Passkey error: ${error.message}`);
+      setMessageType("error");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <Header 
+      <Header
         walletAddress={walletAddress}
         connectedWallet={connectedWallet}
         isLoading={isLoading}
@@ -98,8 +133,8 @@ export default function WalletPage() {
               Connect Your <span className="text-gradient-accent">Wallet</span>
             </h1>
             <p className="text-body max-w-2xl mx-auto mb-12">
-              Choose your preferred Stellar wallet to start your DeFi journey with 
-              personalized risk assessment and Blend Protocol integration.
+              Choose your preferred Stellar wallet to start your DeFi journey
+              with personalized risk assessment and Blend Protocol integration.
             </p>
           </div>
         </section>
@@ -112,15 +147,23 @@ export default function WalletPage() {
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-3xl"></div>
                 <div className="relative">
                   <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
-                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-10 h-10 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   </div>
-                  
-                  <h2 className="text-heading mb-4">
-                    Wallet Connected!
-                  </h2>
-                  
+
+                  <h2 className="text-heading mb-4">Wallet Connected!</h2>
+
                   <div className="mb-6">
                     <div className="text-lg font-medium text-white/90 mb-2">
                       {connectedWallet}
@@ -131,14 +174,25 @@ export default function WalletPage() {
                   </div>
 
                   <p className="text-body mb-8">
-                    Your wallet is now connected. You'll be redirected to the dashboard to start calculating your risk score.
+                    Your wallet is now connected. You'll be redirected to the
+                    dashboard to start calculating your risk score.
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link href="/">
                       <button className="btn-primary text-lg px-10 py-4">
-                        <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        <svg
+                          className="w-6 h-6 mr-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
                         </svg>
                         Continue to Dashboard
                       </button>
@@ -158,6 +212,21 @@ export default function WalletPage() {
           // Wallet Selection
           <section className="section-compact container-modern">
             <div className="max-w-4xl mx-auto">
+              {/* Status Messages */}
+              {message && (
+                <div
+                  className={`max-w-2xl mx-auto mb-8 p-4 rounded-2xl text-center ${
+                    messageType === "success"
+                      ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300"
+                      : messageType === "error"
+                      ? "bg-red-500/20 border border-red-500/30 text-red-300"
+                      : "bg-blue-500/20 border border-blue-500/30 text-blue-300"
+                  }`}
+                >
+                  {message}
+                </div>
+              )}
+
               {/* Quick Connect Button */}
               <div className="text-center mb-12">
                 <button
@@ -173,8 +242,18 @@ export default function WalletPage() {
                     </div>
                   ) : (
                     <>
-                      <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <svg
+                        className="w-6 h-6 mr-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
                       </svg>
                       Connect Wallet
                     </>
@@ -188,27 +267,46 @@ export default function WalletPage() {
               {/* Wallet Options */}
               <div className="grid-modern-3 gap-6 mb-12">
                 {supportedWallets.map((wallet, index) => (
-                  <div key={wallet.id} className="card-modern card-hover group animate-slide-up">
+                  <div
+                    key={wallet.id}
+                    className="card-modern card-hover group animate-slide-up"
+                  >
                     <div className="text-center">
-                      <div className={`w-16 h-16 mx-auto mb-6 bg-gradient-to-br ${wallet.color} opacity-20 rounded-2xl flex items-center justify-center group-hover:opacity-30 transition-opacity duration-300`}>
+                      <div
+                        className={`w-16 h-16 mx-auto mb-6 bg-gradient-to-br ${wallet.color} opacity-20 rounded-2xl flex items-center justify-center group-hover:opacity-30 transition-opacity duration-300`}
+                      >
                         <span className="text-3xl">{wallet.icon}</span>
                       </div>
-                      
-                      <h3 className="text-subheading mb-3">
-                        {wallet.name}
-                      </h3>
-                      
-                      <p className="text-caption mb-6">
-                        {wallet.description}
-                      </p>
-                      
+
+                      <h3 className="text-subheading mb-3">{wallet.name}</h3>
+
+                      <p className="text-caption mb-6">{wallet.description}</p>
+
                       <button
-                        onClick={() => handleConnectWallet(wallet.id)}
-                        disabled={!kit || isLoading}
+                        onClick={() =>
+                          wallet.isPasskey
+                            ? handleConnectPasskey()
+                            : handleConnectWallet(wallet.id)
+                        }
+                        disabled={
+                          !kit ||
+                          isLoading ||
+                          (wallet.isPasskey && !passkeySupport?.isSupported)
+                        }
                         className={`btn-secondary w-full group-hover:bg-gradient-to-r group-hover:${wallet.color} group-hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        Connect {wallet.name}
+                        {wallet.isPasskey
+                          ? passkeySupport?.isSupported
+                            ? `Create ${wallet.name}`
+                            : "Not Supported"
+                          : `Connect ${wallet.name}`}
                       </button>
+
+                      {wallet.isPasskey && !passkeySupport?.isSupported && (
+                        <p className="text-xs text-red-400 mt-2">
+                          Passkey not supported on this device
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -225,50 +323,111 @@ export default function WalletPage() {
                 <div className="grid-modern-2 gap-8">
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-2xl flex items-center justify-center">
-                      <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      <svg
+                        className="w-6 h-6 text-emerald-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white/90 mb-2">Non-Custodial</h3>
-                      <p className="text-caption">Your private keys never leave your device</p>
+                      <h3 className="text-lg font-semibold text-white/90 mb-2">
+                        Non-Custodial
+                      </h3>
+                      <p className="text-caption">
+                        Your private keys never leave your device
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      <svg
+                        className="w-6 h-6 text-blue-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white/90 mb-2">Secure Transactions</h3>
-                      <p className="text-caption">All transactions are signed locally and verified</p>
+                      <h3 className="text-lg font-semibold text-white/90 mb-2">
+                        Secure Transactions
+                      </h3>
+                      <p className="text-caption">
+                        All transactions are signed locally and verified
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center">
-                      <svg className="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-6 h-6 text-violet-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white/90 mb-2">Privacy Protected</h3>
-                      <p className="text-caption">Your data is processed locally and encrypted</p>
+                      <h3 className="text-lg font-semibold text-white/90 mb-2">
+                        Privacy Protected
+                      </h3>
+                      <p className="text-caption">
+                        Your data is processed locally and encrypted
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-2xl flex items-center justify-center">
-                      <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <svg
+                        className="w-6 h-6 text-orange-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white/90 mb-2">Audited Smart Contracts</h3>
-                      <p className="text-caption">All contracts are audited and open source</p>
+                      <h3 className="text-lg font-semibold text-white/90 mb-2">
+                        Audited Smart Contracts
+                      </h3>
+                      <p className="text-caption">
+                        All contracts are audited and open source
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -280,35 +439,75 @@ export default function WalletPage() {
         {/* Message Display */}
         {message && (
           <section className="container-modern">
-            <div className={`card-modern max-w-2xl mx-auto ${
-              messageType === "success" ? "border-emerald-500/30" : 
-              messageType === "error" ? "border-red-500/30" : 
-              "border-amber-500/30"
-            } animate-fade-in`}>
+            <div
+              className={`card-modern max-w-2xl mx-auto ${
+                messageType === "success"
+                  ? "border-emerald-500/30"
+                  : messageType === "error"
+                  ? "border-red-500/30"
+                  : "border-amber-500/30"
+              } animate-fade-in`}
+            >
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                    messageType === "success" ? "bg-emerald-500/20" : 
-                    messageType === "error" ? "bg-red-500/20" : 
-                    "bg-amber-500/20"
-                  }`}>
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                      messageType === "success"
+                        ? "bg-emerald-500/20"
+                        : messageType === "error"
+                        ? "bg-red-500/20"
+                        : "bg-amber-500/20"
+                    }`}
+                  >
                     {messageType === "success" ? (
-                      <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <svg
+                        className="w-6 h-6 text-emerald-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                     ) : messageType === "error" ? (
-                      <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-6 h-6 text-red-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     ) : (
-                      <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-6 h-6 text-amber-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     )}
                   </div>
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium font-montserrat text-white/90">{message}</p>
+                  <p className="font-medium font-montserrat text-white/90">
+                    {message}
+                  </p>
                 </div>
               </div>
             </div>
@@ -317,4 +516,4 @@ export default function WalletPage() {
       </main>
     </div>
   );
-} 
+}
