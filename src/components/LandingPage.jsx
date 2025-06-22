@@ -24,15 +24,15 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto">
           {/* Main Heading */}
           <h1 className="text-hero mb-8 animate-fade-in">
-            The Future of <br />
-            <span className="text-white">DeFi Risk Scoring</span>
+            On-Chain Credit Scoring <br />
+            <span className="text-white">for Undercollateralized Lending</span>
           </h1>
 
           {/* Subheading */}
           <p className="text-body mb-12 max-w-2xl mx-auto animate-fade-in">
-            Riskon brings AI-powered, privacy-first risk assessment to Stellar
-            DeFi. Calculate your personal risk score and unlock better lending
-            rates.
+            Riskon provides a transparent, privacy-first credit scoring system
+            for the Stellar DeFi ecosystem, enabling possibilities for
+            undercollateralized lending.
           </p>
 
           {/* Main CTA */}
@@ -74,7 +74,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-heading mb-6">How It Works</h2>
             <p className="text-body">
-              Three simple steps to get your personalized risk score
+              Three simple steps to generate your on-chain credit score
             </p>
           </div>
 
@@ -108,7 +108,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-subheading mb-4">Get Score</h3>
               <p className="text-body">
-                Receive your risk score and access better DeFi rates
+                Receive your credit score and unlock new DeFi capabilities
               </p>
             </div>
           </div>
@@ -121,8 +121,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-heading mb-6">Why Choose Riskon?</h2>
             <p className="text-body">
-              Advanced features that set us apart from traditional risk
-              assessment
+              A sophisticated alternative to traditional on-chain risk metrics
             </p>
           </div>
 
@@ -148,12 +147,30 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* AI Disclaimer Section */}
+      <section className="section-compact container-modern">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="card-glass p-8">
+            <h2 className="text-subheading mb-4">
+              AI-Powered Predictions, Not Financial Advice
+            </h2>
+            <p className="text-body">
+              Our system uses AI algorithms to generate a credit score based on
+              historical on-chain data. This score is an informational tool
+              designed to help protocols manage risk and does not constitute
+              financial or investment advice. Always conduct your own research
+              before making financial decisions.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Features Preview */}
       <section className="section-compact container-modern">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-heading mb-6">Powerful Features</h2>
           <p className="text-body mb-12">
-            Everything you need for comprehensive DeFi risk management
+            Everything you need for a comprehensive on-chain credit assessment
           </p>
 
           <div className="grid-modern-3 gap-8">
@@ -216,7 +233,8 @@ export default function LandingPage() {
             <div className="relative">
               <h2 className="text-heading mb-6">Ready to Start?</h2>
               <p className="text-body mb-8">
-                Calculate your risk score and step into the world of DeFi
+                Generate your on-chain credit score and explore new
+                possibilities in DeFi
               </p>
               <Link href="/wallet">
                 <button className="btn-primary text-lg px-10 py-4 shadow-accent hover:shadow-2xl transform hover:scale-105 transition-all duration-300">

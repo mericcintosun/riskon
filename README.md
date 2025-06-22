@@ -1,12 +1,14 @@
-# riskon – On-Chain Credit Scoring & Risk-Tier Infrastructure
+# riskon – An On-Chain Credit Scoring System for Undercollateralized Lending
 
 _Stellar / Soroban • Passkey • TensorFlow.js • Next.js_
+
+> **Disclaimer:** `riskon` provides an AI-predicted credit score based on on-chain data. This score is for informational purposes only and does not constitute financial, investment, or credit advice. All financial decisions carry risk, and users should conduct their own research.
 
 ---
 
 ## Table of Contents
 
-- [riskon – On-Chain Credit Scoring \& Risk-Tier Infrastructure](#riskon--on-chain-credit-scoring--risk-tier-infrastructure)
+- [riskon – An On-Chain Credit Scoring System for Undercollateralized Lending](#riskon--an-on-chain-credit-scoring-system-for-undercollateralized-lending)
   - [Table of Contents](#table-of-contents)
   - [Problem Statement](#problem-statement)
   - [Solution Overview](#solution-overview)
@@ -18,7 +20,7 @@ _Stellar / Soroban • Passkey • TensorFlow.js • Next.js_
   - [Risk Scoring Model](#risk-scoring-model)
     - [Scoring Options](#scoring-options)
     - [Tier Mapping (0-100)](#tier-mapping-0-100)
-    - [From Score to Strategy: Reputation Building \& Guidance](#from-score-to-strategy-reputation-building--guidance)
+    - [From Score to Strategy: Building On-Chain Reputation](#from-score-to-strategy-building-on-chain-reputation)
   - [User Journey](#user-journey)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
@@ -51,25 +53,26 @@ Decentralised finance still suffers from **information asymmetry**:
 
 ## Solution Overview
 
-`riskon` brings **credit scoring to DeFi** by analysing on-chain behaviour and writing a **transparent, privacy-preserving risk score (0-100)** to the Stellar blockchain. Scores map to **risk tiers (`TIER_1` to `TIER_3`)** that any protocol can query to gate access or personalise products.
+`riskon` introduces a **transparent, on-chain credit scoring system** for the Stellar ecosystem. It analyzes on-chain behavior to generate a **privacy-preserving credit score (0-100)**, which is then recorded on the blockchain. This score maps to **risk tiers (`TIER_1` to `TIER_3`)**, creating a foundational layer that any protocol can query to enable more sophisticated financial products, including undercollateralized lending.
 
 **Benefits:**
 
-- **Borrowers:** Can achieve lower collateral requirements or better rates when their on-chain reputation is good.
-- **Lenders / Protocols:** Can segregate liquidity pools, protect low-risk capital, and boost overall capital efficiency.
-- **New Users:** Can easily choose financial products that match their own risk appetite.
+- **Borrowers:** Can leverage a strong on-chain history to access more favorable terms, potentially including lower collateral requirements.
+- **Lenders / Protocols:** Can build more capital-efficient systems by segmenting users based on AI-predicted creditworthiness, enhancing risk management.
+- **Ecosystem:** Establishes a standardized, composable credit layer, fostering innovation and trust in Stellar DeFi.
 
 ---
 
 ## Core Principles
 
-| Principle                 | Implementation                                                                                                                          |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speed & Cost Matter**   | Stellar settles in seconds for < $0.01 – perfect for frequent score reads/writes.                                                       |
-| **Scalability**           | Soroban's Wasm runtime & Rust make managing millions of user scores feasible.                                                           |
-| **UX First**              | Passkey login (Face ID / fingerprint) removes seed-phrase friction & phishing risk.                                                     |
-| **Privacy by Default**    | TensorFlow.js runs the ML model **client-side**. Wallet data never leaves the browser; only the final numeric score is stored on-chain. |
-| **Composable Money-Lego** | `RiskTierContract` is an open, reusable primitive that other Stellar dApps can integrate.                                               |
+| Principle                     | Implementation                                                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Speed & Cost Matter**       | Stellar settles in seconds for < $0.01 – perfect for frequent score reads/writes.                                                                                |
+| **Scalability**               | Soroban's Wasm runtime & Rust make managing millions of user scores feasible.                                                                                    |
+| **UX First**                  | Passkey login (Face ID / fingerprint) removes seed-phrase friction & phishing risk.                                                                              |
+| **Privacy by Default**        | TensorFlow.js runs the ML model **client-side**. Wallet data never leaves the browser; only the final numeric score is stored on-chain.                          |
+| **Composable Money-Lego**     | `RiskTierContract` is an open, reusable primitive that other Stellar dApps can integrate for credit assessment.                                                  |
+| **Informational, Not Advice** | The generated score is an AI-driven prediction based on historical data and is not financial advice. It serves as one data point among many for risk assessment. |
 
 ---
 
@@ -111,7 +114,7 @@ sequenceDiagram
 
 ### Smart Contract – `RiskTierContract`
 
-The on-chain heart of `riskon`, written in Rust using the Soroban SDK.
+The on-chain heart of `riskon`, written in Rust using the Soroban SDK. Its primary function is to store and serve a `RiskTierData` struct for each user address, containing their AI-predicted credit score and corresponding tier. This system is designed to be a neutral, informational primitive for the DeFi ecosystem.
 
 **Key Storage:**
 The contract stores a `RiskTierData` struct for each user address:
@@ -135,42 +138,37 @@ pub struct RiskTierData {
   - `TIER_2` (Medium Risk): Accessible if `score <= 70`.
   - `TIER_3` (High Risk): Accessible by everyone (`true`).
 
-This model ensures low-risk users (Tier 1) enjoy universal access, while high-risk users are sandboxed to appropriate products—maximising capital efficiency while protecting protocol solvency.
+This model ensures that access to different risk tiers is governed by a transparent, on-chain metric, allowing protocols to build their own custom logic on top of this foundational credit score.
 
 ---
 
 ## Risk Scoring Model
 
-At the core of our `Automated` and `AI-Enhanced` modes is a **TensorFlow.js model**. We chose TensorFlow.js specifically because it allows complex data analysis to run entirely within the user's browser. This is a critical privacy feature: raw wallet data is fetched from the Horizon API directly into the browser, processed locally, and is never sent to our servers. Only the final, anonymized 0-100 score is used to create the blockchain transaction, ensuring user data sovereignty.
+At the core of our system is a **TensorFlow.js model** that functions as an AI-powered prediction engine. We chose TensorFlow.js specifically because it allows complex data analysis to run entirely within the user's browser. This is a critical privacy feature: raw wallet data is fetched from the Horizon API directly into the browser, processed locally, and is never sent to our servers. Only the final, anonymized 0-100 score is used to create the blockchain transaction.
 
 ### Scoring Options
 
-| Mode                        | Target User                                 | Data Source                                                                                                                                                | Notes                                                       |
-| --------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| **Manual**                  | New wallets or privacy-sensitive users      | Self-reported questionnaire                                                                                                                                | Least reliable; ensures inclusivity for all users.          |
-| **Automated Risk Analyzer** | Wallets with on-chain history               | Horizon API metrics:• Wallet age & tx count• Lending/borrowing interactions• Repayment & liquidation history• Protocol diversity & risk level• Current LTV | Runs 100% in the user's browser for maximum privacy.        |
-| **AI-Enhanced**             | Power users seeking the most accurate score | Automated metrics + real-time market feeds (liquidity, volatility)                                                                                         | Consumes data from the off-chain liquidity-monitor service. |
+| Mode                       | Target User                                 | Data Source                                                                                                                                                | Notes                                                                                                           |
+| -------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Manual Input**           | New wallets or privacy-sensitive users      | Self-reported data points (transaction count, frequency, etc.)                                                                                             | Provides a baseline score; less accurate than automated analysis.                                               |
+| **Automated Credit Score** | Wallets with on-chain history               | Horizon API metrics:• Wallet age & tx count• Lending/borrowing interactions• Repayment & liquidation history• Protocol diversity & risk level• Current LTV | Runs 100% in the user's browser for maximum privacy. The AI predicts a score based on these historical metrics. |
+| **AI-Enhanced**            | Power users seeking the most accurate score | Automated metrics + real-time market feeds (liquidity, volatility)                                                                                         | Consumes data from the off-chain liquidity-monitor service for a more nuanced prediction.                       |
 
 ### Tier Mapping (0-100)
 
-| Score  | Tier     | Label       | Guidance                                                            |
-| ------ | -------- | ----------- | ------------------------------------------------------------------- |
-| 0-30   | `TIER_1` | Low Risk    | Access to all pools; eligible for the best collateral & rate terms. |
-| 31-70  | `TIER_2` | Medium Risk | Access to standard pools with balanced yields.                      |
-| 71-100 | `TIER_3` | High Risk   | Access is limited to high-yield / high-risk pools.                  |
+The AI-predicted score maps to one of three tiers. This mapping is for informational purposes, allowing protocols to segment users.
 
-### From Score to Strategy: Reputation Building & Guidance
+| Score  | Tier     | Label       | General Interpretation                                                |
+| ------ | -------- | ----------- | --------------------------------------------------------------------- |
+| 0-30   | `TIER_1` | Low Risk    | Indicates a history of responsible on-chain behavior.                 |
+| 31-70  | `TIER_2` | Medium Risk | Indicates a standard on-chain history with moderate activity.         |
+| 71-100 | `TIER_3` | High Risk   | May indicate a newer address or highly leveraged on-chain activities. |
 
-`riskon` is more than a static scoring system; it's a dynamic reputation-building tool. When a user's score places them in a higher-risk tier (e.g., `TIER_3`), the platform provides actionable recommendations to help them improve their on-chain standing.
+### From Score to Strategy: Building On-Chain Reputation
 
-**Example User Flow:**
-A user lands in `TIER_3` due to a high debt-to-collateral ratio and lack of asset diversity.
+`riskon` provides a transparent metric that allows users to understand how their on-chain actions translate into a credit score. By engaging in responsible financial activities—such as timely repayments or maintaining healthy collateralization ratios—users can positively influence their score over time.
 
-- **The Platform Suggests:**
-  1.  "Repay a portion of your loan on Blend Protocol to improve your LTV."
-  2.  "Consider diversifying your holdings by swapping for assets like wETH or wBTC in a liquidity pool."
-
-As the user follows this guidance and their on-chain metrics improve, they can recalculate their score to unlock access to lower-risk tiers (`TIER_2` or `TIER_1`) and the better financial terms they offer. This creates a positive feedback loop that rewards responsible financial behavior.
+This creates a positive feedback loop: responsible on-chain behavior leads to a better credit score, which can unlock access to more favorable terms within the DeFi ecosystem. The platform does not provide specific advice, but rather empowers users by making the cause-and-effect relationship between actions and on-chain reputation transparent.
 
 ---
 
@@ -245,8 +243,8 @@ soroban contract deploy \
 
 ## Hackathon Fit
 
-- **Hack DeFi & Infra:** We are building a composable on-chain credit layer—a foundational "money lego" for other protocols.
-- **Hack Consumer dApps:** We deliver a frictionless Passkey-based UX and a clear, intuitive risk dashboard for end-users.
+- **Hack DeFi & Infra:** We are building a composable on-chain credit layer—a foundational "money lego" for other protocols to build capital-efficient applications.
+- **Hack Consumer dApps:** We deliver a frictionless Passkey-based UX and a clear, intuitive credit score dashboard for end-users.
 - **Bonus Criterion:** We fully achieve the goal of "smart wallets on Stellar authenticated using passkeys."
 
 ### Judging Criteria Alignment
@@ -290,4 +288,4 @@ soroban contract deploy \
 
 ## Disclaimer
 
-This repository contains research and development software. Nothing herein constitutes financial advice. Always do your own research and comply with all local regulations.
+The `riskon` credit score is an AI-generated prediction based on past on-chain activity and is provided for informational purposes only. It is not financial, investment, or credit advice. The score does not guarantee any specific outcomes, and all financial activities involve risk. Users should always conduct their own research and due diligence before engaging in any transactions.
