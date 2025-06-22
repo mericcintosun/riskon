@@ -16,9 +16,9 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         borderColor: "border-green-200",
         icon: "🛡️",
         description:
-          "Safe investment profile. Low-risk, stable pools are recommended.",
-        recommendation:
-          "Prefer Tier-1 pools. They offer high liquidity and security.",
+          "This score indicates a strong on-chain history and responsible usage patterns.",
+        guidance:
+          "This credit score allows access to Tier-1 pools, which typically represent lower-risk assets.",
       };
     } else if (score <= 70) {
       return {
@@ -28,9 +28,9 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         borderColor: "border-yellow-200",
         icon: "⚖️",
         description:
-          "Balanced investment profile. You can take moderate risks.",
-        recommendation:
-          "Tier-1 and Tier-2 pools are suitable for you. Consider the risk/reward balance.",
+          "This score indicates a standard on-chain history with moderate activity.",
+        guidance:
+          "Tier-1 and Tier-2 pools are accessible. Evaluate each pool's parameters independently.",
       };
     } else {
       return {
@@ -40,22 +40,22 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         borderColor: "border-red-200",
         icon: "🚀",
         description:
-          "Aggressive investment profile. You can explore high-risk opportunities.",
-        recommendation:
-          "You have access to all tier pools. Special opportunities available in Tier-3 pools!",
+          "This score may reflect a newer address or highly leveraged on-chain activities.",
+        guidance:
+          "All tiers are accessible. High-risk activities may offer higher rewards but come with significant potential for loss.",
       };
     }
   };
 
-  // Tier access permissions based on risk score
+  // Tier access permissions based on credit score
   const getTierAccess = (score) => {
     return {
       TIER_1: {
         accessible: true,
-        status: "Recommended",
+        status: "Accessible",
         color: "text-green-600",
         bgColor: "bg-green-100",
-        description: "High security, low risk",
+        description: "High security, low-risk assets",
         icon: "✅",
       },
       TIER_2: {
@@ -65,19 +65,19 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         bgColor: score >= 30 ? "bg-yellow-100" : "bg-gray-100",
         description:
           score >= 30
-            ? "Medium risk, potential for high return"
-            : "Your risk score is insufficient",
+            ? "Moderate risk, balanced asset pools"
+            : "A higher credit score is required for access",
         icon: score >= 30 ? "⚠️" : "🔒",
       },
       TIER_3: {
         accessible: score >= 70,
-        status: score >= 70 ? "Opportunity" : "No Access",
+        status: score >= 70 ? "High-Risk Tier" : "Restricted",
         color: score >= 70 ? "text-purple-600" : "text-gray-400",
         bgColor: score >= 70 ? "bg-purple-100" : "bg-gray-100",
         description:
           score >= 70
-            ? "High risk, maximum opportunity potential"
-            : "High risk score required (70+)",
+            ? "High-risk, high-reward potential assets"
+            : "A high credit score is required (70+)",
         icon: score >= 70 ? "💎" : "🔒",
         isOpportunity: score >= 70,
       },
@@ -106,14 +106,17 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <h3 className="text-xl font-bold text-gray-900 mb-4">
-            High Risk Warning
+            High-Risk Tier Acknowledgment
           </h3>
           <div className="text-gray-600 mb-6 space-y-2">
-            <p>These pools have low liquidity and carry high risk.</p>
-            <p className="font-semibold text-red-600">
-              Potential losses can be significant!
+            <p>
+              Pools in this tier may have low liquidity and high volatility,
+              which can lead to rapid and significant losses.
             </p>
-            <p>Are you sure you want to continue?</p>
+            <p className="font-semibold text-red-600">
+              The risk of capital loss is significant.
+            </p>
+            <p>Do you wish to proceed?</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -129,7 +132,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
               }}
               className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
-              Accept Risk
+              Acknowledge & Proceed
             </button>
           </div>
         </div>
@@ -141,8 +144,8 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="text-red-600">
-          ⚠️ Risk score could not be calculated. Please calculate your risk
-          score first.
+          ⚠️ Credit score has not been calculated. Please generate your score
+          first.
         </div>
       </div>
     );
@@ -159,7 +162,9 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
           className={`rounded-lg p-6 border-2 ${riskInfo.bgColor} ${riskInfo.borderColor}`}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Risk Profile</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Credit Score Profile
+            </h2>
             <div className="text-3xl">{riskInfo.icon}</div>
           </div>
 
@@ -169,14 +174,14 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
               <div className={`text-lg font-semibold ${riskInfo.color}`}>
                 {riskInfo.level}
               </div>
-              <div className="text-sm text-gray-600">Risk Score (0-100)</div>
+              <div className="text-sm text-gray-600">Credit Score (0-100)</div>
             </div>
           </div>
 
           <div className="space-y-2">
             <p className="text-gray-700">{riskInfo.description}</p>
             <p className="text-sm font-medium text-gray-900">
-              {riskInfo.recommendation}
+              {riskInfo.guidance}
             </p>
           </div>
         </div>
@@ -184,7 +189,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         {/* Tier Access Guide */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4">
-            Your Access Status
+            Tier Access Status
           </h3>
 
           <div className="space-y-3">
@@ -206,7 +211,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
                         {tier.replace("_", "-")}
                         {access.isOpportunity && (
                           <span className="ml-2 px-2 py-1 text-xs bg-purple-600 text-white rounded-full">
-                            OPPORTUNITY
+                            HIGH-RISK
                           </span>
                         )}
                       </div>
@@ -231,21 +236,36 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
             <div className="text-blue-600 text-xl">💡</div>
             <div>
               <h4 className="font-medium text-blue-900 mb-1">
-                Investment Guide
+                General Information
               </h4>
               <ul className="text-sm text-blue-700 space-y-1">
                 <li>
-                  • Your risk score should influence your investment decisions
+                  • Your credit score is a reflection of your on-chain activity.
                 </li>
-                <li>• Tier-1 pools are the safest options</li>
                 <li>
-                  • Only invest in high-risk pools with amounts you can afford
-                  to lose
+                  • Tier-1 pools typically contain the lowest-risk assets.
                 </li>
-                <li>• Don't forget to diversify your portfolio</li>
+                <li>
+                  • Interacting with high-risk pools should be done with caution
+                  and an understanding of the potential for capital loss.
+                </li>
+                <li>
+                  • Portfolio diversification is a common strategy to manage
+                  risk.
+                </li>
               </ul>
             </div>
           </div>
+        </div>
+
+        {/* Disclaimer */}
+        <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 text-center">
+          <p className="text-xs text-gray-600">
+            <strong>Disclaimer:</strong> The credit score is an AI-generated
+            prediction based on your on-chain activity and is provided for
+            informational purposes only. It is not financial, investment, or
+            credit advice.
+          </p>
         </div>
       </div>
 

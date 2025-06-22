@@ -23,8 +23,8 @@ import BlendDashboard from "./BlendDashboard.jsx";
 import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
 
 /**
- * Automated Risk Analyzer Component
- * Complete automated system for risk analysis with ML scoring
+ * Automated Credit Score Component
+ * Provides a comprehensive system for on-chain credit analysis.
  */
 export default function AutomatedRiskAnalyzer() {
   const { walletAddress, kit } = useWallet();
@@ -106,9 +106,7 @@ export default function AutomatedRiskAnalyzer() {
     setIsAnalyzing(true);
 
     try {
-      const loadingToast = toast.loading(
-        "📊 Analyzing transaction data from last 30 days..."
-      );
+      const loadingToast = toast.loading("📊 Analyzing on-chain data...");
 
       // Step 1: Collect transaction data from Horizon
       const horizonData = await collectTransactionData(walletAddress);
@@ -117,10 +115,10 @@ export default function AutomatedRiskAnalyzer() {
         throw new Error(horizonData.error || "Data collection failed");
       }
 
-      // Step 2: Calculate risk score with ML model
+      // Step 2: Calculate credit score with the model
       toast.dismiss(loadingToast);
       const calculatingToast = toast.loading(
-        "🧠 Calculating risk score with AI model..."
+        "🧠 Calculating credit score with AI model..."
       );
 
       const riskAnalysisResult = calculateRiskScore(horizonData.metrics);
@@ -162,13 +160,13 @@ export default function AutomatedRiskAnalyzer() {
       setAnalysisData(finalResult);
       setRiskAnalysis(riskAnalysisResult);
 
-      toast.success("✅ Risk analysis completed!", { duration: 4000 });
+      toast.success("✅ Credit analysis completed!", { duration: 4000 });
 
       // Show data quality warning if needed
       if (!dataQuality.isGood) {
         setTimeout(() => {
           toast.warning(
-            "⚠️ More transaction history needed for better analysis",
+            "⚠️ More on-chain history would improve score accuracy",
             {
               duration: 6000,
             }
@@ -184,11 +182,11 @@ export default function AutomatedRiskAnalyzer() {
   };
 
   /**
-   * Update risk score on blockchain
+   * Update credit score on blockchain
    */
   const updateRiskScoreOnChain = async () => {
     if (!riskAnalysis || !walletAddress || !kit) {
-      toast.error("⚠️ Risk analysis or wallet connection missing");
+      toast.error("⚠️ Credit analysis or wallet connection missing");
       return;
     }
 
@@ -207,7 +205,7 @@ export default function AutomatedRiskAnalyzer() {
 
     try {
       const updatingToast = toast.loading(
-        "🔗 Saving risk score to the blockchain..."
+        "🔗 Saving credit score to the blockchain..."
       );
 
       // Write to blockchain using existing system
@@ -233,9 +231,11 @@ export default function AutomatedRiskAnalyzer() {
           result.method === "local_storage" ||
           result.method === "memory_only"
         ) {
-          toast.warning("⚠️ Blockchain save failed - saved locally");
+          toast.warning("⚠️ Blockchain save failed - score saved locally");
         } else {
-          toast.success("✅ Risk score successfully saved to the blockchain!");
+          toast.success(
+            "✅ Credit score successfully saved to the blockchain!"
+          );
 
           if (result.hash) {
             setTimeout(() => {
@@ -279,15 +279,15 @@ export default function AutomatedRiskAnalyzer() {
   const getTierBadge = (tier) => {
     const badges = {
       TIER_1: {
-        text: "Tier-1: Safe",
+        text: "Tier-1: Low Risk",
         class: "bg-green-100 text-green-800 border-green-200",
       },
       TIER_2: {
-        text: "Tier-2: Standard",
+        text: "Tier-2: Medium Risk",
         class: "bg-yellow-100 text-yellow-800 border-yellow-200",
       },
       TIER_3: {
-        text: "Tier-3: Opportunity / High Risk",
+        text: "Tier-3: High Risk",
         class: "bg-red-100 text-red-800 border-red-200",
       },
     };
@@ -297,29 +297,17 @@ export default function AutomatedRiskAnalyzer() {
   if (!walletAddress) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-          <svg
-            className="w-8 h-8 text-blue-600 dark:text-blue-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+          {/* Icon can go here */}
         </div>
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          Automated Risk Analysis
+          Automated Credit Score Analysis
         </h3>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Connect your wallet to use AI-powered risk analysis
+          Connect your wallet to generate an on-chain credit score.
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-500">
-          We'll analyze your transaction data from the last 30 days
+          We'll analyze your transaction data from the last 30 days.
         </p>
       </div>
     );
@@ -331,54 +319,39 @@ export default function AutomatedRiskAnalyzer() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
         <div className="text-center">
           {/* Risk Score Gauge */}
-          <div className="relative w-48 h-48 mx-auto mb-6">
-            {/* Gauge Background */}
-            <svg className="w-full h-full" viewBox="0 0 100 100">
-              {/* Background Arc */}
+          <div className="relative w-48 h-24">
+            <svg className="w-full h-full" viewBox="0 0 100 50">
               <path
-                d="M 20 80 A 30 30 0 0 1 80 80"
+                d="M 10 50 A 40 40 0 0 1 90 50"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-                className="text-gray-200 dark:text-gray-700"
+                stroke="#e5e7eb"
+                strokeWidth="10"
               />
-              {/* Score Arc */}
-              {riskAnalysis && (
-                <path
-                  d="M 20 80 A 30 30 0 0 1 80 80"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  strokeDasharray={`${
-                    (100 - riskAnalysis.riskScore) * 0.94
-                  } 100`}
-                  className={getRiskScoreColor(riskAnalysis.riskScore)}
-                />
-              )}
+              <path
+                d="M 10 50 A 40 40 0 0 1 90 50"
+                fill="none"
+                stroke={getRiskScoreColor(riskAnalysis.riskScore)}
+                strokeWidth="10"
+                strokeDasharray="125.6"
+                strokeDashoffset={
+                  125.6 - (125.6 * riskAnalysis.riskScore) / 100
+                }
+                className="transition-all duration-1000"
+              />
             </svg>
-
-            {/* Score Number */}
-            <div className="absolute bottom-24 inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div
-                  className={`text-4xl font-bold ${
-                    riskAnalysis
-                      ? getRiskScoreColor(riskAnalysis.riskScore)
-                      : "text-gray-400"
-                  }`}
-                >
-                  {riskAnalysis ? riskAnalysis.riskScore : "--"}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-[-10px]">
-                  Risk Score
-                </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                {riskAnalysis ? riskAnalysis.riskScore : "--"}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-[-10px]">
+                Credit Score
               </div>
             </div>
           </div>
 
           {/* Tier Badge */}
           {riskAnalysis && (
-            <div className="mb-6 space-y-3">
+            <div className="mt-6 space-y-3">
               <span
                 className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${
                   getTierBadge(riskAnalysis.tier).class
@@ -440,63 +413,32 @@ export default function AutomatedRiskAnalyzer() {
                     Analyzing...
                   </>
                 ) : (
-                  "🧠 Start Analysis"
+                  "🧠 Generate Credit Score"
                 )}
               </button>
             ) : (
-              <button
-                onClick={updateRiskScoreOnChain}
-                disabled={
-                  isUpdatingScore ||
-                  (rateLimitStatus && !rateLimitStatus.canUpdate)
-                }
-                className={`w-full py-3 text-lg font-medium rounded-lg transition-colors duration-200 ${
-                  rateLimitStatus && !rateLimitStatus.canUpdate
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "btn-primary"
-                }`}
-              >
-                {isUpdatingScore ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="m12 6v6l4 2"
-                      ></path>
-                    </svg>
-                    Saving to Blockchain...
-                  </>
-                ) : rateLimitStatus && !rateLimitStatus.canUpdate ? (
-                  `⏰ ${formatRemainingTime(countdown)}`
-                ) : (
-                  "🔗 Update Score"
+              <div className="mt-4 flex flex-col items-center">
+                <button
+                  onClick={updateRiskScoreOnChain}
+                  disabled={isUpdatingScore || !rateLimitStatus.canUpdate}
+                  className="btn-secondary px-6 py-2"
+                >
+                  {isUpdatingScore
+                    ? "Updating..."
+                    : !rateLimitStatus.canUpdate
+                    ? `⏰ ${formatRemainingTime(countdown)}`
+                    : "🔗 Update Score on-chain"}
+                </button>
+                {analysisData && (
+                  <button
+                    onClick={runAutomatedAnalysis}
+                    disabled={isAnalyzing}
+                    className="mt-2 text-sm text-blue-600 hover:underline"
+                  >
+                    {isAnalyzing ? "Re-analyzing..." : "🔄 Re-analyze"}
+                  </button>
                 )}
-              </button>
-            )}
-
-            {/* Re-analyze button */}
-            {riskAnalysis && (
-              <button
-                onClick={runAutomatedAnalysis}
-                disabled={isAnalyzing}
-                className="btn-secondary w-full py-2"
-              >
-                {isAnalyzing ? "Re-analyzing..." : "🔄 Re-analyze"}
-              </button>
+              </div>
             )}
           </div>
         </div>
@@ -507,7 +449,7 @@ export default function AutomatedRiskAnalyzer() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              📊 Feature Analysis
+              📊 Analysis Breakdown
             </h3>
             <button
               onClick={() => setShowDetails(!showDetails)}
@@ -579,7 +521,7 @@ export default function AutomatedRiskAnalyzer() {
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-              💡 Improvement Recommendations
+              💡 Score Calculation Factors
             </h3>
             <button
               onClick={() => setShowRecommendations(!showRecommendations)}
@@ -590,15 +532,35 @@ export default function AutomatedRiskAnalyzer() {
           </div>
 
           {showRecommendations && (
-            <div className="space-y-2">
-              {riskAnalysis.recommendations.map((recommendation, index) => (
-                <div
-                  key={index}
-                  className="text-sm text-blue-800 dark:text-blue-200"
-                >
-                  {recommendation}
-                </div>
-              ))}
+            <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+              <p>
+                The credit score is an AI-generated prediction based on
+                historical on-chain data. The following factors can influence
+                the score:
+              </p>
+              <ul className="list-disc list-inside pl-2">
+                <li>
+                  <strong>Transaction Volume & Frequency:</strong> Consistent
+                  and reasonable activity levels.
+                </li>
+                <li>
+                  <strong>Asset Diversity:</strong> Interaction with multiple
+                  types of assets.
+                </li>
+                <li>
+                  <strong>On-chain History:</strong> Age of the wallet and
+                  duration of activity.
+                </li>
+                <li>
+                  <strong>Protocol Interaction:</strong> Engagement with various
+                  DeFi protocols like Blend.
+                </li>
+              </ul>
+              <p className="pt-2">
+                <strong>Disclaimer:</strong> This information is for educational
+                purposes only and is not financial advice. Your score is a
+                reflection of past activity.
+              </p>
             </div>
           )}
         </div>
@@ -617,9 +579,9 @@ export default function AutomatedRiskAnalyzer() {
             </svg>
           </div>
           <div className="text-sm text-yellow-800 dark:text-yellow-200">
-            <strong>Info:</strong> Score calculated based on last 30 days. To
-            get a better score, increase volume, diversify assets, and avoid
-            spamming to a single wallet. You can update once a day.
+            <strong>Info:</strong> Score is calculated based on the last 30 days
+            of activity. Higher volume, asset diversity, and consistent activity
+            can positively influence the score. You can update once a day.
           </div>
         </div>
       </div>
@@ -628,25 +590,14 @@ export default function AutomatedRiskAnalyzer() {
       {analysisData &&
         analysisData.dataQuality &&
         !analysisData.dataQuality.isGood && (
-          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800 p-4">
-            <div className="flex items-start space-x-3">
-              <div className="text-orange-600 dark:text-orange-400">
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
+          <div className="mt-4 bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700/50 rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="text-orange-500 text-xl mr-3">⚠️</div>
               <div className="text-sm text-orange-800 dark:text-orange-200">
-                <strong>Data Quality Warning:</strong> More transaction history
-                is needed for better analysis. We recommend at least 10
-                transactions and 3 different counterparties.
+                <strong>Data Quality Note:</strong> More transaction history is
+                needed for a more accurate analysis. At least 10 transactions
+                with 3 different counterparties are suggested for a robust
+                score.
               </div>
             </div>
           </div>
