@@ -4,10 +4,16 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import AutomatedRiskAnalyzer from "./AutomatedRiskAnalyzer.jsx";
+import UserRiskProfile from "./UserRiskProfile.jsx";
+import BlendDashboard from "./BlendDashboard.jsx";
+import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
+import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
 import useAnalyzeRisk from "../hooks/useAnalyzeRisk.js";
+import { useWallet } from "../contexts/WalletContext.js";
 
 const LandingPage = () => {
   const { handleAnalyze, analysisResult, isLoading, error } = useAnalyzeRisk();
+  const { walletAddress } = useWallet();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -63,7 +69,7 @@ const LandingPage = () => {
 
         <motion.div variants={itemVariants} className="mb-12">
           <AutomatedRiskAnalyzer
-            onAnalyze={handleAnalyze}
+            onAnalyze={() => handleAnalyze(walletAddress)}
             analysisResult={analysisResult}
             isLoading={isLoading}
             error={error}
@@ -73,7 +79,7 @@ const LandingPage = () => {
         {analysisResult && (
           <motion.div variants={itemVariants} className="mb-12">
             <UserRiskProfile
-              walletAddress="G..."
+              walletAddress={walletAddress}
               riskScore={analysisResult.riskScore}
             />
           </motion.div>
