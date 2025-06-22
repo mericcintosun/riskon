@@ -49,7 +49,6 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
     setIsAnalyzing(true);
 
     try {
-      console.log("🏦 Starting Blend Protocol history analysis...");
 
       const loadingToast = toast.loading(
         "🏦 Blend Protocol geçmişi analiz ediliyor..."
@@ -71,7 +70,6 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
           onScoreImpactChange(analysisResult.scoreImpact);
         }
 
-        console.log("✅ Blend history analysis complete:", analysisResult);
 
         if (analysisResult.transactionCount > 0) {
           toast.success(

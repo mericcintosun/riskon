@@ -42,16 +42,12 @@ const NORMALIZATION = {
  */
 export function calculateRiskScore(metrics) {
   try {
-    console.log(`🧠 Starting ML risk calculation...`);
-    console.log(`📊 Input metrics:`, metrics);
 
     // Normalize features to 0-1 range
     const normalizedFeatures = normalizeFeatures(metrics);
-    console.log(`📏 Normalized features:`, normalizedFeatures);
 
     // Calculate logistic regression output
     const logitScore = calculateLogisticRegression(normalizedFeatures);
-    console.log(`🔢 Logit score:`, logitScore);
 
     // Convert to 0-100 risk score (lower logit = higher risk)
     const riskScore = Math.round(
@@ -79,7 +75,6 @@ export function calculateRiskScore(metrics) {
       modelVersion: "1.0.0",
     };
 
-    console.log(`✅ ML calculation complete:`, result);
     return result;
   } catch (error) {
     console.error("❌ ML calculation failed:", error);
@@ -268,7 +263,6 @@ function generateRecommendations(featureImportance) {
  * Fallback rule-based calculation if ML fails
  */
 function fallbackRiskCalculation(metrics) {
-  console.log("🔄 Using fallback risk calculation");
 
   let score = 50; // Start with medium risk
 

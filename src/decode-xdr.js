@@ -5,15 +5,12 @@ const StellarSdk = require("@stellar/stellar-sdk");
 
 function decodeTransactionResult(xdrString) {
   try {
-    console.log(`🔍 Decoding XDR: ${xdrString}`);
 
     const xdrResult = StellarSdk.xdr.TransactionResult.fromXDR(
       xdrString,
       "base64"
     );
 
-    console.log("\n📊 Transaction Result Details:");
-    console.log("Result Code:", xdrResult.result().switch().name);
 
     // Check if there are operation results
     if (
@@ -23,13 +20,10 @@ function decodeTransactionResult(xdrString) {
       const operationResults = xdrResult.result().results();
 
       if (operationResults && operationResults.length > 0) {
-        console.log("\n🔧 Operation Results:");
         operationResults.forEach((opResult, index) => {
-          console.log(`  Operation ${index + 1}:`, opResult.switch().name);
 
           // Get more specific error details
           if (opResult.switch().name !== "opInner") {
-            console.log(`    Error: ${opResult.switch().name}`);
           }
         });
       }
@@ -52,7 +46,6 @@ function decodeTransactionResult(xdrString) {
 
     const resultCode = xdrResult.result().switch().name;
     if (errorExplanations[resultCode]) {
-      console.log(`\n💡 Explanation: ${errorExplanations[resultCode]}`);
     }
 
     // Operation error explanations
@@ -87,16 +80,11 @@ function decodeTransactionResult(xdrString) {
 const xdrString = process.argv[2];
 
 if (!xdrString) {
-  console.log("Usage: node src/decode-xdr.js XDR_STRING");
-  console.log(
-    "Example: node src/decode-xdr.js AAAAAAAAAGT/////AAAAAQAAAAAAAAAB////+wAAAAA="
-  );
+  
 } else {
   const result = decodeTransactionResult(xdrString);
 
   if (result.success) {
-    console.log(`\n✅ Successfully decoded XDR result`);
   } else {
-    console.log(`\n❌ Failed to decode XDR: ${result.error}`);
   }
 }

@@ -21,19 +21,14 @@ const BLEND_CONTRACTS = [
  */
 export async function analyzeBlendHistory(walletAddress) {
   try {
-    console.log(
-      `🏦 Starting Blend Protocol history analysis for: ${walletAddress}`
-    );
+   
 
     // Fetch all transactions for the user
     const transactions = await fetchAllUserTransactions(walletAddress);
-    console.log(`📊 Found ${transactions.length} total transactions`);
 
     // Filter Blend-related transactions
     const blendTransactions = await filterBlendTransactions(transactions);
-    console.log(
-      `🔍 Found ${blendTransactions.length} Blend-related transactions`
-    );
+   
 
     // Analyze lending and borrowing patterns
     const behaviorMetrics = analyzeBehaviorMetrics(
@@ -56,7 +51,6 @@ export async function analyzeBlendHistory(walletAddress) {
       timestamp: Date.now(),
     };
 
-    console.log(`✅ Blend history analysis complete:`, result);
     return result;
   } catch (error) {
     console.error("❌ Blend history analysis failed:", error);
@@ -400,7 +394,6 @@ export function getCachedBlendHistory(walletAddress) {
       // Cache valid for 1 hour
       const hourAgo = Date.now() - 60 * 60 * 1000;
       if (data.timestamp > hourAgo) {
-        console.log(`✅ Using cached Blend history`);
         return data;
       }
     }
@@ -419,7 +412,6 @@ export function cacheBlendHistory(walletAddress, analysisData) {
       `blend_history_${walletAddress}`,
       JSON.stringify(analysisData)
     );
-    console.log(`💾 Cached Blend history for ${walletAddress}`);
   } catch (error) {
     console.warn(`⚠️ Error caching Blend history:`, error);
   }

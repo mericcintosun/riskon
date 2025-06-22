@@ -43,9 +43,7 @@ export async function writeScore({ address, score }) {
     // Check address type and handle accordingly
     if (address.startsWith("C")) {
       // Smart contract addresses cannot be used directly for transactions
-      console.log(
-        "⚠️ Passkey smart contract detected - this function doesn't support smart contracts"
-      );
+
       throw new Error(
         "Passkey smart contracts are not supported by this function. Please use the enhanced blockchain writer."
       );
@@ -60,9 +58,7 @@ export async function writeScore({ address, score }) {
         accountError.message?.includes("not found") ||
         accountError.response?.status === 404
       ) {
-        console.log(
-          `⚠️ Account not found, attempting to create testnet account: ${address}`
-        );
+
 
         // Try to create the account using friendbot
         try {
@@ -71,7 +67,6 @@ export async function writeScore({ address, score }) {
           );
 
           if (friendbotResponse.ok) {
-            console.log(`✅ Account created successfully via friendbot`);
 
             // Wait a moment for account to be available
             await new Promise((resolve) => setTimeout(resolve, 3000));

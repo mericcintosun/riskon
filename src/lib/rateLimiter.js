@@ -75,11 +75,6 @@ export function recordUpdate(walletAddress) {
 
     localStorage.setItem(updateKey, currentTime.toString());
 
-    console.log(
-      `✅ Recorded risk score update for ${walletAddress} at ${new Date(
-        currentTime
-      )}`
-    );
 
     return {
       success: true,
@@ -122,7 +117,6 @@ export function clearRateLimit(walletAddress) {
     const updateKey = `risk_score_last_update_${walletAddress}`;
     localStorage.removeItem(updateKey);
 
-    console.log(`🗑️ Cleared rate limit for ${walletAddress}`);
     return { success: true };
   } catch (error) {
     console.error("❌ Error clearing rate limit:", error);

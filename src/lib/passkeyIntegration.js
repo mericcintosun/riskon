@@ -61,7 +61,6 @@ class PasskeyWalletManager {
    */
   async initialize() {
     try {
-      console.log("🔐 Initializing Passkey-Kit...");
 
       // Check WebAuthn support
       if (!window.PublicKeyCredential) {
@@ -75,7 +74,6 @@ class PasskeyWalletManager {
         throw new Error("Platform authenticator not available");
       }
 
-      console.log("✅ WebAuthn platform authenticator available");
       return true;
     } catch (error) {
       console.error("❌ Passkey initialization failed:", error);
@@ -89,7 +87,6 @@ class PasskeyWalletManager {
    */
   async createPasskeyWallet(userId = null) {
     try {
-      console.log("🔑 Creating new passkey wallet...");
 
       // Generate user ID if not provided
       const userIdBuffer = userId
@@ -121,7 +118,6 @@ class PasskeyWalletManager {
         throw new Error("Failed to create passkey");
       }
 
-      console.log("✅ Passkey created successfully");
 
       // Extract public key from credential
       const publicKey = await this.extractPublicKey(credential);
@@ -148,7 +144,6 @@ class PasskeyWalletManager {
         })
       );
 
-      console.log("🎉 Smart wallet deployed:", smartWalletAddress);
 
       return {
         smartWalletAddress,
@@ -167,7 +162,6 @@ class PasskeyWalletManager {
    */
   async connectPasskeyWallet() {
     try {
-      console.log("🔓 Connecting to existing passkey wallet...");
 
       // Check if we have stored wallet info
       const stored = localStorage.getItem("passkey_wallet_info");
@@ -196,7 +190,6 @@ class PasskeyWalletManager {
         throw new Error("Failed to authenticate with passkey");
       }
 
-      console.log("✅ Passkey authentication successful");
 
       // Verify smart wallet still exists
       const walletExists = await this.verifySmartWallet(
@@ -227,7 +220,6 @@ class PasskeyWalletManager {
    */
   async signTransaction(transactionXDR) {
     try {
-      console.log("✍️ Signing transaction with passkey...");
 
       if (!this.isConnected) {
         throw new Error("Wallet not connected");
@@ -254,7 +246,6 @@ class PasskeyWalletManager {
         throw new Error("Failed to sign with passkey");
       }
 
-      console.log("✅ Transaction signed with passkey");
 
       // Return signature in format expected by smart wallet
       return {
@@ -278,7 +269,6 @@ class PasskeyWalletManager {
    */
   async submitTransactionWithSponsorship(transactionXDR, passkeySignature) {
     try {
-      console.log("🚀 Submitting transaction with Launchtube sponsorship...");
 
       if (!PASSKEY_CONFIG.launchtube.enabled) {
         throw new Error("Launchtube sponsorship not enabled");
@@ -309,7 +299,6 @@ class PasskeyWalletManager {
 
       const result = await response.json();
 
-      console.log("✅ Transaction sponsored and submitted:", result.hash);
 
       return {
         hash: result.hash,
@@ -346,7 +335,6 @@ class PasskeyWalletManager {
    */
   async deploySmartWallet(publicKey, passkeyId) {
     try {
-      console.log("🏭 Deploying smart wallet via factory...");
 
       // For demo purposes, generate a mock address
       // In production, this would call the smart wallet factory contract
@@ -357,7 +345,6 @@ class PasskeyWalletManager {
         .join("")
         .slice(0, 55)}`;
 
-      console.log("✅ Smart wallet deployed:", mockAddress);
       return mockAddress;
     } catch (error) {
       console.error("❌ Failed to deploy smart wallet:", error);
@@ -392,7 +379,6 @@ class PasskeyWalletManager {
     // Clear stored information
     localStorage.removeItem("passkey_wallet_info");
 
-    console.log("🔌 Passkey wallet disconnected");
   }
 
   /**

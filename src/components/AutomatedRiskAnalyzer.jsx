@@ -104,7 +104,6 @@ export default function AutomatedRiskAnalyzer() {
     setIsAnalyzing(true);
 
     try {
-      console.log("🚀 Starting automated risk analysis...");
 
       const loadingToast = toast.loading(
         "📊 Son 30 günlük işlem verileri analiz ediliyor..."
@@ -117,7 +116,6 @@ export default function AutomatedRiskAnalyzer() {
         throw new Error(horizonData.error || "Veri toplama başarısız");
       }
 
-      console.log("✅ Horizon data collected:", horizonData);
 
       // Step 2: Calculate risk score with ML model
       toast.dismiss(loadingToast);
@@ -164,7 +162,6 @@ export default function AutomatedRiskAnalyzer() {
       setAnalysisData(finalResult);
       setRiskAnalysis(riskAnalysisResult);
 
-      console.log("✅ Automated analysis complete:", finalResult);
 
       toast.success("✅ Risk analizi tamamlandı!", { duration: 4000 });
 
@@ -210,7 +207,6 @@ export default function AutomatedRiskAnalyzer() {
     setIsUpdatingScore(true);
 
     try {
-      console.log("🔗 Updating risk score on blockchain...");
 
       const updatingToast = toast.loading(
         "🔗 Risk skoru blockchain'e kaydediliyor..."

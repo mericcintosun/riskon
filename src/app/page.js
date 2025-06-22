@@ -216,7 +216,16 @@ export default function RiskScoringApp() {
         toast.success(`👛 Successfully connected to ${result.walletName}!`);
       }
     } catch (error) {
-      showCategorizedError(error, "Failed to connect wallet");
+      toast.dismiss();
+
+      // Handle cancellation gracefully
+      if (error.message === "WALLET_SELECTION_CANCELLED") {
+        toast.info("👋 Wallet selection was cancelled");
+      } else if (error.message.includes("cancelled")) {
+        toast.info("👋 Connection was cancelled");
+      } else {
+        showCategorizedError(error, "Failed to connect wallet");
+      }
     }
   };
 
@@ -251,8 +260,6 @@ export default function RiskScoringApp() {
         : "🔍 Analyzing wallet transaction history...";
 
       const loadingToast = toast.loading(loadingMessage);
-
-      console.log("🚀 Starting automatic risk analysis for:", walletAddress);
 
       const analysisResult = await performAutoRiskAnalysis(walletAddress);
 
@@ -344,17 +351,6 @@ export default function RiskScoringApp() {
       return;
     }
 
-    // Debug wallet connection
-    console.log("🔍 Wallet Debug Info:", {
-      kit: !!kit,
-      walletAddress,
-      walletType: typeof walletAddress,
-      addressLength: walletAddress?.length,
-      isValidFormat:
-        walletAddress?.length === 56 && walletAddress?.startsWith("G"),
-      connectedWallet,
-    });
-
     if (contractStatus !== "exists") {
       toast.error(
         "⛓️ Smart contract not available. Please check your connection."
@@ -371,11 +367,6 @@ export default function RiskScoringApp() {
 
     try {
       setIsLoading(true);
-      console.log("🔍 Before calling writeScoreToBlockchain:");
-      console.log("  - walletAddress:", walletAddress);
-      console.log("  - walletAddress type:", typeof walletAddress);
-      console.log("  - kit:", kit);
-      console.log("  - riskScore:", riskScore);
 
       const loadingToast = toast.loading(
         "💾 Saving risk score to blockchain..."
@@ -386,8 +377,6 @@ export default function RiskScoringApp() {
         address: walletAddress,
         score: riskScore,
       });
-
-      console.log("🎯 Enhanced result:", result);
 
       const hash = result.hash;
 
@@ -450,7 +439,6 @@ export default function RiskScoringApp() {
 
       // Even if there's an error, if we have a valid risk score, show the pools
       if (riskScore > 0) {
-        console.log("🔄 Showing pools despite error - risk score exists");
         setShowBlendDashboard(true);
         setShowEnhancedPools(true);
 
@@ -748,8 +736,12 @@ export default function RiskScoringApp() {
           {walletAddress && (
             <div className="max-w-6xl mx-auto mb-16">
               <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-white mb-4">Risk Score Analysis</h2>
-                <p className="text-slate-400 text-lg">Choose your preferred analysis method</p>
+                <h2 className="text-3xl font-bold text-white mb-4">
+                  Risk Score Analysis
+                </h2>
+                <p className="text-slate-400 text-lg">
+                  Choose your preferred analysis method
+                </p>
               </div>
 
               {/* Analysis Mode Toggle */}
@@ -826,350 +818,354 @@ export default function RiskScoringApp() {
               </div>
 
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8">
+                {/* Enhanced AI Analysis */}
+                {analysisMode === "enhanced" && <AutomatedRiskAnalyzer />}
 
-              {/* Enhanced AI Analysis */}
-              {analysisMode === "enhanced" && <AutomatedRiskAnalyzer />}
-
-              {/* Auto Analysis Display */}
-              {analysisMode === "auto" && (
-                <div className="space-y-6">
-                  {!autoAnalysisResult && !isAnalyzingWallet && (
-                    <div className="text-center p-8 bg-gradient-to-br from-violet-500/10 to-purple-600/10 rounded-2xl">
-                      <div className="w-16 h-16 mx-auto mb-4 bg-violet-500/20 rounded-2xl flex items-center justify-center">
-                        <svg
-                          className="w-8 h-8 text-violet-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                {/* Auto Analysis Display */}
+                {analysisMode === "auto" && (
+                  <div className="space-y-6">
+                    {!autoAnalysisResult && !isAnalyzingWallet && (
+                      <div className="text-center p-8 bg-gradient-to-br from-violet-500/10 to-purple-600/10 rounded-2xl">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-violet-500/20 rounded-2xl flex items-center justify-center">
+                          <svg
+                            className="w-8 h-8 text-violet-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 10V3L4 14h7v7l9-11h-7z"
+                            />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg font-semibold text-white/90 mb-2">
+                          Ready for Auto Analysis
+                        </h3>
+                        <p className="text-white/70 mb-4">
+                          Click the button below to analyze your wallet's
+                          transaction history automatically
+                        </p>
+                        <button
+                          onClick={performWalletAnalysis}
+                          disabled={isAnalyzing}
+                          className="btn-primary px-6 py-3"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 10V3L4 14h7v7l9-11h-7z"
-                          />
-                        </svg>
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                            />
+                          </svg>
+                          Analyze Wallet
+                        </button>
                       </div>
-                      <h3 className="text-lg font-semibold text-white/90 mb-2">
-                        Ready for Auto Analysis
-                      </h3>
-                      <p className="text-white/70 mb-4">
-                        Click the button below to analyze your wallet's
-                        transaction history automatically
+                    )}
+
+                    {isAnalyzing && (
+                      <div className="text-center p-8 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-2xl">
+                        <div className="loading-modern mb-4">
+                          <div className="loading-dot"></div>
+                          <div className="loading-dot"></div>
+                          <div className="loading-dot"></div>
+                        </div>
+                        <h3 className="text-lg font-semibold text-white/90 mb-2">
+                          Analyzing Transaction History
+                        </h3>
+                        <p className="text-white/70">
+                          Fetching data from Stellar Horizon API...
+                        </p>
+                      </div>
+                    )}
+
+                    {autoAnalysisResult && (
+                      <div className="space-y-4">
+                        <div className="bg-gradient-to-br from-emerald-500/10 to-green-600/10 rounded-2xl p-6">
+                          <h3 className="text-lg font-semibold text-emerald-400 mb-4">
+                            Analysis Results
+                          </h3>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-white/70">
+                                Transactions:
+                              </span>
+                              <span className="text-white/90 ml-2 font-mono">
+                                {autoAnalysisResult.analysis.txCount}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-white/70">Avg Hours:</span>
+                              <span className="text-white/90 ml-2 font-mono">
+                                {autoAnalysisResult.analysis.avgHours}h
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-white/70">
+                                Asset Types:
+                              </span>
+                              <span className="text-white/90 ml-2 font-mono">
+                                {autoAnalysisResult.analysis.assetTypes}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-white/70">Confidence:</span>
+                              <span
+                                className={`ml-2 font-semibold ${
+                                  autoAnalysisResult.confidence === "High"
+                                    ? "text-emerald-400"
+                                    : autoAnalysisResult.confidence === "Medium"
+                                    ? "text-amber-400"
+                                    : "text-red-400"
+                                }`}
+                              >
+                                {autoAnalysisResult.confidence}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            {/* Passkey-specific information */}
+                            {autoAnalysisResult.addressType === "contract" &&
+                              autoAnalysisResult.passkeyInfo && (
+                                <div className="mb-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                                  <div className="flex items-center mb-2">
+                                    <svg
+                                      className="w-4 h-4 text-purple-400 mr-2"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                      />
+                                    </svg>
+                                    <span className="text-sm font-medium text-purple-300">
+                                      Passkey Smart Contract
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-purple-200/80">
+                                    {autoAnalysisResult.passkeyInfo.message}
+                                  </p>
+                                  <p className="text-xs text-purple-200/60 mt-1">
+                                    {autoAnalysisResult.passkeyInfo.note}
+                                  </p>
+                                  {autoAnalysisResult.analysis
+                                    .contractStatus && (
+                                    <div className="mt-2 text-xs">
+                                      <span className="text-purple-300">
+                                        Status:{" "}
+                                      </span>
+                                      <span
+                                        className={`capitalize ${
+                                          autoAnalysisResult.analysis
+                                            .contractStatus === "active"
+                                            ? "text-emerald-400"
+                                            : autoAnalysisResult.analysis
+                                                .contractStatus ===
+                                              "new_or_inactive"
+                                            ? "text-amber-400"
+                                            : "text-gray-400"
+                                        }`}
+                                      >
+                                        {autoAnalysisResult.analysis.contractStatus.replace(
+                                          "_",
+                                          " "
+                                        )}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                            <p className="text-sm text-white/70 mb-2">
+                              Risk Factors:
+                            </p>
+                            <ul className="text-xs text-white/60 space-y-1">
+                              {autoAnalysisResult.factors
+                                .slice(0, 3)
+                                .map((factor, index) => (
+                                  <li key={index}>• {factor}</li>
+                                ))}
+                            </ul>
+                          </div>
+                          <button
+                            onClick={performWalletAnalysis}
+                            className="btn-secondary text-sm px-4 py-2 mt-4"
+                          >
+                            Refresh Analysis
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Manual Entry Form */}
+                {analysisMode === "manual" && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
+                        Transaction Count (0-100)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={txCount}
+                        onChange={handleTxCountChange}
+                        className="input-modern"
+                        placeholder="e.g. 25"
+                      />
+                      <p className="text-caption mt-2">
+                        Number of transactions in the last 30 days
                       </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
+                        Average Time Interval (0-24 hours)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.1"
+                        value={avgHours}
+                        onChange={handleAvgHoursChange}
+                        className="input-modern"
+                        placeholder="e.g. 8.5"
+                      />
+                      <p className="text-caption mt-2">
+                        Average time between transactions
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
+                        Asset Types (0-10)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={assetTypes}
+                        onChange={handleAssetTypesChange}
+                        className="input-modern"
+                        placeholder="e.g. 3"
+                      />
+                      <p className="text-caption mt-2">
+                        Number of different asset/token types used
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Risk Score Display */}
+                <div className="mt-8 animate-scale-in">
+                  <div className="risk-score-container">
+                    <div className="text-center mb-6">
+                      <h3 className="text-subheading mb-4">Your Risk Score</h3>
+                      <div className="risk-score-value mb-3">
+                        {Math.round(riskScore)}
+                      </div>
+                      <div className="text-caption mb-6">
+                        {riskScore <= 30
+                          ? "Low Risk"
+                          : riskScore <= 70
+                          ? "Medium Risk"
+                          : "High Risk"}
+                      </div>
+                      <div className="risk-bar">
+                        <div
+                          className="risk-bar-fill"
+                          style={{ width: `${Math.min(100, riskScore)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="mt-8 space-y-4">
+                  {/* Submit Risk Score Button */}
+                  <div className="text-center">
+                    <button
+                      onClick={submitRiskScore}
+                      disabled={
+                        !kit ||
+                        !walletAddress ||
+                        !isValidInput ||
+                        isLoading ||
+                        contractStatus !== "exists"
+                      }
+                      className="btn-primary text-lg px-10 py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-accent hover:shadow-2xl"
+                    >
+                      {isLoading ? (
+                        <div className="loading-modern">
+                          <div className="loading-dot"></div>
+                          <div className="loading-dot"></div>
+                          <div className="loading-dot"></div>
+                        </div>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-6 h-6 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Save Risk Score to Blockchain
+                        </>
+                      )}
+                    </button>
+                    <p className="text-caption mt-3">
+                      {analysisMode === "auto" && autoAnalysisResult
+                        ? `Automatically calculated score: ${riskScore} (${autoAnalysisResult.confidence} confidence)`
+                        : analysisMode === "manual"
+                        ? "Manual entry - your risk score will be saved to the blockchain"
+                        : "Complete analysis to save your risk score"}
+                    </p>
+                  </div>
+
+                  {/* Next Steps Buttons */}
+                  {transactionHash && (
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
                       <button
-                        onClick={performWalletAnalysis}
-                        disabled={isAnalyzing}
-                        className="btn-primary px-6 py-3"
+                        onClick={() => setShowUserProfile(true)}
+                        className="btn-secondary px-8 py-3 flex items-center justify-center"
                       >
-                        <svg
-                          className="w-5 h-5 mr-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                          />
-                        </svg>
-                        Analyze Wallet
+                        <span className="mr-2">👤</span>
+                        View Risk Profile & Pool Access
+                      </button>
+                      <button
+                        onClick={() => setShowEnhancedPools(true)}
+                        className="btn-accent px-8 py-3 flex items-center justify-center"
+                      >
+                        <span className="mr-2">🎯</span>
+                        Explore Investment Pools
                       </button>
                     </div>
                   )}
-
-                  {isAnalyzing && (
-                    <div className="text-center p-8 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-2xl">
-                      <div className="loading-modern mb-4">
-                        <div className="loading-dot"></div>
-                        <div className="loading-dot"></div>
-                        <div className="loading-dot"></div>
-                      </div>
-                      <h3 className="text-lg font-semibold text-white/90 mb-2">
-                        Analyzing Transaction History
-                      </h3>
-                      <p className="text-white/70">
-                        Fetching data from Stellar Horizon API...
-                      </p>
-                    </div>
-                  )}
-
-                  {autoAnalysisResult && (
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-br from-emerald-500/10 to-green-600/10 rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold text-emerald-400 mb-4">
-                          Analysis Results
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-white/70">Transactions:</span>
-                            <span className="text-white/90 ml-2 font-mono">
-                              {autoAnalysisResult.analysis.txCount}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-white/70">Avg Hours:</span>
-                            <span className="text-white/90 ml-2 font-mono">
-                              {autoAnalysisResult.analysis.avgHours}h
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-white/70">Asset Types:</span>
-                            <span className="text-white/90 ml-2 font-mono">
-                              {autoAnalysisResult.analysis.assetTypes}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-white/70">Confidence:</span>
-                            <span
-                              className={`ml-2 font-semibold ${
-                                autoAnalysisResult.confidence === "High"
-                                  ? "text-emerald-400"
-                                  : autoAnalysisResult.confidence === "Medium"
-                                  ? "text-amber-400"
-                                  : "text-red-400"
-                              }`}
-                            >
-                              {autoAnalysisResult.confidence}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                          {/* Passkey-specific information */}
-                          {autoAnalysisResult.addressType === "contract" &&
-                            autoAnalysisResult.passkeyInfo && (
-                              <div className="mb-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                                <div className="flex items-center mb-2">
-                                  <svg
-                                    className="w-4 h-4 text-purple-400 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                    />
-                                  </svg>
-                                  <span className="text-sm font-medium text-purple-300">
-                                    Passkey Smart Contract
-                                  </span>
-                                </div>
-                                <p className="text-xs text-purple-200/80">
-                                  {autoAnalysisResult.passkeyInfo.message}
-                                </p>
-                                <p className="text-xs text-purple-200/60 mt-1">
-                                  {autoAnalysisResult.passkeyInfo.note}
-                                </p>
-                                {autoAnalysisResult.analysis.contractStatus && (
-                                  <div className="mt-2 text-xs">
-                                    <span className="text-purple-300">
-                                      Status:{" "}
-                                    </span>
-                                    <span
-                                      className={`capitalize ${
-                                        autoAnalysisResult.analysis
-                                          .contractStatus === "active"
-                                          ? "text-emerald-400"
-                                          : autoAnalysisResult.analysis
-                                              .contractStatus ===
-                                            "new_or_inactive"
-                                          ? "text-amber-400"
-                                          : "text-gray-400"
-                                      }`}
-                                    >
-                                      {autoAnalysisResult.analysis.contractStatus.replace(
-                                        "_",
-                                        " "
-                                      )}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                          <p className="text-sm text-white/70 mb-2">
-                            Risk Factors:
-                          </p>
-                          <ul className="text-xs text-white/60 space-y-1">
-                            {autoAnalysisResult.factors
-                              .slice(0, 3)
-                              .map((factor, index) => (
-                                <li key={index}>• {factor}</li>
-                              ))}
-                          </ul>
-                        </div>
-                        <button
-                          onClick={performWalletAnalysis}
-                          className="btn-secondary text-sm px-4 py-2 mt-4"
-                        >
-                          Refresh Analysis
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Manual Entry Form */}
-              {analysisMode === "manual" && (
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                      Transaction Count (0-100)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={txCount}
-                      onChange={handleTxCountChange}
-                      className="input-modern"
-                      placeholder="e.g. 25"
-                    />
-                    <p className="text-caption mt-2">
-                      Number of transactions in the last 30 days
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                      Average Time Interval (0-24 hours)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="24"
-                      step="0.1"
-                      value={avgHours}
-                      onChange={handleAvgHoursChange}
-                      className="input-modern"
-                      placeholder="e.g. 8.5"
-                    />
-                    <p className="text-caption mt-2">
-                      Average time between transactions
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                      Asset Types (0-10)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={assetTypes}
-                      onChange={handleAssetTypesChange}
-                      className="input-modern"
-                      placeholder="e.g. 3"
-                    />
-                    <p className="text-caption mt-2">
-                      Number of different asset/token types used
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Risk Score Display */}
-              <div className="mt-8 animate-scale-in">
-                <div className="risk-score-container">
-                  <div className="text-center mb-6">
-                    <h3 className="text-subheading mb-4">Your Risk Score</h3>
-                    <div className="risk-score-value mb-3">
-                      {Math.round(riskScore)}
-                    </div>
-                    <div className="text-caption mb-6">
-                      {riskScore <= 30
-                        ? "Low Risk"
-                        : riskScore <= 70
-                        ? "Medium Risk"
-                        : "High Risk"}
-                    </div>
-                    <div className="risk-bar">
-                      <div
-                        className="risk-bar-fill"
-                        style={{ width: `${Math.min(100, riskScore)}%` }}
-                      ></div>
-                    </div>
-                  </div>
                 </div>
               </div>
-
-              {/* Submit Button */}
-              <div className="mt-8 space-y-4">
-                {/* Submit Risk Score Button */}
-                <div className="text-center">
-                  <button
-                    onClick={submitRiskScore}
-                    disabled={
-                      !kit ||
-                      !walletAddress ||
-                      !isValidInput ||
-                      isLoading ||
-                      contractStatus !== "exists"
-                    }
-                    className="btn-primary text-lg px-10 py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-accent hover:shadow-2xl"
-                  >
-                    {isLoading ? (
-                      <div className="loading-modern">
-                        <div className="loading-dot"></div>
-                        <div className="loading-dot"></div>
-                        <div className="loading-dot"></div>
-                      </div>
-                    ) : (
-                      <>
-                        <svg
-                          className="w-6 h-6 mr-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        Save Risk Score to Blockchain
-                      </>
-                    )}
-                  </button>
-                  <p className="text-caption mt-3">
-                    {analysisMode === "auto" && autoAnalysisResult
-                      ? `Automatically calculated score: ${riskScore} (${autoAnalysisResult.confidence} confidence)`
-                      : analysisMode === "manual"
-                      ? "Manual entry - your risk score will be saved to the blockchain"
-                      : "Complete analysis to save your risk score"}
-                  </p>
-                </div>
-
-                {/* Next Steps Buttons */}
-                {transactionHash && (
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button
-                      onClick={() => setShowUserProfile(true)}
-                      className="btn-secondary px-8 py-3 flex items-center justify-center"
-                    >
-                      <span className="mr-2">👤</span>
-                      View Risk Profile & Pool Access
-                    </button>
-                    <button
-                      onClick={() => setShowEnhancedPools(true)}
-                      className="btn-accent px-8 py-3 flex items-center justify-center"
-                    >
-                      <span className="mr-2">🎯</span>
-                      Explore Investment Pools
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
             </div>
           )}
 

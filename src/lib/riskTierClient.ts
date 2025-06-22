@@ -10,7 +10,7 @@
  *   --output-dir ./src/lib/generated
  */
 
-import React from "react";
+import { useState } from "react";
 import { Address, nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 import { passkeyWallet } from "./passkeyIntegration";
 
@@ -59,8 +59,6 @@ export class RiskTierContractClient {
     chosenTier: TierLevel
   ): Promise<string> {
     try {
-      console.log("📝 Setting risk tier data...");
-
       // Validate inputs
       if (score < 0 || score > 100) {
         throw new Error("Score must be between 0 and 100");
@@ -84,9 +82,12 @@ export class RiskTierContractClient {
       ]);
 
       // Sign and submit with Passkey + Launchtube
-      const result = await passkeyWallet.signAndSubmit(transactionXDR);
+      const signature = await passkeyWallet.signTransaction(transactionXDR);
+      const result = await passkeyWallet.submitTransactionWithSponsorship(
+        transactionXDR,
+        signature
+      );
 
-      console.log("✅ Risk tier data set successfully:", result.hash);
       return result.hash;
     } catch (error) {
       console.error("❌ Failed to set risk tier:", error);
@@ -100,8 +101,6 @@ export class RiskTierContractClient {
    */
   async getRiskTier(userAddress: string): Promise<RiskTierData | null> {
     try {
-      console.log("🔍 Getting risk tier data...");
-
       // In production, use generated contract bindings
       const result = await this.simulateContractCall("get_risk_tier", [
         nativeToScVal(Address.fromString(userAddress)),
@@ -119,7 +118,6 @@ export class RiskTierContractClient {
         chosen_tier: scValToNative(result.chosen_tier),
       };
 
-      console.log("✅ Risk tier data retrieved:", riskTierData);
       return riskTierData;
     } catch (error) {
       console.error("❌ Failed to get risk tier:", error);
@@ -170,8 +168,6 @@ export class RiskTierContractClient {
     newChosenTier: TierLevel
   ): Promise<string> {
     try {
-      console.log("🔄 Updating chosen tier...");
-
       const transactionXDR = await this.buildContractCall(
         "update_chosen_tier",
         [
@@ -180,9 +176,12 @@ export class RiskTierContractClient {
         ]
       );
 
-      const result = await passkeyWallet.signAndSubmit(transactionXDR);
+      const signature = await passkeyWallet.signTransaction(transactionXDR);
+      const result = await passkeyWallet.submitTransactionWithSponsorship(
+        transactionXDR,
+        signature
+      );
 
-      console.log("✅ Chosen tier updated:", result.hash);
       return result.hash;
     } catch (error) {
       console.error("❌ Failed to update chosen tier:", error);
@@ -245,7 +244,6 @@ export class RiskTierContractClient {
   ): Promise<string> {
     try {
       // Mock implementation - in production, use generated bindings
-      console.log(`🔨 Building contract call: ${functionName}`);
 
       // Return mock XDR for demo purposes
       const mockXDR = `mock_transaction_xdr_${functionName}_${Date.now()}`;
@@ -266,8 +264,6 @@ export class RiskTierContractClient {
     args: any[]
   ): Promise<any> {
     try {
-      console.log(`🔍 Simulating contract call: ${functionName}`);
-
       // Mock implementation - in production, use actual RPC simulation
       // Return mock data based on function name
       switch (functionName) {
@@ -307,8 +303,8 @@ export const riskTierClient = new RiskTierContractClient();
  * React hook for risk tier contract interactions
  */
 export function useRiskTierContract() {
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const setRiskTier = async (
     userAddress: string,

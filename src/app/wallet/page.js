@@ -84,8 +84,32 @@ export default function WalletPage() {
       }
     } catch (error) {
       console.error("❌ Connection error:", error);
-      setMessage(`Connection error: ${error.message}`);
-      setMessageType("error");
+
+      // Handle different error types gracefully
+      if (error.message === "WALLET_SELECTION_CANCELLED") {
+        setMessage(
+          "Wallet selection was cancelled. Please try again when you're ready to connect."
+        );
+        setMessageType("info");
+      } else if (error.message.includes("cancelled")) {
+        setMessage(
+          "Connection was cancelled. No worries, you can try again anytime!"
+        );
+        setMessageType("info");
+      } else if (error.message.includes("not installed")) {
+        setMessage(
+          "Wallet extension not found. Please install a Stellar wallet and refresh the page."
+        );
+        setMessageType("error");
+      } else if (error.message.includes("network")) {
+        setMessage(
+          "Network error. Please check your connection and try again."
+        );
+        setMessageType("error");
+      } else {
+        setMessage(`Connection error: ${error.message}`);
+        setMessageType("error");
+      }
     }
   };
 
