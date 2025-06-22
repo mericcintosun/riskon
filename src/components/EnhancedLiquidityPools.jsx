@@ -53,7 +53,6 @@ function EnhancedLiquidityPools() {
     try {
       const riskData = await getRiskTier(smartWalletAddress);
       setUserRiskData(riskData);
-      console.log("✅ User risk data loaded:", riskData);
     } catch (error) {
       console.error("❌ Failed to load user risk data:", error);
       setError("Failed to load risk data");
@@ -78,7 +77,6 @@ function EnhancedLiquidityPools() {
       const poolData = await response.json();
       setPools(poolData);
 
-      console.log(`✅ Loaded ${poolData.length} liquidity pools`);
     } catch (error) {
       console.error("❌ Failed to load liquidity pools:", error);
       setError("Failed to load liquidity pools");
@@ -155,7 +153,6 @@ function EnhancedLiquidityPools() {
       });
 
       setFilteredPools(filtered);
-      console.log(`✅ Filtered to ${filtered.length} accessible pools`);
     } catch (error) {
       console.error("❌ Failed to filter pools:", error);
     }
@@ -231,7 +228,6 @@ function EnhancedLiquidityPools() {
    * Start investment process (placeholder for future implementation)
    */
   const startInvestment = () => {
-    console.log("🚀 Starting investment in pool:", selectedPool.poolId);
     // TODO: Implement Blend protocol integration
     alert(
       `Yatırım işlemi başlatılacak: ${selectedPool.poolId}\n(Blend entegrasyonu henüz aktif değil)`

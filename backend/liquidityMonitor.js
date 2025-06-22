@@ -24,7 +24,6 @@ const TIER_THRESHOLDS = {
  */
 async function fetchLiquidityPools() {
   try {
-    console.log("🔍 Fetching liquidity pools from Horizon...");
 
     const response = await fetch(
       `${HORIZON_URL}/liquidity_pools?limit=200&order=desc`
@@ -35,9 +34,7 @@ async function fetchLiquidityPools() {
     }
 
     const data = await response.json();
-    console.log(
-      `✅ Retrieved ${data._embedded.records.length} liquidity pools`
-    );
+
 
     return data._embedded.records;
   } catch (error) {
@@ -144,10 +141,7 @@ async function storePoolTierData(poolTierData) {
 
     await pipeline.exec();
 
-    console.log("✅ Pool tier data stored in Redis");
-    console.log(
-      `📊 Tier distribution: Tier-1: ${tierStats.TIER_1}, Tier-2: ${tierStats.TIER_2}, Tier-3: ${tierStats.TIER_3}`
-    );
+
 
     return tierStats;
   } catch (error) {
@@ -209,7 +203,6 @@ async function getPoolsByTier(tier) {
  */
 async function monitorLiquidityPools() {
   try {
-    console.log("🚀 Starting liquidity pool monitoring...");
 
     // Fetch pools from Horizon
     const pools = await fetchLiquidityPools();
@@ -220,7 +213,6 @@ async function monitorLiquidityPools() {
     // Store in Redis
     const stats = await storePoolTierData(poolTierData);
 
-    console.log("✅ Liquidity pool monitoring cycle completed");
     return stats;
   } catch (error) {
     console.error("❌ Error in monitoring cycle:", error);
@@ -234,7 +226,6 @@ async function monitorLiquidityPools() {
 async function startMonitoring() {
   try {
     await redisClient.connect();
-    console.log("✅ Connected to Redis");
 
     // Initial monitoring
     await monitorLiquidityPools();
@@ -248,9 +239,7 @@ async function startMonitoring() {
       }
     }, MONITORING_INTERVAL);
 
-    console.log(
-      `🔄 Periodic monitoring started (interval: ${MONITORING_INTERVAL}ms)`
-    );
+   
   } catch (error) {
     console.error("❌ Failed to start monitoring:", error);
     process.exit(1);
@@ -353,6 +342,5 @@ if (require.main === module) {
 
   const PORT = process.env.LIQUIDITY_API_PORT || 3002;
   app.listen(PORT, () => {
-    console.log(`🚀 Liquidity monitoring API running on port ${PORT}`);
   });
 }

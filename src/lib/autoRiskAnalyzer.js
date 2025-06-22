@@ -10,7 +10,6 @@ const HORIZON_URL = "https://horizon-testnet.stellar.org";
  */
 export async function fetchTransactionHistory(walletAddress, limit = 100) {
   try {
-    console.log(`🔍 Fetching transaction history for: ${walletAddress}`);
 
     // Fetch transactions
     const transactionResponse = await fetch(
@@ -37,9 +36,7 @@ export async function fetchTransactionHistory(walletAddress, limit = 100) {
       operationData = await operationResponse.json();
     }
 
-    console.log(
-      `✅ Fetched ${transactionData._embedded.records.length} transactions and ${operationData._embedded.records.length} operations`
-    );
+
 
     return {
       transactions: transactionData._embedded.records,
@@ -75,7 +72,6 @@ export async function fetchAccountAssets(walletAddress) {
  */
 export function analyzeTransactionPatterns(transactions, operations) {
   try {
-    console.log("📊 Analyzing transaction patterns...");
 
     if (!transactions || transactions.length === 0) {
       console.warn(
@@ -180,7 +176,6 @@ export function analyzeTransactionPatterns(transactions, operations) {
       analysisTimestamp: new Date().toISOString(),
     };
 
-    console.log("📈 Transaction pattern analysis completed:", analysis);
     return analysis;
   } catch (error) {
     console.error("❌ Error analyzing transaction patterns:", error);
@@ -202,7 +197,6 @@ export function analyzeTransactionPatterns(transactions, operations) {
  */
 export function calculateAutoRiskScore(analysis) {
   try {
-    console.log("🧮 Calculating automated risk score...");
 
     let riskScore = 0;
     const factors = [];
@@ -320,7 +314,6 @@ export function calculateAutoRiskScore(analysis) {
       calculatedAt: new Date().toISOString(),
     };
 
-    console.log("✅ Automated risk score calculated:", result);
     return result;
   } catch (error) {
     console.error("❌ Error calculating auto risk score:", error);
@@ -373,7 +366,6 @@ function getAddressType(walletAddress) {
  * as they may not have traditional transaction history
  */
 async function analyzePasskeySmartContract(contractAddress) {
-  console.log("📱 Analyzing Passkey smart contract:", contractAddress);
 
   try {
     // Try to fetch contract data to see if it exists and is active
@@ -382,7 +374,6 @@ async function analyzePasskeySmartContract(contractAddress) {
     );
 
     if (contractResponse.ok) {
-      console.log("✅ Smart contract found and active");
 
       // For smart contracts, we'll provide a base analysis
       // since they don't have traditional transaction history like accounts
@@ -398,7 +389,6 @@ async function analyzePasskeySmartContract(contractAddress) {
         contractStatus: "active",
       };
     } else {
-      console.log("⚠️ Smart contract not found, using new contract defaults");
 
       // Contract might be newly created or not yet active
       return {
@@ -436,7 +426,6 @@ async function analyzePasskeySmartContract(contractAddress) {
  */
 export async function performAutoRiskAnalysis(walletAddress) {
   try {
-    console.log("🚀 Starting automatic risk analysis for:", walletAddress);
 
     // Enhanced address validation for both account and contract addresses
     const addressInfo = getAddressType(walletAddress);
@@ -447,18 +436,12 @@ export async function performAutoRiskAnalysis(walletAddress) {
       );
     }
 
-    console.log(
-      `📍 Address type detected: ${addressInfo.type} (${walletAddress.substring(
-        0,
-        4
-      )}...${walletAddress.substring(52)})`
-    );
+
 
     let historyData, assets, analysis;
 
     if (addressInfo.type === "contract") {
       // Handle Passkey smart contract addresses
-      console.log("🔐 Processing Passkey smart contract...");
 
       analysis = await analyzePasskeySmartContract(walletAddress);
 
@@ -476,7 +459,6 @@ export async function performAutoRiskAnalysis(walletAddress) {
       ];
     } else {
       // Handle traditional Stellar account addresses
-      console.log("🏦 Processing traditional Stellar account...");
 
       // Step 1: Fetch transaction history
       historyData = await fetchTransactionHistory(walletAddress);
@@ -504,10 +486,7 @@ export async function performAutoRiskAnalysis(walletAddress) {
     }
 
     // Step 4: Calculate risk score (works for both types)
-    console.log(
-      "🧮 Calculating risk score for address type:",
-      addressInfo.type
-    );
+   
     const riskResult = calculateAutoRiskScore(analysis);
 
     // Add address type information to the result
@@ -528,7 +507,6 @@ export async function performAutoRiskAnalysis(walletAddress) {
       }
     }
 
-    console.log("🎯 Automatic risk analysis completed successfully");
     return riskResult;
   } catch (error) {
     console.error("❌ Automatic risk analysis failed:", error);

@@ -139,10 +139,15 @@ export function WalletProvider({ children }) {
                 }
               },
               onClosed: (error) => {
+                // Handle user cancellation gracefully
                 if (error) {
-                  reject(new Error("Wallet selection was cancelled"));
+                  console.log("👋 Wallet modal closed with error:", error);
+                  reject(
+                    new Error("Wallet connection failed. Please try again.")
+                  );
                 } else {
-                  reject(new Error("Wallet selection was cancelled"));
+                  console.log("👋 User cancelled wallet selection");
+                  reject(new Error("WALLET_SELECTION_CANCELLED"));
                 }
               },
               modalTitle: "Select Stellar Wallet",

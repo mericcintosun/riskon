@@ -30,7 +30,6 @@ export async function initializePasskeyKit() {
       return passkeyKit;
     }
 
-    console.log("🔐 Initializing Passkey-Kit...");
 
     // Check if WebAuthn is supported
     if (!window.PublicKeyCredential) {
@@ -50,7 +49,6 @@ export async function initializePasskeyKit() {
       walletWasmHash: PASSKEY_CONFIG.walletWasmHash,
     });
 
-    console.log("✅ Passkey-Kit initialized successfully");
     return passkeyKit;
   } catch (error) {
     console.error("❌ Failed to initialize Passkey-Kit:", error);
@@ -68,19 +66,13 @@ export async function createPasskeyWallet(
   userName = `user-${Date.now()}`
 ) {
   try {
-    console.log("🚀 Creating Passkey wallet...");
-    console.log("Environment variables:", {
-      rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
-      networkPassphrase: process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE,
-      walletWasmHash: process.env.NEXT_PUBLIC_WALLET_WASM_HASH,
-    });
+ 
 
     const kit = await initializePasskeyKit();
 
     // Use PasskeyKit's correct API: createWallet(app, user)
     const walletResult = await kit.createWallet(appName, userName);
 
-    console.log("✅ Raw wallet result:", walletResult);
 
     // Store wallet info locally for future reference
     const walletInfo = {
@@ -99,7 +91,6 @@ export async function createPasskeyWallet(
     );
     localStorage.setItem("last_passkey_wallet", walletResult.keyIdBase64);
 
-    console.log("✅ Passkey wallet created:", walletInfo);
 
     return {
       success: true,
@@ -137,7 +128,6 @@ export async function createPasskeyWallet(
  */
 export async function connectPasskeyWallet(keyId) {
   try {
-    console.log("🔗 Connecting to Passkey wallet...");
 
     const walletInfo = getStoredWalletInfo(keyId);
     if (!walletInfo) {
@@ -156,7 +146,6 @@ export async function connectPasskeyWallet(keyId) {
       },
     });
 
-    console.log("✅ Connected to Passkey wallet");
 
     return {
       success: true,
@@ -179,7 +168,6 @@ export async function connectPasskeyWallet(keyId) {
  */
 export async function signWithPasskey(keyId, transaction) {
   try {
-    console.log("🔐 Signing transaction with Passkey...");
 
     const walletInfo = getStoredWalletInfo(keyId);
     if (!walletInfo) {
@@ -194,7 +182,6 @@ export async function signWithPasskey(keyId, transaction) {
       transaction: transaction,
     });
 
-    console.log("✅ Transaction signed with Passkey");
 
     return {
       success: true,
@@ -309,7 +296,6 @@ export function deletePasskeyWallet(keyId) {
       localStorage.removeItem("last_passkey_wallet");
     }
 
-    console.log("✅ Passkey wallet deleted:", keyId);
     return true;
   } catch (error) {
     console.error("❌ Failed to delete wallet:", error);
@@ -357,7 +343,6 @@ export async function checkLaunchtubeSponsorship() {
   try {
     // Note: In a real implementation, this would be done server-side
     // using PasskeyServer with proper JWT credentials
-    console.log("ℹ️ Launchtube sponsorship check would be done server-side");
 
     return {
       available: true,
