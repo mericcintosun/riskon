@@ -19,6 +19,8 @@ import { writeScoreToBlockchainEnhanced } from "../app/lib/writeScore";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
+import BlendDashboard from "./BlendDashboard.jsx";
+import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
 
 /**
  * Automated Risk Analyzer Component
@@ -97,30 +99,28 @@ export default function AutomatedRiskAnalyzer() {
    */
   const runAutomatedAnalysis = async () => {
     if (!walletAddress) {
-      toast.error("⚠️ Lütfen cüzdanınızı bağlayın");
+      toast.error("⚠️ Please connect your wallet");
       return;
     }
 
     setIsAnalyzing(true);
 
     try {
-
       const loadingToast = toast.loading(
-        "📊 Son 30 günlük işlem verileri analiz ediliyor..."
+        "📊 Analyzing transaction data from last 30 days..."
       );
 
       // Step 1: Collect transaction data from Horizon
       const horizonData = await collectTransactionData(walletAddress);
 
       if (!horizonData.success) {
-        throw new Error(horizonData.error || "Veri toplama başarısız");
+        throw new Error(horizonData.error || "Data collection failed");
       }
-
 
       // Step 2: Calculate risk score with ML model
       toast.dismiss(loadingToast);
       const calculatingToast = toast.loading(
-        "🧠 AI modeli ile risk skoru hesaplanıyor..."
+        "🧠 Calculating risk score with AI model..."
       );
 
       const riskAnalysisResult = calculateRiskScore(horizonData.metrics);
@@ -137,9 +137,9 @@ export default function AutomatedRiskAnalyzer() {
         riskAnalysisResult.riskScore = adjustedScore;
         riskAnalysisResult.blendImpact = blendScoreImpact;
         riskAnalysisResult.explanation.unshift(
-          `🏦 Blend geçmişi: ${blendScoreImpact.totalChange > 0 ? "+" : ""}${
+          `🏦 Blend history: ${blendScoreImpact.totalChange > 0 ? "+" : ""}${
             blendScoreImpact.totalChange
-          } puan`
+          } points`
         );
       }
 
@@ -162,14 +162,13 @@ export default function AutomatedRiskAnalyzer() {
       setAnalysisData(finalResult);
       setRiskAnalysis(riskAnalysisResult);
 
-
-      toast.success("✅ Risk analizi tamamlandı!", { duration: 4000 });
+      toast.success("✅ Risk analysis completed!", { duration: 4000 });
 
       // Show data quality warning if needed
       if (!dataQuality.isGood) {
         setTimeout(() => {
           toast.warning(
-            "⚠️ Daha iyi analiz için daha fazla işlem geçmişi gerekli",
+            "⚠️ More transaction history needed for better analysis",
             {
               duration: 6000,
             }
@@ -178,7 +177,7 @@ export default function AutomatedRiskAnalyzer() {
       }
     } catch (error) {
       console.error("❌ Automated analysis failed:", error);
-      toast.error(`❌ Analiz hatası: ${error.message}`);
+      toast.error(`❌ Analysis error: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -189,7 +188,7 @@ export default function AutomatedRiskAnalyzer() {
    */
   const updateRiskScoreOnChain = async () => {
     if (!riskAnalysis || !walletAddress || !kit) {
-      toast.error("⚠️ Risk analizi veya cüzdan bağlantısı eksik");
+      toast.error("⚠️ Risk analysis or wallet connection missing");
       return;
     }
 
@@ -207,7 +206,6 @@ export default function AutomatedRiskAnalyzer() {
     setIsUpdatingScore(true);
 
     try {
-
       const updatingToast = toast.loading(
         "🔗 Risk skoru blockchain'e kaydediliyor..."
       );
@@ -482,7 +480,7 @@ export default function AutomatedRiskAnalyzer() {
                         d="m12 6v6l4 2"
                       ></path>
                     </svg>
-                    Blockchain'e Kaydediliyor...
+                    Saving to Blockchain...
                   </>
                 ) : rateLimitStatus && !rateLimitStatus.canUpdate ? (
                   `⏰ ${formatRemainingTime(countdown)}`
@@ -661,6 +659,46 @@ export default function AutomatedRiskAnalyzer() {
       {/* Blend Historical Performance */}
       {walletAddress && (
         <BlendHistoryPerformance onScoreImpactChange={setBlendScoreImpact} />
+      )}
+
+      {/* Blend DeFi Dashboard */}
+      {riskAnalysis && walletAddress && (
+        <div className="mt-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                🌊 Blend DeFi Dashboard
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Traditional DeFi operations with demo pools. Your risk score:{" "}
+                {riskAnalysis.riskScore}
+              </p>
+            </div>
+          </div>
+          <BlendDashboard
+            kit={kit}
+            walletAddress={walletAddress}
+            riskScore={riskAnalysis.riskScore}
+          />
+        </div>
+      )}
+
+      {/* Enhanced Liquidity Pools */}
+      {riskAnalysis && walletAddress && (
+        <div className="mt-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                🎯 Risk-Based Liquidity Pools
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Access tier-classified liquidity pools based on your risk score
+                ({riskAnalysis.tier}).
+              </p>
+            </div>
+          </div>
+          <EnhancedLiquidityPools />
+        </div>
       )}
     </div>
   );

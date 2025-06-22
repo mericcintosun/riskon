@@ -21,14 +21,11 @@ const BLEND_CONTRACTS = [
  */
 export async function analyzeBlendHistory(walletAddress) {
   try {
-   
-
     // Fetch all transactions for the user
     const transactions = await fetchAllUserTransactions(walletAddress);
 
     // Filter Blend-related transactions
     const blendTransactions = await filterBlendTransactions(transactions);
-   
 
     // Analyze lending and borrowing patterns
     const behaviorMetrics = analyzeBehaviorMetrics(
@@ -270,21 +267,21 @@ function calculateScoreImpact(metrics) {
     impacts.push({
       factor: "Excellent Repayment Rate",
       impact: +10,
-      description: `${metrics.repaymentRate}% geri ödeme oranı`,
+      description: `${metrics.repaymentRate}% repayment rate`,
     });
   } else if (metrics.repaymentRate >= 70) {
     scoreChange += 5;
     impacts.push({
       factor: "Good Repayment Rate",
       impact: +5,
-      description: `${metrics.repaymentRate}% geri ödeme oranı`,
+      description: `${metrics.repaymentRate}% repayment rate`,
     });
   } else if (metrics.repaymentRate < 50) {
     scoreChange -= 10;
     impacts.push({
       factor: "Poor Repayment Rate",
       impact: -10,
-      description: `${metrics.repaymentRate}% geri ödeme oranı`,
+      description: `${metrics.repaymentRate}% repayment rate`,
     });
   }
 
@@ -295,7 +292,7 @@ function calculateScoreImpact(metrics) {
     impacts.push({
       factor: "Late Payments",
       impact: -penalty,
-      description: `${metrics.latePayments} geç ödeme`,
+      description: `${metrics.latePayments} late payments`,
     });
   }
 
@@ -305,7 +302,7 @@ function calculateScoreImpact(metrics) {
     impacts.push({
       factor: "Significant Liquidity Contribution",
       impact: +5,
-      description: `%${metrics.liquidityContribution} likidite katkısı`,
+      description: `${metrics.liquidityContribution}% liquidity contribution`,
     });
   }
 
@@ -315,7 +312,7 @@ function calculateScoreImpact(metrics) {
     impacts.push({
       factor: "High Lending Volume",
       impact: +3,
-      description: `${metrics.totalLendVolume} XLM toplam borç verme`,
+      description: `${metrics.totalLendVolume} XLM total lending`,
     });
   }
 
@@ -344,8 +341,8 @@ function generatePerformanceInsights(metrics) {
   if (metrics.totalTransactions === 0) {
     insights.push({
       type: "info",
-      message: "Blend Protocol geçmişi bulunamadı",
-      recommendation: "İlk borç verme işleminizi yaparak başlayın",
+      message: "No Blend Protocol history found",
+      recommendation: "Start by making your first lending transaction",
     });
     return insights;
   }
@@ -353,30 +350,30 @@ function generatePerformanceInsights(metrics) {
   if (metrics.repaymentRate >= 90) {
     insights.push({
       type: "positive",
-      message: "Mükemmel geri ödeme geçmişi",
-      recommendation: "Risk skorunuz artırıldı",
+      message: "Excellent repayment history",
+      recommendation: "Your risk score has been improved",
     });
   } else if (metrics.repaymentRate < 70) {
     insights.push({
       type: "warning",
-      message: "Geri ödeme oranı düşük",
-      recommendation: "Borçları zamanında ödeyin",
+      message: "Low repayment rate",
+      recommendation: "Pay debts on time",
     });
   }
 
   if (metrics.latePayments > 0) {
     insights.push({
       type: "negative",
-      message: `${metrics.latePayments} geç ödeme tespit edildi`,
-      recommendation: "Gelecekteki ödemeleri zamanında yapın",
+      message: `${metrics.latePayments} late payments detected`,
+      recommendation: "Make future payments on time",
     });
   }
 
   if (metrics.totalLendVolume > metrics.totalBorrowVolume * 2) {
     insights.push({
       type: "positive",
-      message: "Aktif likidite sağlayıcısı",
-      recommendation: "Protokole katkınız için bonus puan",
+      message: "Active liquidity provider",
+      recommendation: "Bonus points for your contribution to the protocol",
     });
   }
 

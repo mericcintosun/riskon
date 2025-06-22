@@ -10,39 +10,39 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
   const getRiskInterpretation = (score) => {
     if (score <= 30) {
       return {
-        level: "Düşük Risk",
+        level: "Low Risk",
         color: "text-green-600",
         bgColor: "bg-green-50",
         borderColor: "border-green-200",
         icon: "🛡️",
         description:
-          "Güvenli yatırım profili. Düşük riskli, istikrarlı havuzlar öneriliyor.",
+          "Safe investment profile. Low-risk, stable pools are recommended.",
         recommendation:
-          "Tier-1 havuzlarını tercih edin. Yüksek likidite ve güvenlik sunuyorlar.",
+          "Prefer Tier-1 pools. They offer high liquidity and security.",
       };
     } else if (score <= 70) {
       return {
-        level: "Orta Risk",
+        level: "Medium Risk",
         color: "text-yellow-600",
         bgColor: "bg-yellow-50",
         borderColor: "border-yellow-200",
         icon: "⚖️",
         description:
-          "Dengeli yatırım profili. Orta düzeyde risk alabilirsiniz.",
+          "Balanced investment profile. You can take moderate risks.",
         recommendation:
-          "Tier-1 ve Tier-2 havuzları sizin için uygun. Risk/getiri dengesini gözetin.",
+          "Tier-1 and Tier-2 pools are suitable for you. Consider the risk/reward balance.",
       };
     } else {
       return {
-        level: "Yüksek Risk",
+        level: "High Risk",
         color: "text-red-600",
         bgColor: "bg-red-50",
         borderColor: "border-red-200",
         icon: "🚀",
         description:
-          "Agresif yatırım profili. Yüksek riskli fırsatları değerlendirebilirsiniz.",
+          "Aggressive investment profile. You can explore high-risk opportunities.",
         recommendation:
-          "Tüm tier havuzlarına erişiminiz var. Tier-3 havuzlarda özel fırsatlar mevcut!",
+          "You have access to all tier pools. Special opportunities available in Tier-3 pools!",
       };
     }
   };
@@ -52,32 +52,32 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
     return {
       TIER_1: {
         accessible: true,
-        status: "Önerilen",
+        status: "Recommended",
         color: "text-green-600",
         bgColor: "bg-green-100",
-        description: "Yüksek güvenlik, düşük risk",
+        description: "High security, low risk",
         icon: "✅",
       },
       TIER_2: {
         accessible: score >= 30,
-        status: score >= 30 ? "Uygun" : "Kısıtlı",
+        status: score >= 30 ? "Available" : "Restricted",
         color: score >= 30 ? "text-yellow-600" : "text-gray-400",
         bgColor: score >= 30 ? "bg-yellow-100" : "bg-gray-100",
         description:
           score >= 30
-            ? "Orta risk, potansiyel yüksek getiri"
-            : "Risk skorunuz yetersiz",
+            ? "Medium risk, potential for high return"
+            : "Your risk score is insufficient",
         icon: score >= 30 ? "⚠️" : "🔒",
       },
       TIER_3: {
         accessible: score >= 70,
-        status: score >= 70 ? "Fırsat" : "Erişim Yok",
+        status: score >= 70 ? "Opportunity" : "No Access",
         color: score >= 70 ? "text-purple-600" : "text-gray-400",
         bgColor: score >= 70 ? "bg-purple-100" : "bg-gray-100",
         description:
           score >= 70
-            ? "Yüksek risk, maksimum fırsat potansiyeli"
-            : "Yüksek risk skor gerekli (70+)",
+            ? "High risk, maximum opportunity potential"
+            : "High risk score required (70+)",
         icon: score >= 70 ? "💎" : "🔒",
         isOpportunity: score >= 70,
       },
@@ -106,23 +106,23 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <h3 className="text-xl font-bold text-gray-900 mb-4">
-            Yüksek Risk Uyarısı
+            High Risk Warning
           </h3>
           <div className="text-gray-600 mb-6 space-y-2">
             <p>
-              Bu havuzlar düşük likiditeye sahip ve yüksek risk taşımaktadır.
+              These pools have low liquidity and carry high risk.
             </p>
             <p className="font-semibold text-red-600">
-              Potansiyel kayıplar yüksek olabilir!
+              Potential losses can be significant!
             </p>
-            <p>Devam etmek istediğinizden emin misiniz?</p>
+            <p>Are you sure you want to continue?</p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => setShowRiskModal(false)}
               className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
             >
-              İptal
+              Cancel
             </button>
             <button
               onClick={() => {
@@ -131,7 +131,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
               }}
               className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
-              Riski Kabul Et
+              Accept Risk
             </button>
           </div>
         </div>
@@ -143,7 +143,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="text-red-600">
-          ⚠️ Risk skoru hesaplanamadı. Lütfen önce risk skorunuzu hesaplayın.
+          ⚠️ Risk score could not be calculated. Please calculate your risk score first.
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
           className={`rounded-lg p-6 border-2 ${riskInfo.bgColor} ${riskInfo.borderColor}`}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Risk Profili</h2>
+            <h2 className="text-xl font-bold text-gray-900">Risk Profile</h2>
             <div className="text-3xl">{riskInfo.icon}</div>
           </div>
 
@@ -170,7 +170,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
               <div className={`text-lg font-semibold ${riskInfo.color}`}>
                 {riskInfo.level}
               </div>
-              <div className="text-sm text-gray-600">Risk Skoru (0-100)</div>
+              <div className="text-sm text-gray-600">Risk Score (0-100)</div>
             </div>
           </div>
 
@@ -185,7 +185,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         {/* Tier Access Guide */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4">
-            Erişim Durumunuz
+            Your Access Status
           </h3>
 
           <div className="space-y-3">
@@ -207,7 +207,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
                         {tier.replace("_", "-")}
                         {access.isOpportunity && (
                           <span className="ml-2 px-2 py-1 text-xs bg-purple-600 text-white rounded-full">
-                            FIRSAT
+                            OPPORTUNITY
                           </span>
                         )}
                       </div>
@@ -232,16 +232,15 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
             <div className="text-blue-600 text-xl">💡</div>
             <div>
               <h4 className="font-medium text-blue-900 mb-1">
-                Yatırım Rehberi
+                Investment Guide
               </h4>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Risk skorunuz yatırım kararlarınızı etkilemelidir</li>
-                <li>• Tier-1 havuzları en güvenli seçeneklerdir</li>
+                <li>• Your risk score should influence your investment decisions</li>
+                <li>• Tier-1 pools are the safest options</li>
                 <li>
-                  • Yüksek risk havuzlarında sadece kaybetmeyi göze
-                  alabileceğiniz miktarda yatırım yapın
+                  • Only invest in high-risk pools with amounts you can afford to lose
                 </li>
-                <li>• Portföyünüzü diversifiye etmeyi unutmayın</li>
+                <li>• Don’t forget to diversify your portfolio</li>
               </ul>
             </div>
           </div>
