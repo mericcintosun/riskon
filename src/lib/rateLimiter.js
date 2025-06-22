@@ -96,15 +96,15 @@ export function recordUpdate(walletAddress) {
  * @returns {string} Formatted time string
  */
 export function formatRemainingTime(remainingTime) {
-  if (remainingTime <= 0) return "Şimdi güncelleyebilirsiniz";
+  if (remainingTime <= 0) return "Update now";
 
   const hours = Math.floor(remainingTime / (60 * 60 * 1000));
   const minutes = Math.floor((remainingTime % (60 * 60 * 1000)) / (60 * 1000));
 
   if (hours > 0) {
-    return `${hours} saat ${minutes} dakika sonra`;
+    return `${hours} hours ${minutes} minutes`;
   } else {
-    return `${minutes} dakika sonra`;
+    return `${minutes} minutes`;
   }
 }
 
