@@ -9,30 +9,27 @@
   html {
     scroll-behavior: smooth;
   }
-  
+
   body {
-    background: linear-gradient(135deg, #220041 0%, #2D1B69 50%, #8E24AA 100%);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   /* Modern Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
     background: rgba(34, 0, 65, 0.2);
   }
-  
+
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #8E24AA, #AB47BC);
     border-radius: 3px;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #9C27B0, #BA68C8);
   }
 }
 
@@ -46,26 +43,26 @@
     @apply transform hover:scale-[1.02] active:scale-[0.98];
     @apply border border-transparent;
   }
-  
+
   .btn-primary {
-    @apply btn-modern bg-gradient-to-r from-violet-600 to-purple-600 text-white;
-    @apply hover:from-violet-500 hover:to-purple-500;
-    @apply shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40;
-    @apply focus:ring-violet-500;
+    @apply btn-modern bg-gradient-to-r from-gray-800 to-black text-white;
+    @apply hover:from-gray-700 hover:to-gray-800;
+    @apply shadow-lg shadow-gray-500/25 hover:shadow-gray-500/40;
+    @apply focus:ring-gray-500;
   }
-  
+
   .btn-secondary {
-    @apply btn-modern bg-transparent text-violet-300 border-violet-400/50;
-    @apply hover:bg-violet-500/10 hover:border-violet-400 hover:text-violet-200;
-    @apply focus:ring-violet-400;
+    @apply btn-modern bg-transparent text-gray-300 border-gray-400/50;
+    @apply hover:bg-gray-500/10 hover:border-gray-400 hover:text-gray-200;
+    @apply focus:ring-gray-400;
   }
-  
+
   .btn-ghost {
     @apply btn-modern bg-white/5 text-white/80 border-white/10;
     @apply hover:bg-white/10 hover:text-white hover:border-white/20;
     @apply backdrop-blur-sm;
   }
-  
+
   /* Modern Card System */
   .card-modern {
     @apply bg-white/[0.03] backdrop-blur-xl rounded-3xl p-8;
@@ -73,135 +70,135 @@
     @apply shadow-2xl shadow-black/20;
     @apply transition-all duration-300 ease-out;
   }
-  
+
   .card-hover {
     @apply hover:bg-white/[0.05] hover:border-white/20;
-    @apply hover:shadow-2xl hover:shadow-violet-500/10;
+    @apply hover:shadow-2xl hover:shadow-gray-500/10;
     @apply hover:-translate-y-1;
   }
-  
+
   .card-glass {
     @apply bg-gradient-to-br from-white/[0.08] to-white/[0.02];
     @apply backdrop-blur-2xl rounded-3xl p-8;
     @apply border border-white/20;
     @apply shadow-2xl shadow-black/30;
   }
-  
+
   /* Modern Form Elements */
   .input-modern {
     @apply w-full px-6 py-4 rounded-2xl;
     @apply bg-white/[0.05] backdrop-blur-sm;
     @apply border border-white/10 text-white placeholder-white/40;
     @apply font-montserrat transition-all duration-300;
-    @apply focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-400/50;
+    @apply focus:outline-none focus:ring-2 focus:ring-gray-500/50 focus:border-gray-400/50;
     @apply focus:bg-white/[0.08] hover:bg-white/[0.06];
   }
-  
+
   /* Modern Typography */
   .text-hero {
     @apply text-5xl md:text-6xl lg:text-7xl font-bold font-montserrat;
-    @apply bg-gradient-to-br from-white via-violet-100 to-violet-300;
+    @apply bg-gradient-to-br from-white via-gray-100 to-gray-300;
     @apply bg-clip-text text-transparent;
     @apply leading-tight tracking-tight;
   }
-  
+
   .text-heading {
     @apply text-3xl md:text-4xl font-bold font-montserrat;
-    @apply bg-gradient-to-r from-white to-violet-200;
+    @apply bg-gradient-to-r from-white to-gray-200;
     @apply bg-clip-text text-transparent;
     @apply leading-tight;
   }
-  
+
   .text-subheading {
     @apply text-xl md:text-2xl font-semibold font-montserrat;
     @apply text-white/90;
   }
-  
+
   .text-body {
     @apply text-base md:text-lg text-white/70 font-montserrat;
     @apply leading-relaxed;
   }
-  
+
   .text-caption {
     @apply text-sm text-white/50 font-montserrat;
   }
-  
+
   /* Modern Navigation */
   .nav-modern {
     @apply bg-black/20 backdrop-blur-xl border-b border-white/10;
     @apply sticky top-0 z-50;
   }
-  
+
   .nav-link {
     @apply text-white/70 font-medium font-montserrat px-4 py-2 rounded-xl;
     @apply transition-all duration-300;
     @apply hover:text-white hover:bg-white/10;
     @apply relative overflow-hidden;
   }
-  
+
   .nav-link::before {
-    @apply content-[''] absolute inset-0 bg-gradient-to-r from-violet-500/20 to-purple-500/20;
+    @apply content-[''] absolute inset-0 bg-gradient-to-r from-gray-500/20 to-gray-600/20;
     @apply opacity-0 transition-opacity duration-300;
     @apply rounded-xl;
   }
-  
+
   .nav-link:hover::before {
     @apply opacity-100;
   }
-  
+
   /* Modern Status Elements */
   .status-success {
     @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
     @apply bg-emerald-500/20 text-emerald-300 border border-emerald-500/30;
   }
-  
+
   .status-warning {
     @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
     @apply bg-amber-500/20 text-amber-300 border border-amber-500/30;
   }
-  
+
   .status-error {
     @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
     @apply bg-red-500/20 text-red-300 border border-red-500/30;
   }
-  
+
   /* Modern Risk Score Display */
   .risk-score-container {
     @apply relative p-8 rounded-3xl;
-    @apply bg-gradient-to-br from-violet-500/10 to-purple-600/10;
-    @apply border border-violet-400/20 backdrop-blur-xl;
+    @apply bg-gradient-to-br from-gray-500/10 to-gray-600/10;
+    @apply border border-gray-400/20 backdrop-blur-xl;
   }
-  
+
   .risk-score-value {
     @apply text-6xl font-bold font-montserrat;
-    @apply bg-gradient-to-br from-violet-300 via-purple-300 to-pink-300;
+    @apply bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500;
     @apply bg-clip-text text-transparent;
   }
-  
+
   .risk-bar {
     @apply w-full h-3 bg-white/10 rounded-full overflow-hidden;
     @apply relative backdrop-blur-sm;
   }
-  
+
   .risk-bar-fill {
     @apply h-full rounded-full transition-all duration-1000 ease-out;
     @apply bg-gradient-to-r from-emerald-400 via-yellow-400 to-red-400;
     @apply shadow-lg;
   }
-  
+
   /* Modern Animations */
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.8s ease-out;
   }
-  
+
   .animate-scale-in {
     animation: scaleIn 0.5s ease-out;
   }
-  
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -212,7 +209,7 @@
       transform: translateY(0);
     }
   }
-  
+
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -223,7 +220,7 @@
       transform: translateY(0);
     }
   }
-  
+
   @keyframes scaleIn {
     from {
       opacity: 0;
@@ -234,20 +231,20 @@
       transform: scale(1);
     }
   }
-  
+
   /* Modern Loading States */
   .loading-modern {
     @apply inline-flex items-center space-x-1;
   }
-  
+
   .loading-dot {
     @apply w-2 h-2 bg-current rounded-full animate-pulse;
   }
-  
+
   .loading-dot:nth-child(2) {
     animation-delay: 0.15s;
   }
-  
+
   .loading-dot:nth-child(3) {
     animation-delay: 0.3s;
   }
@@ -259,69 +256,71 @@
   .container-modern {
     @apply max-w-7xl mx-auto px-6 sm:px-8 lg:px-12;
   }
-  
+
   .section-modern {
     @apply py-20 md:py-28 lg:py-32;
   }
-  
+
   .section-compact {
     @apply py-12 md:py-16;
   }
-  
+
   /* Modern Grid Systems */
   .grid-modern-2 {
     @apply grid grid-cols-1 md:grid-cols-2 gap-8;
   }
-  
+
   .grid-modern-3 {
     @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8;
   }
-  
+
   .grid-modern-4 {
     @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
   }
-  
+
   /* Modern Backgrounds */
   .bg-hero {
-    @apply bg-gradient-to-br from-violet-900/50 via-purple-900/30 to-pink-900/20;
+    @apply bg-gradient-to-br from-gray-900/50 via-gray-800/30 to-gray-700/20;
   }
-  
+
   .bg-section {
-    @apply bg-gradient-to-br from-violet-900/20 to-purple-900/10;
+    @apply bg-gradient-to-br from-gray-900/20 to-gray-800/10;
   }
-  
+
   /* Modern Borders */
   .border-modern {
     @apply border border-white/10;
   }
-  
+
   .border-accent {
-    @apply border border-violet-400/30;
+    @apply border border-gray-400/30;
   }
-  
+
   /* Modern Shadows */
   .shadow-modern {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
-  
+
   .shadow-accent {
-    box-shadow: 0 20px 25px -5px rgba(142, 36, 170, 0.15), 0 10px 10px -5px rgba(142, 36, 170, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15),
+      0 10px 10px -5px rgba(0, 0, 0, 0.1);
   }
-  
+
   /* Modern Text Gradients */
   .text-gradient-modern {
-    @apply bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-gray-300 to-gray-400 bg-clip-text text-transparent;
   }
-  
+
   .text-gradient-accent {
-    @apply bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 bg-clip-text text-transparent;
   }
-  
+
   /* Modern Responsive Utilities */
   .responsive-text {
     @apply text-sm sm:text-base md:text-lg;
   }
-  
+
   .responsive-padding {
     @apply px-4 sm:px-6 md:px-8;
   }

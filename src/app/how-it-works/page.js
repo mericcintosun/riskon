@@ -7,46 +7,32 @@ export default function HowItWorksPage() {
   const steps = [
     {
       step: "01",
-      title: "Connect Wallet",
-      description: "Authenticate in one click with Albedo, xBull or Freighter.",
-      icon: "🔗",
-      color: "from-blue-500 to-cyan-500"
+      title: "Connect Your Wallet",
+      description:
+        "Connect your Stellar wallet using Albedo, xBull, or Freighter to get started.",
+      color: "from-gray-600 to-gray-800",
     },
     {
-      step: "02", 
-      title: "Local Analytics",
-      description: "Six on-chain factors from your last-30-day activity are processed entirely in the browser.",
-      icon: "📊",
-      color: "from-emerald-500 to-green-500"
+      step: "02",
+      title: "Analyze Your Data",
+      description:
+        "Our AI analyzes your transaction history and calculates your personalized risk score.",
+      color: "from-gray-500 to-gray-700",
     },
     {
       step: "03",
-      title: "Risk Score",
-      description: "A TensorFlow.js model outputs a personal score between 0 and 100.",
-      icon: "🧠",
-      color: "from-violet-500 to-purple-500"
+      title: "Get Your Score",
+      description:
+        "Receive your risk score and insights to optimize your DeFi strategy.",
+      color: "from-gray-400 to-gray-600",
     },
     {
       step: "04",
-      title: "On-Chain Record",
-      description: "The score is written immutably to a Soroban smart contract on Stellar Testnet.",
-      icon: "⛓️",
-      color: "from-orange-500 to-red-500"
+      title: "Access DeFi",
+      description:
+        "Use your score to access better rates and opportunities in Blend and other protocols.",
+      color: "from-gray-600 to-gray-900",
     },
-    {
-      step: "05",
-      title: "Badge NFT",
-      description: "An NFT matching your tier appears in your wallet.",
-      icon: "🏆",
-      color: "from-pink-500 to-rose-500"
-    },
-    {
-      step: "06",
-      title: "Collateral Hint",
-      description: "A score-driven collateral factor shows your maximum borrow limit via the Blend demo.",
-      icon: "💰",
-      color: "from-indigo-500 to-purple-500"
-    }
   ];
 
   return (
@@ -58,10 +44,10 @@ export default function HowItWorksPage() {
         <section className="section-compact container-modern text-center">
           <div className="max-w-3xl mx-auto animate-fade-in">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              How <span className="text-gradient-accent">Riskon</span> Works
-            </h1> 
+              How It <span className="text-white">Works</span>
+            </h1>
             <p className="text-lg text-white/70 mb-16">
-              Six simple steps to calculate your blockchain risk profile and access DeFi features
+              Get your personalized risk score in four simple steps
             </p>
           </div>
         </section>
@@ -69,30 +55,71 @@ export default function HowItWorksPage() {
         {/* Steps Section */}
         <section className="section-compact container-modern">
           <div className="max-w-4xl mx-auto">
-            <div className="space-y-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {steps.map((step, index) => (
-                <div key={index} className="flex items-center gap-8 animate-slide-up">
-                  {/* Step Number */}
-                  <div className={`flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-r ${step.color} flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
-                    {step.step}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-white mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-white/70 text-lg">
-                      {step.description}
-                    </p>
-                  </div>
-
-                  {/* Icon */}
-                  <div className="hidden md:block text-6xl opacity-60">
-                    {step.icon}
+                <div
+                  key={index}
+                  className="card-modern card-hover animate-slide-up"
+                >
+                  <div className="p-8">
+                    <div className="flex items-start space-x-6">
+                      <div
+                        className={`flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br ${step.color} opacity-20 flex items-center justify-center`}
+                      >
+                        <span className="text-lg font-bold text-white">
+                          {step.step}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-white mb-3">
+                          {step.title}
+                        </h3>
+                        <p className="text-white/70">{step.description}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits Section */}
+        <section className="section-compact container-modern">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-bold text-white mb-6">
+              Why Use Riskon?
+            </h2>
+            <p className="text-white/70 mb-12 text-lg">
+              Benefits of using our AI-powered risk scoring platform
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="card-modern p-6">
+                <h3 className="text-lg font-bold text-white mb-3">
+                  Privacy First
+                </h3>
+                <p className="text-white/70">
+                  All analysis happens in your browser. Your data never leaves
+                  your device.
+                </p>
+              </div>
+              <div className="card-modern p-6">
+                <h3 className="text-lg font-bold text-white mb-3">
+                  Better Rates
+                </h3>
+                <p className="text-white/70">
+                  Lower risk scores unlock better borrowing rates and lending
+                  opportunities.
+                </p>
+              </div>
+              <div className="card-modern p-6">
+                <h3 className="text-lg font-bold text-white mb-3">Real-time</h3>
+                <p className="text-white/70">
+                  Get instant results with sub-second finality on the Stellar
+                  network.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -123,4 +150,4 @@ export default function HowItWorksPage() {
       </main>
     </div>
   );
-} 
+}

@@ -7,34 +7,34 @@ export default function AboutPage() {
   const whyRiskOn = [
     {
       title: "Personalised trust",
-      description: "Address-level scoring replaces static LTVs with dynamic risk management.",
-      icon: "👤",
-      color: "from-violet-500 to-purple-500"
+      description:
+        "Address-level scoring replaces static LTVs with dynamic risk management.",
+      color: "from-gray-600 to-gray-800",
     },
     {
       title: "Instant settlement",
-      description: "Stellar's sub-second finality lets you publish and share a score in real time.",
-      icon: "⚡",
-      color: "from-blue-500 to-cyan-500"
+      description:
+        "Stellar's sub-second finality lets you publish and share a score in real time.",
+      color: "from-gray-500 to-gray-700",
     },
     {
       title: "Privacy by design",
-      description: "All analytics run in-browser; only a compact score is stored on-chain.",
-      icon: "🔒",
-      color: "from-emerald-500 to-green-500"
+      description:
+        "All analytics run in-browser; only a compact score is stored on-chain.",
+      color: "from-gray-400 to-gray-600",
     },
     {
       title: "Eco-friendly",
-      description: "SCP consumes a fraction of the energy required by traditional PoW chains.",
-      icon: "🌱",
-      color: "from-orange-500 to-red-500"
+      description:
+        "SCP consumes a fraction of the energy required by traditional PoW chains.",
+      color: "from-gray-600 to-gray-900",
     },
     {
       title: "Future-proof",
-      description: "NFTs, oracle hooks and Blend modules lay a bridge toward next-gen DeFi credit markets.",
-      icon: "🚀",
-      color: "from-pink-500 to-rose-500"
-    }
+      description:
+        "NFTs, oracle hooks and Blend modules lay a bridge toward next-gen DeFi credit markets.",
+      color: "from-gray-500 to-gray-800",
+    },
   ];
 
   return (
@@ -46,7 +46,7 @@ export default function AboutPage() {
         <section className="section-compact container-modern text-center">
           <div className="max-w-4xl mx-auto animate-fade-in">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              About <span className="text-gradient-accent">Riskon</span>
+              About <span className="text-white">Riskon</span>
             </h1>
             <p className="text-lg text-white/70 mb-16">
               Bringing transparent, personal risk signals to DeFi
@@ -62,10 +62,11 @@ export default function AboutPage() {
                 Our Mission
               </h2>
               <p className="text-lg text-white/80 leading-relaxed text-center">
-                Riskon is an independent builder team that emerged from the <strong>Stellar Community Fund</strong>. 
-                Our mission is to bring transparent, personal risk signals to DeFi and raise trust across 
-                lending and liquidity protocols. The codebase is open-source, Soroban-powered and ready 
-                for third-party audits.
+                Riskon is an independent builder team that emerged from the{" "}
+                <strong>Stellar Community Fund</strong>. Our mission is to bring
+                transparent, personal risk signals to DeFi and raise trust
+                across lending and liquidity protocols. The codebase is
+                open-source, Soroban-powered and ready for third-party audits.
               </p>
             </div>
           </div>
@@ -78,28 +79,30 @@ export default function AboutPage() {
                 Why Riskon?
               </h2>
               <p className="text-white/70 text-lg">
-                Five key advantages that make Riskon the future of DeFi risk assessment
+                Five key advantages that make Riskon the future of DeFi risk
+                assessment
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {whyRiskOn.map((item, index) => (
-                <div key={index} className="card-modern card-hover group animate-slide-up">
+                <div
+                  key={index}
+                  className="card-modern card-hover group animate-slide-up"
+                >
                   <div className="text-center p-6">
                     {/* Icon */}
-                    <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${item.color} opacity-20 flex items-center justify-center group-hover:opacity-30 transition-opacity duration-300`}>
-                      <span className="text-3xl">{item.icon}</span>
-                    </div>
-                    
+                    <div
+                      className={`w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${item.color} opacity-20 flex items-center justify-center group-hover:opacity-30 transition-opacity duration-300`}
+                    ></div>
+
                     {/* Title */}
                     <h3 className="text-xl font-bold text-white mb-4">
                       {item.title}
                     </h3>
-                    
+
                     {/* Description */}
-                    <p className="text-white/70">
-                      {item.description}
-                    </p>
+                    <p className="text-white/70">{item.description}</p>
                   </div>
                 </div>
               ))}
@@ -115,8 +118,9 @@ export default function AboutPage() {
                 Open Source & Auditable
               </h2>
               <p className="text-lg text-white/80 mb-8">
-                Our commitment to transparency extends to our codebase. Every line of code is 
-                open-source and available for community review and third-party audits.
+                Our commitment to transparency extends to our codebase. Every
+                line of code is open-source and available for community review
+                and third-party audits.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button className="btn-primary text-lg px-8 py-4">
@@ -156,4 +160,4 @@ export default function AboutPage() {
       </main>
     </div>
   );
-} 
+}

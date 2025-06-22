@@ -30,14 +30,14 @@ export const metadata = {
     ],
   },
   manifest: '/manifest.json',
-  themeColor: '#8b5cf6',
+  themeColor: '#000',
   viewport: 'width=device-width, initial-scale=1',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.className} ${montserrat.variable}`}>
-      <body className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen text-white antialiased flex flex-col">
+      <body className="bg-black min-h-screen text-white antialiased flex flex-col">
         <ErrorBoundary>
           <ToastProvider>
             <WalletProvider>

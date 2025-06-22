@@ -8,39 +8,37 @@ export default function FeaturesPage() {
     {
       title: "On-browser AI scoring",
       description: "No private keys or raw data leave the user's device.",
-      icon: "🧠",
-      color: "from-violet-500 to-purple-500"
+      color: "from-gray-600 to-gray-800",
     },
     {
       title: "Soroban + Stellar backbone",
-      description: "Fast, low-fee transactions secured by the Stellar Consensus Protocol.",
-      icon: "⚡",
-      color: "from-blue-500 to-cyan-500"
+      description:
+        "Fast, low-fee transactions secured by the Stellar Consensus Protocol.",
+      color: "from-gray-500 to-gray-700",
     },
     {
       title: "Badge NFT minting",
       description: "Showcase your risk tier on-chain.",
-      icon: "🏆",
-      color: "from-emerald-500 to-green-500"
+      color: "from-gray-400 to-gray-600",
     },
     {
       title: "Blend integration",
-      description: "Supply, borrow, repay and withdraw flows that adapt to your score.",
-      icon: "🌊",
-      color: "from-orange-500 to-red-500"
+      description:
+        "Supply, borrow, repay and withdraw flows that adapt to your score.",
+      color: "from-gray-600 to-gray-900",
     },
     {
       title: "Live leaderboard",
-      description: "Real-time feed of the latest scores and lowest-risk addresses.",
-      icon: "📊",
-      color: "from-pink-500 to-rose-500"
+      description:
+        "Real-time feed of the latest scores and lowest-risk addresses.",
+      color: "from-gray-500 to-gray-800",
     },
     {
       title: "PWA and multi-wallet",
-      description: "Installable mobile app; Albedo, xBull and Freighter supported out of the box.",
-      icon: "📱",
-      color: "from-indigo-500 to-purple-500"
-    }
+      description:
+        "Installable mobile app; Albedo, xBull and Freighter supported out of the box.",
+      color: "from-gray-700 to-gray-900",
+    },
   ];
 
   return (
@@ -52,10 +50,11 @@ export default function FeaturesPage() {
         <section className="section-compact container-modern text-center">
           <div className="max-w-3xl mx-auto animate-fade-in">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Platform <span className="text-gradient-accent">Features</span>
+              Platform <span className="text-white">Features</span>
             </h1>
             <p className="text-lg text-white/70 mb-16">
-              Powerful features that make Riskon the leading AI-powered blockchain risk scoring platform
+              Powerful features that make Riskon the leading AI-powered
+              blockchain risk scoring platform
             </p>
           </div>
         </section>
@@ -64,22 +63,23 @@ export default function FeaturesPage() {
         <section className="section-compact container-modern">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {features.map((feature, index) => (
-              <div key={index} className="card-modern card-hover group animate-slide-up">
+              <div
+                key={index}
+                className="card-modern card-hover group animate-slide-up"
+              >
                 <div className="text-center p-6">
                   {/* Icon */}
-                  <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${feature.color} opacity-20 flex items-center justify-center group-hover:opacity-30 transition-opacity duration-300`}>
-                    <span className="text-3xl">{feature.icon}</span>
-                  </div>
-                  
+                  <div
+                    className={`w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${feature.color} opacity-20 flex items-center justify-center group-hover:opacity-30 transition-opacity duration-300`}
+                  ></div>
+
                   {/* Title */}
                   <h3 className="text-xl font-bold text-white mb-4">
                     {feature.title}
                   </h3>
-                  
+
                   {/* Description */}
-                  <p className="text-white/70">
-                    {feature.description}
-                  </p>
+                  <p className="text-white/70">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -98,30 +98,30 @@ export default function FeaturesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center">
-                  <span className="text-3xl">⚙️</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">Soroban Smart Contracts</h3>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-600/20 to-gray-800/20 rounded-2xl flex items-center justify-center"></div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  Soroban Smart Contracts
+                </h3>
                 <p className="text-white/70">
                   Next-generation smart contracts with WebAssembly runtime
                 </p>
               </div>
 
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl flex items-center justify-center">
-                  <span className="text-3xl">🔗</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">Stellar Network</h3>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-500/20 to-gray-700/20 rounded-2xl flex items-center justify-center"></div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  Stellar Network
+                </h3>
                 <p className="text-white/70">
                   Fast, secure blockchain with 3-5 second finality
                 </p>
               </div>
 
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-2xl flex items-center justify-center">
-                  <span className="text-3xl">🤖</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">TensorFlow.js</h3>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-400/20 to-gray-600/20 rounded-2xl flex items-center justify-center"></div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  TensorFlow.js
+                </h3>
                 <p className="text-white/70">
                   Machine learning models running entirely in the browser
                 </p>
@@ -156,4 +156,4 @@ export default function FeaturesPage() {
       </main>
     </div>
   );
-} 
+}
