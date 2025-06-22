@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Header from "../../components/Header.jsx";
 import Link from "next/link";
 import { useWallet } from "../../contexts/WalletContext";
+import { Star, ShieldCheck, Rocket, LockKeyhole } from "lucide-react";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -28,28 +29,28 @@ export default function WalletPage() {
       id: "albedo",
       name: "Albedo",
       description: "Web-based Stellar wallet with advanced security features",
-      icon: "💫",
+      icon: <Star className="w-8 h-8" />,
       color: "from-blue-500 to-cyan-500",
     },
     {
       id: "xbull",
       name: "xBull",
       description: "Feature-rich Stellar wallet with DeFi integration",
-      icon: "🐂",
+      icon: <ShieldCheck className="w-8 h-8" />,
       color: "from-emerald-500 to-green-500",
     },
     {
       id: "freighter",
       name: "Freighter",
       description: "Browser extension wallet for easy Stellar access",
-      icon: "🚀",
+      icon: <Rocket className="w-8 h-8" />,
       color: "from-violet-500 to-purple-500",
     },
     {
       id: "passkey",
       name: "Passkey",
       description: "Biometric authentication with smart wallet technology",
-      icon: "🔐",
+      icon: <LockKeyhole className="w-8 h-8" />,
       color: "from-pink-500 to-rose-500",
       isPasskey: true,
     },

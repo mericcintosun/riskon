@@ -1,3 +1,5 @@
+[**Live App**](https://riskon.vercel.app/) &nbsp;&nbsp;|&nbsp;&nbsp; [**Demo Video**](https://youtu.be/_uQY_DbuUEc)
+
 # riskon – An On-Chain Credit Scoring System for Undercollateralized Lending
 
 _Stellar / Soroban • Passkey • TensorFlow.js • Next.js_
