@@ -109,9 +109,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
             High Risk Warning
           </h3>
           <div className="text-gray-600 mb-6 space-y-2">
-            <p>
-              These pools have low liquidity and carry high risk.
-            </p>
+            <p>These pools have low liquidity and carry high risk.</p>
             <p className="font-semibold text-red-600">
               Potential losses can be significant!
             </p>
@@ -143,7 +141,8 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="text-red-600">
-          ⚠️ Risk score could not be calculated. Please calculate your risk score first.
+          ⚠️ Risk score could not be calculated. Please calculate your risk
+          score first.
         </div>
       </div>
     );
@@ -235,12 +234,15 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
                 Investment Guide
               </h4>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Your risk score should influence your investment decisions</li>
+                <li>
+                  • Your risk score should influence your investment decisions
+                </li>
                 <li>• Tier-1 pools are the safest options</li>
                 <li>
-                  • Only invest in high-risk pools with amounts you can afford to lose
+                  • Only invest in high-risk pools with amounts you can afford
+                  to lose
                 </li>
-                <li>• Don’t forget to diversify your portfolio</li>
+                <li>• Don't forget to diversify your portfolio</li>
               </ul>
             </div>
           </div>

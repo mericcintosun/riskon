@@ -358,7 +358,7 @@ export default function AutomatedRiskAnalyzer() {
             </svg>
 
             {/* Score Number */}
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute bottom-24 inset-0 flex items-center justify-center">
               <div className="text-center">
                 <div
                   className={`text-4xl font-bold ${
@@ -369,7 +369,7 @@ export default function AutomatedRiskAnalyzer() {
                 >
                   {riskAnalysis ? riskAnalysis.riskScore : "--"}
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-[-10px]">
                   Risk Score
                 </div>
               </div>
