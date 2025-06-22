@@ -2,6 +2,7 @@
 
 import Header from "../../components/Header.jsx";
 import { motion } from "framer-motion";
+import { Blocks, Bot, Palette, Lock } from "lucide-react";
 
 export default function TechnologiesPage() {
   const techCategories = [
@@ -24,7 +25,8 @@ export default function TechnologiesPage() {
             "The primary language for writing secure and high-performance Soroban smart contracts.",
         },
       ],
-      icon: "⛓️",
+      icon: <Blocks className="w-8 h-8" />,
+      color: "blue",
     },
     {
       name: "AI & Analytics",
@@ -40,7 +42,8 @@ export default function TechnologiesPage() {
             "Used to run high-performance analytics code efficiently and securely in the browser.",
         },
       ],
-      icon: "🤖",
+      icon: <Bot className="w-8 h-8" />,
+      color: "purple",
     },
     {
       name: "Frontend & User Experience",
@@ -61,7 +64,8 @@ export default function TechnologiesPage() {
             "A utility-first CSS framework for rapid and consistent UI development.",
         },
       ],
-      icon: "🎨",
+      icon: <Palette className="w-8 h-8" />,
+      color: "emerald",
     },
     {
       name: "Authentication & Wallets",
@@ -77,7 +81,8 @@ export default function TechnologiesPage() {
             "Integrates with major Stellar wallets like Freighter, Albedo, and xBull.",
         },
       ],
-      icon: "🔐",
+      icon: <Lock className="w-8 h-8" />,
+      color: "amber",
     },
   ];
 
@@ -141,12 +146,12 @@ export default function TechnologiesPage() {
             {techCategories.map((category) => (
               <motion.div key={category.name} variants={categoryVariants}>
                 <div className="flex items-center mb-8">
-                  <motion.span
-                    className="text-3xl mr-4"
+                  <motion.div
+                    className={`p-3 rounded-xl mr-4 bg-${category.color}-500/20 text-${category.color}-400`}
                     variants={itemVariants}
                   >
                     {category.icon}
-                  </motion.span>
+                  </motion.div>
                   <motion.h2
                     className="text-3xl font-bold"
                     variants={itemVariants}
