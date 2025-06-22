@@ -55,6 +55,14 @@ export default function Header() {
       await connectWalletContext();
     } catch (error) {
       console.error("Failed to connect wallet:", error);
+      // Don't show error for cancelled operations
+      if (
+        !error.message.includes("cancelled") &&
+        error.message !== "WALLET_SELECTION_CANCELLED"
+      ) {
+        // You could add a toast notification here for real errors
+        console.error("Wallet connection error:", error.message);
+      }
     }
   };
 

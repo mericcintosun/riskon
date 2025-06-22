@@ -64,9 +64,6 @@ export async function writeScoreToBlockchain({
   chosenTier,
 }) {
   try {
-    console.log(`🚀 Starting simplified risk score transaction...`);
-    console.log(`📊 Score: ${score}, Address: ${address}`);
-
     if (!kit || !kit.getAddress) {
       throw new Error("Wallet not connected or invalid kit");
     }
@@ -87,8 +84,6 @@ export async function writeScoreToBlockchain({
       );
     }
 
-    console.log(`🎯 Storing risk score: ${score}`);
-
     // Create contract instance
     const contract = createContract();
 
@@ -96,22 +91,7 @@ export async function writeScoreToBlockchain({
     const tier = calculateTier(score);
     const chosenTierName = chosenTier || tier;
 
-    console.log(
-      `📋 Contract parameters: address=${address}, score=${score}, tier=${tier}, chosenTier=${chosenTierName}`
-    );
-
     // Debug ScVal conversion
-    console.log(`🔍 ScVal conversions:`);
-    console.log(`  Address ScVal:`, Address.fromString(address).toScVal());
-    console.log(
-      `  Score ScVal:`,
-      nativeToScVal(Math.round(score), { type: "u32" })
-    );
-    console.log(`  Tier ScVal:`, nativeToScVal(tier, { type: "symbol" }));
-    console.log(
-      `  Chosen Tier ScVal:`,
-      nativeToScVal(validateTier(chosenTierName), { type: "symbol" })
-    );
 
     // Create the contract call operation with proper ScVal conversion
     // Using the actual contract method: set_risk_tier(user, score, tier, chosen_tier)
@@ -124,7 +104,6 @@ export async function writeScoreToBlockchain({
         nativeToScVal(tier, { type: "symbol" }),
         nativeToScVal(validateTier(chosenTierName), { type: "symbol" })
       );
-      console.log(`✅ Contract operation created successfully`);
     } catch (operationError) {
       console.error(`❌ Failed to create contract operation:`, operationError);
       throw new Error(
@@ -137,8 +116,6 @@ export async function writeScoreToBlockchain({
     let sourceAccount;
 
     if (address.startsWith("C")) {
-      console.log("🔐 Detected Passkey smart contract - using sponsor account");
-
       // For Passkey smart contracts, we need to use the sponsor account
       // This is derived from 'kalepail' seed as per PasskeyKit implementation
       const { Keypair, hash } = await import("@stellar/stellar-sdk");
@@ -147,20 +124,11 @@ export async function writeScoreToBlockchain({
       );
       const sponsorAddress = sponsorKeypair.publicKey();
 
-      console.log("📍 Using Passkey sponsor account:", sponsorAddress);
-
       try {
         sourceAccount = await server.getAccount(sponsorAddress);
-        console.log(
-          "✅ Successfully loaded sponsor account for Passkey transaction"
-        );
       } catch (error) {
-        console.log("❌ Cannot load sponsor account:", error);
-
         // Try to fund the sponsor account if it doesn't exist
         if (error.response?.status === 404) {
-          console.log("🚀 Attempting to fund sponsor account via friendbot...");
-
           try {
             const friendbotResponse = await fetch(
               `https://friendbot.stellar.org?addr=${encodeURIComponent(
@@ -169,23 +137,17 @@ export async function writeScoreToBlockchain({
             );
 
             if (friendbotResponse.ok) {
-              console.log("✅ Sponsor account funded successfully");
-
               // Wait for account to be available
               await new Promise((resolve) => setTimeout(resolve, 3000));
 
               sourceAccount = await server.getAccount(sponsorAddress);
-              console.log("✅ Sponsor account loaded after funding");
             } else {
               throw new Error(`Friendbot failed: ${friendbotResponse.status}`);
             }
           } catch (fundingError) {
-            console.log("❌ Could not fund sponsor account:", fundingError);
-            console.log("🔄 Falling back to local storage for Passkey wallets");
             return await storeScoreInAccountData({ kit, address, score });
           }
         } else {
-          console.log("🔄 Falling back to local storage for Passkey wallets");
           return await storeScoreInAccountData({ kit, address, score });
         }
       }
@@ -203,15 +165,11 @@ export async function writeScoreToBlockchain({
       .setTimeout(300) // 5 minutes timeout
       .build();
 
-    console.log(`🔧 Built transaction, attempting simulation...`);
-
     // For now, skip simulation and use direct transaction
     // This should work for simple contract calls
-    console.log(`⚠️ Skipping simulation - using direct transaction approach`);
     let preparedTransaction = transaction;
 
     // Sign the transaction using the wallet kit
-    console.log(`✍️ Signing transaction...`);
     const signedTransaction = await kit.signTransaction(
       preparedTransaction.toXDR()
     );
@@ -222,15 +180,8 @@ export async function writeScoreToBlockchain({
       NETWORK_PASSPHRASE
     );
 
-    console.log(`📡 Submitting transaction to network...`);
-
     // Submit the transaction
     const result = await server.sendTransaction(parsedSignedTx);
-
-    console.log(`📡 Transaction submitted!`);
-    console.log(`📋 Full result:`, result);
-    console.log(`📋 Result status: ${result.status}`);
-    console.log(`🔑 Transaction hash: ${result.hash}`);
 
     // Check immediate response status - handle multiple possible formats
     if (
@@ -238,8 +189,6 @@ export async function writeScoreToBlockchain({
       result.status === "DUPLICATE" ||
       result.hash
     ) {
-      console.log(`⏳ Transaction is pending confirmation...`);
-
       // Wait for transaction confirmation with polling
       let attempts = 0;
       const maxAttempts = 15; // Increased attempts
@@ -252,11 +201,6 @@ export async function writeScoreToBlockchain({
           txResult = await server.getTransaction(result.hash);
 
           if (txResult.status === "SUCCESS") {
-            console.log(`🎉 Risk score saved successfully!`);
-            console.log(
-              `🔗 Transaction: https://stellar.expert/explorer/testnet/tx/${result.hash}`
-            );
-
             return {
               successful: true,
               hash: result.hash,
@@ -278,22 +222,11 @@ export async function writeScoreToBlockchain({
               )}`
             );
           }
-
-          console.log(
-            `⏳ Attempt ${attempts + 1}: Transaction status: ${
-              txResult.status || "NOT_FOUND"
-            }`
-          );
         } catch (err) {
           if (
             err.response?.status === 404 ||
             err.message?.includes("NOT_FOUND")
           ) {
-            console.log(
-              `⏳ Attempt ${
-                attempts + 1
-              }: Transaction not found yet, continuing to poll...`
-            );
           } else {
             throw err;
           }
@@ -304,13 +237,6 @@ export async function writeScoreToBlockchain({
 
       // If we've exhausted attempts but got a hash, assume success
       if (result.hash) {
-        console.log(
-          `⚠️ Transaction confirmation timed out, but transaction was submitted successfully`
-        );
-        console.log(
-          `🔗 Transaction: https://stellar.expert/explorer/testnet/tx/${result.hash}`
-        );
-
         return {
           successful: true,
           hash: result.hash,
@@ -352,9 +278,6 @@ export async function writeScoreToBlockchain({
     } else {
       // If we have a hash, the transaction was submitted successfully
       if (result.hash) {
-        console.log(
-          `✅ Transaction submitted successfully with hash: ${result.hash}`
-        );
         return {
           successful: true,
           hash: result.hash,
@@ -379,7 +302,6 @@ export async function writeScoreToBlockchain({
         const possibleHash =
           result.id || result.txHash || result.transactionHash;
         if (possibleHash) {
-          console.log(`✅ Found transaction identifier: ${possibleHash}`);
           return {
             successful: true,
             hash: possibleHash,
@@ -473,8 +395,6 @@ export async function writeScoreToBlockchain({
  */
 export async function readRiskTierFromBlockchain(address) {
   try {
-    console.log(`📖 Reading risk data for address: ${address}`);
-
     const contract = createContract();
 
     // Validate address first - support both traditional accounts (G) and smart contracts (C)
@@ -496,9 +416,7 @@ export async function readRiskTierFromBlockchain(address) {
       if (address.startsWith("C")) {
         // Smart contracts don't have accounts in the traditional sense
         // We need to use a different approach or use a sponsor account
-        console.log(
-          "⚠️ Smart contract address detected - using alternative approach"
-        );
+
         return null; // For now, return null for smart contract addresses
       } else {
         account = await server.getAccount(address);
@@ -524,7 +442,6 @@ export async function readRiskTierFromBlockchain(address) {
     const simulationResponse = await server.simulateTransaction(transaction);
 
     if (simulationResponse.error) {
-      console.log("🔍 No risk data found for this address");
       return null;
     }
 
@@ -532,7 +449,6 @@ export async function readRiskTierFromBlockchain(address) {
     const result = simulationResponse.result?.retval;
 
     if (result) {
-      console.log(`✅ Risk data found:`, result);
       return result;
     }
 
@@ -570,9 +486,7 @@ export async function checkTierAccess(address, targetTier) {
     if (address.startsWith("C")) {
       // Smart contracts don't have accounts in the traditional sense
       // For tier access checks, we'll return false for smart contracts for now
-      console.log(
-        "⚠️ Smart contract address detected - tier access checks not implemented for smart contracts"
-      );
+
       return false;
     } else {
       account = await server.getAccount(address);
@@ -612,7 +526,6 @@ export async function checkTierAccess(address, targetTier) {
  */
 export async function checkContractExists() {
   try {
-    console.log(`🔍 Checking if contract exists: ${RISK_SCORE_CONTRACT_ID}`);
 
     // Try to get contract info using RPC
     const response = await fetch("https://soroban-testnet.stellar.org", {
@@ -631,13 +544,11 @@ export async function checkContractExists() {
     });
 
     const data = await response.json();
-    console.log("📋 Contract check response:", data);
 
     if (data.result && data.result.entries && data.result.entries.length > 0) {
-      console.log("✅ Contract exists and is deployed");
       return true;
     } else {
-      console.log("❌ Contract not found - may not be deployed");
+      ("❌ Contract not found - may not be deployed");
       return false;
     }
   } catch (error) {
@@ -657,8 +568,6 @@ export async function checkContractExists() {
  */
 export async function storeScoreInAccountData({ kit, address, score }) {
   try {
-    console.log(`🚀 Using local storage fallback...`);
-    console.log(`📊 Score: ${score}, Address: ${address}`);
 
     if (!address || typeof score !== "number" || score < 0 || score > 100) {
       throw new Error(
@@ -675,14 +584,13 @@ export async function storeScoreInAccountData({ kit, address, score }) {
     };
 
     localStorage.setItem(`risk_score_${address}`, JSON.stringify(riskData));
-    console.log(`💾 Risk score stored locally:`, riskData);
 
     // Always return success
     return {
       successful: true,
       hash: `local_${Date.now()}`, // Fake hash for UI
       method: "local_storage",
-      explorerUrl: null,
+      rl: null,
       riskData: {
         score,
         address,
@@ -721,9 +629,7 @@ export async function writeScoreToBlockchainEnhanced({
   score,
   chosenTier,
 }) {
-  console.log(`🚀 Starting blockchain score storage...`);
-  console.log(`📋 Parameters:`, { address, score, chosenTier });
-  console.log(`🔑 Contract ID:`, RISK_SCORE_CONTRACT_ID);
+
 
   // Verify contract ID exists
   if (!RISK_SCORE_CONTRACT_ID || RISK_SCORE_CONTRACT_ID === "undefined") {
@@ -733,7 +639,6 @@ export async function writeScoreToBlockchainEnhanced({
   }
 
   // Always try blockchain first - this will trigger wallet interaction
-  console.log(`✅ Attempting blockchain transaction with wallet...`);
   try {
     const result = await writeScoreToBlockchain({
       kit,
@@ -742,10 +647,8 @@ export async function writeScoreToBlockchainEnhanced({
       chosenTier,
     });
 
-    console.log(`🎯 Blockchain result:`, result);
 
     if (result.successful) {
-      console.log(`✅ Successfully saved to blockchain!`);
       return result;
     } else {
       console.warn(`⚠️ Blockchain method returned unsuccessful`);
@@ -765,7 +668,6 @@ export async function writeScoreToBlockchainEnhanced({
     }
 
     // Only fallback on technical issues, not user actions
-    console.log(`🔄 Technical error occurred, trying fallback...`);
     console.warn(`⚠️ Original error: ${error.message}`);
 
     return await storeScoreInAccountData({ kit, address, score });

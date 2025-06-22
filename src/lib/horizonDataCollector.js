@@ -15,16 +15,11 @@ const DAYS_TO_ANALYZE = 30;
  */
 export async function collectTransactionData(walletAddress) {
   try {
-    console.log(`📊 Starting data collection for: ${walletAddress}`);
 
     // Calculate date range (last 30 days)
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - DAYS_TO_ANALYZE);
-
-    console.log(
-      `📅 Analyzing period: ${startDate.toISOString()} to ${endDate.toISOString()}`
-    );
 
     // Collect both payments and transactions
     const [payments, transactions] = await Promise.all([
@@ -32,14 +27,11 @@ export async function collectTransactionData(walletAddress) {
       fetchTransactions(walletAddress, startDate, endDate),
     ]);
 
-    console.log(
-      `✅ Collected ${payments.length} payments and ${transactions.length} transactions`
-    );
+    
 
     // Calculate the 4 key metrics
     const metrics = calculateRiskMetrics(payments, transactions, walletAddress);
 
-    console.log(`📈 Calculated metrics:`, metrics);
 
     return {
       success: true,
@@ -268,7 +260,6 @@ export function getCachedAnalysis(walletAddress) {
     if (cached) {
       const data = JSON.parse(cached);
       if (isDataFresh(data.timestamp)) {
-        console.log(`✅ Using cached analysis data`);
         return data;
       }
     }
@@ -287,7 +278,6 @@ export function cacheAnalysis(walletAddress, analysisData) {
       `horizon_analysis_${walletAddress}`,
       JSON.stringify(analysisData)
     );
-    console.log(`💾 Cached analysis data for ${walletAddress}`);
   } catch (error) {
     console.warn(`⚠️ Error caching analysis:`, error);
   }
