@@ -42,16 +42,15 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
    */
   const runHistoryAnalysis = async () => {
     if (!walletAddress) {
-      toast.error("⚠️ Cüzdan bağlantısı gerekli");
+      toast.error("⚠️ Wallet connection required");
       return;
     }
 
     setIsAnalyzing(true);
 
     try {
-
       const loadingToast = toast.loading(
-        "🏦 Blend Protocol geçmişi analiz ediliyor..."
+        "🏦 Analyzing Blend Protocol history..."
       );
 
       const analysisResult = await analyzeBlendHistory(walletAddress);
@@ -70,23 +69,22 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
           onScoreImpactChange(analysisResult.scoreImpact);
         }
 
-
         if (analysisResult.transactionCount > 0) {
           toast.success(
-            `✅ ${analysisResult.transactionCount} Blend işlemi analiz edildi!`,
+            `✅ ${analysisResult.transactionCount} Blend transactions analyzed!`,
             { duration: 4000 }
           );
         } else {
-          toast.info("ℹ️ Blend Protocol geçmişi bulunamadı", {
+          toast.info("ℹ️ Blend Protocol history not found", {
             duration: 4000,
           });
         }
       } else {
-        throw new Error(analysisResult.error || "Analiz başarısız");
+        throw new Error(analysisResult.error || "Analysis failed");
       }
     } catch (error) {
       console.error("❌ Blend history analysis failed:", error);
-      toast.error(`❌ Analiz hatası: ${error.message}`);
+      toast.error(`❌ Analysis error: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -118,9 +116,9 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
    */
   const getStatusBadge = (status) => {
     const badges = {
-      completed: { text: "Tamamlandı", class: "bg-green-100 text-green-800" },
-      on_time: { text: "Zamanında", class: "bg-green-100 text-green-800" },
-      late: { text: "Geç", class: "bg-red-100 text-red-800" },
+      completed: { text: "Completed", class: "bg-green-100 text-green-800" },
+      on_time: { text: "On time", class: "bg-green-100 text-green-800" },
+      late: { text: "Late", class: "bg-red-100 text-red-800" },
     };
     return badges[status] || badges.completed;
   };
@@ -144,10 +142,10 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Geçmiş Performans
+          Historical Performance
         </h3>
         <p className="text-gray-600 dark:text-gray-400 text-sm">
-          Blend Protocol geçmişinizi görmek için cüzdanınızı bağlayın
+          Connect your wallet to see your Blend Protocol history
         </p>
       </div>
     );
@@ -158,7 +156,7 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          🏦 Geçmiş Performans
+          🏦 Historical Performance
         </h3>
         <button
           onClick={runHistoryAnalysis}
@@ -187,10 +185,10 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
                   d="m12 6v6l4 2"
                 ></path>
               </svg>
-              Analiz Ediliyor...
+              Analyzing...
             </>
           ) : (
-            "🔄 Analiz Et"
+            "🔄 Analyze"
           )}
         </button>
       </div>
@@ -214,18 +212,18 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
             </svg>
           </div>
           <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
-            Blend Geçmişi Analizi
+            Blend History Analysis
           </h4>
           <p className="text-purple-700 dark:text-purple-300 mb-4">
-            Borç verme ve alma geçmişinizi analiz ederek risk skorunuza ekstra
-            puan ekleyin
+            Analyze your lending and borrowing history to add extra points to
+            your risk score
           </p>
           <button
             onClick={runHistoryAnalysis}
             disabled={isAnalyzing}
             className="btn-primary px-6 py-3"
           >
-            🏦 Geçmiş Analiz Et
+            🏦 Analyze History
           </button>
         </div>
       )}
@@ -239,10 +237,10 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
             <div className="loading-dot"></div>
           </div>
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Blend Geçmişi Analiz Ediliyor
+            Analyzing Blend History
           </h4>
           <p className="text-gray-600 dark:text-gray-400">
-            Tüm işlem geçmişi taranıyor...
+            Scanning all transaction history...
           </p>
         </div>
       )}
@@ -262,10 +260,10 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
                   }`}
                 >
                   {historyData.scoreImpact.totalChange > 0 ? "+" : ""}
-                  {historyData.scoreImpact.totalChange} puan
+                  {historyData.scoreImpact.totalChange} points
                   {historyData.scoreImpact.totalChange > 0
-                    ? "eklendi"
-                    : "düşüldü"}
+                    ? "added"
+                    : "subtracted"}
                 </span>
               </div>
             )}
@@ -276,7 +274,7 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
               <div className="text-2xl mb-2">💰</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Lend Hacmi
+                Lend Volume
               </div>
               <div className="font-semibold text-gray-900 dark:text-white">
                 {historyData.metrics.totalLendVolume} XLM
@@ -294,7 +292,7 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
               <div className="text-2xl mb-2">📤</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Borrow Hacmi
+                Borrow Volume
               </div>
               <div className="font-semibold text-gray-900 dark:text-white">
                 {historyData.metrics.totalBorrowVolume} XLM
@@ -312,7 +310,7 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
               <div className="text-2xl mb-2">✅</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Geri Ödeme
+                Repayment Rate
               </div>
               <div
                 className={`font-semibold ${getRepaymentRateColor(
@@ -339,7 +337,7 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
               <div className="text-2xl mb-2">⏰</div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Geç Ödeme
+                Late Payments
               </div>
               <div
                 className={`font-semibold ${
@@ -366,13 +364,13 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    📊 Skor Etkisi Detayları
+                    📊 Score Impact Details
                   </h4>
                   <button
                     onClick={() => setShowDetails(!showDetails)}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >
-                    {showDetails ? "Gizle" : "Detayları Göster"}
+                    {showDetails ? "Hide" : "Show Details"}
                   </button>
                 </div>
 
@@ -414,7 +412,7 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    📋 İşlem Geçmişi
+                    📋 Transaction History
                   </h4>
                   <button
                     onClick={() =>
@@ -423,8 +421,8 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >
                     {showTransactionHistory
-                      ? "Gizle"
-                      : `${historyData.metrics.transactionHistory.length} İşlem`}
+                      ? "Hide"
+                      : `${historyData.metrics.transactionHistory.length} Transactions`}
                   </button>
                 </div>
 
@@ -442,13 +440,13 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
                           <div>
                             <div className="font-medium text-gray-900 dark:text-white capitalize">
                               {tx.type === "lend"
-                                ? "Borç Ver"
+                                ? "Lend"
                                 : tx.type === "borrow"
-                                ? "Borç Al"
-                                : "Geri Öde"}
+                                ? "Borrow"
+                                : "Repay"}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">
-                              {tx.date.toLocaleDateString("tr-TR")}
+                              {tx.date.toLocaleDateString("en-US")}
                             </div>
                           </div>
                         </div>
@@ -537,15 +535,14 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
                 </svg>
               </div>
               <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Blend Geçmişi Bulunamadı
+                Blend History Not Found
               </h4>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Henüz Blend Protocol ile borç verme veya alma işlemi
-                yapmamışsınız
+                You haven't lent or borrowed from Blend Protocol yet
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500">
-                İlk işleminizi yaptıktan sonra geçmiş performansınız burada
-                görünecek
+                Your Blend Protocol history will appear here after your first
+                transaction
               </p>
             </div>
           )}

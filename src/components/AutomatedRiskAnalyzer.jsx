@@ -196,9 +196,9 @@ export default function AutomatedRiskAnalyzer() {
     const rateLimitCheck = checkRateLimit(walletAddress);
     if (!rateLimitCheck.canUpdate) {
       toast.warning(
-        `⏰ ${formatRemainingTime(
+        `⏰ You can update in ${formatRemainingTime(
           rateLimitCheck.remainingTime
-        )} güncelleyebilirsiniz`
+        )}`
       );
       return;
     }
@@ -207,7 +207,7 @@ export default function AutomatedRiskAnalyzer() {
 
     try {
       const updatingToast = toast.loading(
-        "🔗 Risk skoru blockchain'e kaydediliyor..."
+        "🔗 Saving risk score to the blockchain..."
       );
 
       // Write to blockchain using existing system
@@ -233,22 +233,20 @@ export default function AutomatedRiskAnalyzer() {
           result.method === "local_storage" ||
           result.method === "memory_only"
         ) {
-          toast.warning(
-            "⚠️ Blockchain kaydetme başarısız - yerel olarak kaydedildi"
-          );
+          toast.warning("⚠️ Blockchain save failed - saved locally");
         } else {
-          toast.success("✅ Risk skoru blockchain'e başarıyla kaydedildi!");
+          toast.success("✅ Risk score successfully saved to the blockchain!");
 
           if (result.hash) {
             setTimeout(() => {
-              toast.info(`🔗 İşlem: ${result.hash.substring(0, 8)}...`, {
+              toast.info(`🔗 Transaction: ${result.hash.substring(0, 8)}...`, {
                 duration: 5000,
               });
             }, 1000);
           }
         }
       } else {
-        throw new Error(result.error || "Blockchain güncellemesi başarısız");
+        throw new Error(result.error || "Blockchain update failed");
       }
     } catch (error) {
       console.error("❌ Blockchain update failed:", error);
@@ -257,9 +255,9 @@ export default function AutomatedRiskAnalyzer() {
         error.message?.includes("cancelled") ||
         error.message?.includes("rejected")
       ) {
-        toast.info("ℹ️ İşlem kullanıcı tarafından iptal edildi");
+        toast.info("ℹ️ Transaction cancelled by user");
       } else {
-        toast.error(`❌ Blockchain güncellemesi başarısız: ${error.message}`);
+        toast.error(`❌ Blockchain update failed: ${error.message}`);
       }
     } finally {
       setIsUpdatingScore(false);
@@ -281,15 +279,15 @@ export default function AutomatedRiskAnalyzer() {
   const getTierBadge = (tier) => {
     const badges = {
       TIER_1: {
-        text: "Tier-1: Güvenli",
+        text: "Tier-1: Safe",
         class: "bg-green-100 text-green-800 border-green-200",
       },
       TIER_2: {
-        text: "Tier-2: Standart",
+        text: "Tier-2: Standard",
         class: "bg-yellow-100 text-yellow-800 border-yellow-200",
       },
       TIER_3: {
-        text: "Tier-3: Fırsat / Yüksek Risk",
+        text: "Tier-3: Opportunity / High Risk",
         class: "bg-red-100 text-red-800 border-red-200",
       },
     };
@@ -315,13 +313,13 @@ export default function AutomatedRiskAnalyzer() {
           </svg>
         </div>
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          Otomatik Risk Analizi
+          Automated Risk Analysis
         </h3>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          AI destekli risk analizi için cüzdanınızı bağlayın
+          Connect your wallet to use AI-powered risk analysis
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-500">
-          Son 30 günlük işlem verileriniz analiz edilecek
+          We'll analyze your transaction data from the last 30 days
         </p>
       </div>
     );
@@ -372,7 +370,7 @@ export default function AutomatedRiskAnalyzer() {
                   {riskAnalysis ? riskAnalysis.riskScore : "--"}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Risk Skoru
+                  Risk Score
                 </div>
               </div>
             </div>
@@ -402,7 +400,7 @@ export default function AutomatedRiskAnalyzer() {
                     >
                       🏦 Blend:{" "}
                       {riskAnalysis.blendImpact.totalChange > 0 ? "+" : ""}
-                      {riskAnalysis.blendImpact.totalChange} puan
+                      {riskAnalysis.blendImpact.totalChange} points
                     </span>
                   </div>
                 )}
@@ -439,10 +437,10 @@ export default function AutomatedRiskAnalyzer() {
                         d="m12 6v6l4 2"
                       ></path>
                     </svg>
-                    Analiz Ediliyor...
+                    Analyzing...
                   </>
                 ) : (
-                  "🧠 Risk Analizi Başlat"
+                  "🧠 Start Analysis"
                 )}
               </button>
             ) : (
@@ -485,7 +483,7 @@ export default function AutomatedRiskAnalyzer() {
                 ) : rateLimitStatus && !rateLimitStatus.canUpdate ? (
                   `⏰ ${formatRemainingTime(countdown)}`
                 ) : (
-                  "🔗 Skorumu Güncelle"
+                  "🔗 Update Score"
                 )}
               </button>
             )}
@@ -497,9 +495,7 @@ export default function AutomatedRiskAnalyzer() {
                 disabled={isAnalyzing}
                 className="btn-secondary w-full py-2"
               >
-                {isAnalyzing
-                  ? "Yeniden Analiz Ediliyor..."
-                  : "🔄 Yeniden Analiz Et"}
+                {isAnalyzing ? "Re-analyzing..." : "🔄 Re-analyze"}
               </button>
             )}
           </div>
@@ -511,13 +507,13 @@ export default function AutomatedRiskAnalyzer() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              📊 Özellik Analizi
+              📊 Feature Analysis
             </h3>
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
-              {showDetails ? "Gizle" : "Detayları Göster"}
+              {showDetails ? "Hide" : "Show Details"}
             </button>
           </div>
 
@@ -526,7 +522,7 @@ export default function AutomatedRiskAnalyzer() {
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="text-2xl mb-1">💰</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Toplam Hacim
+                Total Volume
               </div>
               <div className="font-medium">
                 {riskAnalysis.rawMetrics.totalVolume} XLM
@@ -535,7 +531,7 @@ export default function AutomatedRiskAnalyzer() {
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="text-2xl mb-1">🤝</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Karşı Taraf
+                Counterparty
               </div>
               <div className="font-medium">
                 {riskAnalysis.rawMetrics.uniqueCounterparties}
@@ -544,7 +540,7 @@ export default function AutomatedRiskAnalyzer() {
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="text-2xl mb-1">🎯</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Varlık Çeşidi
+                Asset Type
               </div>
               <div className="font-medium">
                 {riskAnalysis.rawMetrics.assetDiversity}
@@ -553,7 +549,7 @@ export default function AutomatedRiskAnalyzer() {
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="text-2xl mb-1">🌙</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Gece/Gündüz
+                Night/Day
               </div>
               <div className="font-medium">
                 {riskAnalysis.rawMetrics.nightDayRatio}
@@ -583,13 +579,13 @@ export default function AutomatedRiskAnalyzer() {
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-              💡 İyileştirme Önerileri
+              💡 Improvement Recommendations
             </h3>
             <button
               onClick={() => setShowRecommendations(!showRecommendations)}
               className="text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
-              {showRecommendations ? "Gizle" : "Göster"}
+              {showRecommendations ? "Hide" : "Show"}
             </button>
           </div>
 
@@ -621,9 +617,9 @@ export default function AutomatedRiskAnalyzer() {
             </svg>
           </div>
           <div className="text-sm text-yellow-800 dark:text-yellow-200">
-            <strong>Bilgi:</strong> Skor son 30 güne göre hesaplandı. Daha iyi
-            skor için hacmi organik artırın, varlık çeşitlendirin, tek cüzdana
-            spam'den kaçının. Günde bir kez güncelleyebilirsiniz.
+            <strong>Info:</strong> Score calculated based on last 30 days. To
+            get a better score, increase volume, diversify assets, and avoid
+            spamming to a single wallet. You can update once a day.
           </div>
         </div>
       </div>
@@ -648,9 +644,9 @@ export default function AutomatedRiskAnalyzer() {
                 </svg>
               </div>
               <div className="text-sm text-orange-800 dark:text-orange-200">
-                <strong>Veri Kalite Uyarısı:</strong> Daha doğru analiz için
-                daha fazla işlem geçmişi gerekli. En az 10 işlem ve 3 farklı
-                karşı taraf ile işlem yapmanız önerilir.
+                <strong>Data Quality Warning:</strong> More transaction history
+                is needed for better analysis. We recommend at least 10
+                transactions and 3 different counterparties.
               </div>
             </div>
           </div>
