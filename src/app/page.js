@@ -243,9 +243,14 @@ export default function RiskScoringApp() {
 
     try {
       setIsAnalyzingWallet(true);
-      const loadingToast = toast.loading(
-        "🔍 Analyzing wallet transaction history..."
-      );
+
+      // Detect wallet type and customize loading message
+      const isPasskeyWallet = walletAddress.startsWith("C");
+      const loadingMessage = isPasskeyWallet
+        ? "🔐 Analyzing Passkey smart contract..."
+        : "🔍 Analyzing wallet transaction history...";
+
+      const loadingToast = toast.loading(loadingMessage);
 
       console.log("🚀 Starting automatic risk analysis for:", walletAddress);
 
@@ -254,21 +259,49 @@ export default function RiskScoringApp() {
       toast.dismiss(loadingToast);
       setAutoAnalysisResult(analysisResult);
 
-      // Show analysis results to user
-      toast.success(
-        `✅ Automatic analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
-        { duration: 6000 }
-      );
-
-      // Show detailed factors
-      setTimeout(() => {
-        toast.info(
-          `📊 Analysis: ${analysisResult.analysis.txCount} transactions, ${analysisResult.analysis.assetTypes} assets, ${analysisResult.analysis.avgHours}h avg interval`,
-          {
-            duration: 8000,
-          }
+      // Customize success message based on wallet type
+      if (analysisResult.addressType === "contract") {
+        toast.success(
+          `✅ Passkey analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
+          { duration: 6000 }
         );
-      }, 2000);
+
+        // Show Passkey-specific information
+        setTimeout(() => {
+          toast.info(
+            `🔐 Passkey smart contract analyzed - Contract status: ${analysisResult.analysis.contractStatus}`,
+            {
+              duration: 8000,
+            }
+          );
+        }, 2000);
+
+        // Show additional info about Passkey wallets
+        setTimeout(() => {
+          toast.info(
+            "💡 Passkey wallets are new-generation smart contracts with enhanced security",
+            {
+              duration: 6000,
+            }
+          );
+        }, 4000);
+      } else {
+        // Traditional wallet analysis
+        toast.success(
+          `✅ Account analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
+          { duration: 6000 }
+        );
+
+        // Show detailed factors
+        setTimeout(() => {
+          toast.info(
+            `📊 Analysis: ${analysisResult.analysis.txCount} transactions, ${analysisResult.analysis.assetTypes} assets, ${analysisResult.analysis.avgHours}h avg interval`,
+            {
+              duration: 8000,
+            }
+          );
+        }, 2000);
+      }
     } catch (error) {
       console.error("❌ Auto analysis error:", error);
       toast.dismiss();
@@ -284,6 +317,16 @@ export default function RiskScoringApp() {
           }
         );
         setAnalysisMode("manual");
+      } else if (
+        error.message.includes("Invalid Stellar address format") ||
+        error.message.includes("Invalid length")
+      ) {
+        toast.error(
+          "❌ Invalid wallet address format. Please reconnect your wallet.",
+          {
+            duration: 6000,
+          }
+        );
       } else {
         showCategorizedError(error, "Automatic wallet analysis failed");
         // Fallback to manual mode on error
@@ -870,6 +913,61 @@ export default function RiskScoringApp() {
                           </div>
                         </div>
                         <div className="mt-4 pt-4 border-t border-white/10">
+                          {/* Passkey-specific information */}
+                          {autoAnalysisResult.addressType === "contract" &&
+                            autoAnalysisResult.passkeyInfo && (
+                              <div className="mb-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                                <div className="flex items-center mb-2">
+                                  <svg
+                                    className="w-4 h-4 text-purple-400 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                    />
+                                  </svg>
+                                  <span className="text-sm font-medium text-purple-300">
+                                    Passkey Smart Contract
+                                  </span>
+                                </div>
+                                <p className="text-xs text-purple-200/80">
+                                  {autoAnalysisResult.passkeyInfo.message}
+                                </p>
+                                <p className="text-xs text-purple-200/60 mt-1">
+                                  {autoAnalysisResult.passkeyInfo.note}
+                                </p>
+                                {autoAnalysisResult.analysis.contractStatus && (
+                                  <div className="mt-2 text-xs">
+                                    <span className="text-purple-300">
+                                      Status:{" "}
+                                    </span>
+                                    <span
+                                      className={`capitalize ${
+                                        autoAnalysisResult.analysis
+                                          .contractStatus === "active"
+                                          ? "text-emerald-400"
+                                          : autoAnalysisResult.analysis
+                                              .contractStatus ===
+                                            "new_or_inactive"
+                                          ? "text-amber-400"
+                                          : "text-gray-400"
+                                      }`}
+                                    >
+                                      {autoAnalysisResult.analysis.contractStatus.replace(
+                                        "_",
+                                        " "
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                           <p className="text-sm text-white/70 mb-2">
                             Risk Factors:
                           </p>

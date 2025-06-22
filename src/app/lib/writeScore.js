@@ -77,9 +77,14 @@ export async function writeScoreToBlockchain({
       );
     }
 
-    // Validate address format
-    if (!address.startsWith("G") || address.length !== 56) {
-      throw new Error(`Invalid Stellar address format: ${address}`);
+    // Validate address format - support both traditional accounts (G) and smart contracts (C)
+    if (
+      (!address.startsWith("G") && !address.startsWith("C")) ||
+      address.length !== 56
+    ) {
+      throw new Error(
+        `Invalid Stellar address format: ${address}. Address must be 56 characters starting with G (account) or C (smart contract).`
+      );
     }
 
     console.log(`🎯 Storing risk score: ${score}`);
@@ -128,7 +133,66 @@ export async function writeScoreToBlockchain({
     }
 
     // Get account info for transaction building
-    const sourceAccount = await server.getAccount(address);
+    // Special handling for Passkey smart contracts (C addresses)
+    let sourceAccount;
+
+    if (address.startsWith("C")) {
+      console.log("🔐 Detected Passkey smart contract - using sponsor account");
+
+      // For Passkey smart contracts, we need to use the sponsor account
+      // This is derived from 'kalepail' seed as per PasskeyKit implementation
+      const { Keypair, hash } = await import("@stellar/stellar-sdk");
+      const sponsorKeypair = Keypair.fromRawEd25519Seed(
+        hash(Buffer.from("kalepail"))
+      );
+      const sponsorAddress = sponsorKeypair.publicKey();
+
+      console.log("📍 Using Passkey sponsor account:", sponsorAddress);
+
+      try {
+        sourceAccount = await server.getAccount(sponsorAddress);
+        console.log(
+          "✅ Successfully loaded sponsor account for Passkey transaction"
+        );
+      } catch (error) {
+        console.log("❌ Cannot load sponsor account:", error);
+
+        // Try to fund the sponsor account if it doesn't exist
+        if (error.response?.status === 404) {
+          console.log("🚀 Attempting to fund sponsor account via friendbot...");
+
+          try {
+            const friendbotResponse = await fetch(
+              `https://friendbot.stellar.org?addr=${encodeURIComponent(
+                sponsorAddress
+              )}`
+            );
+
+            if (friendbotResponse.ok) {
+              console.log("✅ Sponsor account funded successfully");
+
+              // Wait for account to be available
+              await new Promise((resolve) => setTimeout(resolve, 3000));
+
+              sourceAccount = await server.getAccount(sponsorAddress);
+              console.log("✅ Sponsor account loaded after funding");
+            } else {
+              throw new Error(`Friendbot failed: ${friendbotResponse.status}`);
+            }
+          } catch (fundingError) {
+            console.log("❌ Could not fund sponsor account:", fundingError);
+            console.log("🔄 Falling back to local storage for Passkey wallets");
+            return await storeScoreInAccountData({ kit, address, score });
+          }
+        } else {
+          console.log("🔄 Falling back to local storage for Passkey wallets");
+          return await storeScoreInAccountData({ kit, address, score });
+        }
+      }
+    } else {
+      // Traditional account - use the address directly
+      sourceAccount = await server.getAccount(address);
+    }
 
     // Build the transaction with high fee for Soroban operations
     const transaction = new TransactionBuilder(sourceAccount, {
@@ -413,18 +477,36 @@ export async function readRiskTierFromBlockchain(address) {
 
     const contract = createContract();
 
-    // Validate address first
+    // Validate address first - support both traditional accounts (G) and smart contracts (C)
     if (
       !address ||
       typeof address !== "string" ||
-      !address.startsWith("G") ||
+      (!address.startsWith("G") && !address.startsWith("C")) ||
       address.length !== 56
     ) {
-      throw new Error(`Invalid Stellar address: ${address}`);
+      throw new Error(
+        `Invalid Stellar address: ${address}. Address must be 56 characters starting with G (account) or C (smart contract).`
+      );
     }
 
     // Create a simple transaction to call the contract (read-only)
-    const account = await server.getAccount(address);
+    // Note: For smart contracts (C addresses), we need special handling
+    let account;
+    try {
+      if (address.startsWith("C")) {
+        // Smart contracts don't have accounts in the traditional sense
+        // We need to use a different approach or use a sponsor account
+        console.log(
+          "⚠️ Smart contract address detected - using alternative approach"
+        );
+        return null; // For now, return null for smart contract addresses
+      } else {
+        account = await server.getAccount(address);
+      }
+    } catch (error) {
+      console.warn("❌ Could not get account for address:", address, error);
+      return null;
+    }
 
     // Convert address parameter to ScVal format
     const addressScVal = Address.fromString(address).toScVal();
@@ -469,18 +551,32 @@ export async function readRiskTierFromBlockchain(address) {
  */
 export async function checkTierAccess(address, targetTier) {
   try {
-    // Validate address first
+    // Validate address first - support both traditional accounts (G) and smart contracts (C)
     if (
       !address ||
       typeof address !== "string" ||
-      !address.startsWith("G") ||
+      (!address.startsWith("G") && !address.startsWith("C")) ||
       address.length !== 56
     ) {
-      throw new Error(`Invalid Stellar address: ${address}`);
+      throw new Error(
+        `Invalid Stellar address: ${address}. Address must be 56 characters starting with G (account) or C (smart contract).`
+      );
     }
 
     const contract = createContract();
-    const account = await server.getAccount(address);
+
+    // Handle different address types
+    let account;
+    if (address.startsWith("C")) {
+      // Smart contracts don't have accounts in the traditional sense
+      // For tier access checks, we'll return false for smart contracts for now
+      console.log(
+        "⚠️ Smart contract address detected - tier access checks not implemented for smart contracts"
+      );
+      return false;
+    } else {
+      account = await server.getAccount(address);
+    }
 
     const operation = contract.call(
       "can_access_tier",

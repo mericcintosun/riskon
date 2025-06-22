@@ -45,16 +45,18 @@
   }
 
   .btn-primary {
-    @apply btn-modern bg-gradient-to-r from-gray-800 to-black text-white;
-    @apply hover:from-gray-700 hover:to-gray-800;
-    @apply shadow-lg shadow-gray-500/25 hover:shadow-gray-500/40;
-    @apply focus:ring-gray-500;
+    @apply btn-modern bg-gradient-to-r from-blue-600 to-purple-600 text-white;
+    @apply hover:from-blue-500 hover:to-purple-500;
+    @apply shadow-lg shadow-blue-500/25 hover:shadow-purple-500/40;
+    @apply focus:ring-purple-500;
+    @apply transform hover:scale-105 active:scale-95;
   }
 
   .btn-secondary {
-    @apply btn-modern bg-transparent text-gray-300 border-gray-400/50;
-    @apply hover:bg-gray-500/10 hover:border-gray-400 hover:text-gray-200;
-    @apply focus:ring-gray-400;
+    @apply btn-modern bg-transparent text-slate-300 border-slate-600;
+    @apply hover:text-white hover:border-slate-500 hover:bg-slate-800/50;
+    @apply transition-colors duration-200 text-sm font-medium;
+    @apply focus:ring-slate-500;
   }
 
   .btn-ghost {
