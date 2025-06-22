@@ -313,6 +313,50 @@ export default function AutomatedRiskAnalyzer() {
     );
   }
 
+  // Show loading state while analysis is in progress for the first time
+  if (isAnalyzing && !analysisData) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <div className="loading-modern mb-4">
+          <div className="loading-dot"></div>
+          <div className="loading-dot"></div>
+          <div className="loading-dot"></div>
+        </div>
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          Analyzing On-Chain Data
+        </h4>
+        <p className="text-gray-600 dark:text-gray-400">
+          This may take a moment...
+        </p>
+      </div>
+    );
+  }
+
+  if (!riskAnalysis) {
+    // This state occurs if there's cached data but no analysis yet,
+    // or if the user needs to initiate the first analysis.
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+          {/* Icon can go here */}
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          Ready to Generate Score
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          Click the button below to start the on-chain credit analysis.
+        </p>
+        <button
+          onClick={runAutomatedAnalysis}
+          disabled={isAnalyzing}
+          className="btn-primary px-6 py-3"
+        >
+          {isAnalyzing ? "Analyzing..." : "🧠 Generate Credit Score"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Main Risk Score Display */}

@@ -1,0 +1,128 @@
+"use client";
+
+import Header from "../../components/Header.jsx";
+
+export default function TechnologiesPage() {
+  const techCategories = [
+    {
+      name: "Blockchain & Smart Contracts",
+      techs: [
+        {
+          name: "Stellar",
+          description:
+            "The core blockchain network, optimized for speed, low cost, and scalability.",
+        },
+        {
+          name: "Soroban",
+          description:
+            "Next-gen smart contract platform on Stellar, enabling complex logic with a Rust SDK.",
+        },
+        {
+          name: "Rust",
+          description:
+            "The primary language for writing secure and high-performance Soroban smart contracts.",
+        },
+      ],
+      icon: "⛓️",
+    },
+    {
+      name: "AI & Analytics",
+      techs: [
+        {
+          name: "TensorFlow.js",
+          description:
+            "Powers our client-side AI model, ensuring user data privacy by processing all information in the browser.",
+        },
+        {
+          name: "WebAssembly (Wasm)",
+          description:
+            "Used to run high-performance analytics code efficiently and securely in the browser.",
+        },
+      ],
+      icon: "🤖",
+    },
+    {
+      name: "Frontend & User Experience",
+      techs: [
+        {
+          name: "Next.js",
+          description:
+            "The React framework for building our fast, responsive, and scalable user interface.",
+        },
+        {
+          name: "React",
+          description:
+            "The foundational library for creating interactive UI components.",
+        },
+        {
+          name: "Tailwind CSS",
+          description:
+            "A utility-first CSS framework for rapid and consistent UI development.",
+        },
+      ],
+      icon: "🎨",
+    },
+    {
+      name: "Authentication & Wallets",
+      techs: [
+        {
+          name: "Passkey (WebAuthn)",
+          description:
+            "Provides secure, passwordless authentication using biometrics for a frictionless user experience.",
+        },
+        {
+          name: "Stellar Wallets Kit",
+          description:
+            "Integrates with major Stellar wallets like Freighter, Albedo, and xBull.",
+        },
+      ],
+      icon: "🔐",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Header />
+
+      <main className="pt-24 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Hero Section */}
+          <div className="text-center mb-20">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Technology Stack
+            </h1>
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+              The powerful and privacy-focused technologies that power our
+              on-chain credit scoring system.
+            </p>
+          </div>
+
+          {/* Technologies Grid */}
+          <div className="space-y-16">
+            {techCategories.map((category) => (
+              <div key={category.name}>
+                <div className="flex items-center mb-8">
+                  <span className="text-3xl mr-4">{category.icon}</span>
+                  <h2 className="text-3xl font-bold">{category.name}</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {category.techs.map((tech) => (
+                    <div
+                      key={tech.name}
+                      className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 transition-all duration-300 hover:border-slate-500/50 hover:bg-slate-800/80"
+                    >
+                      <h3 className="text-xl font-bold mb-3">{tech.name}</h3>
+                      <p className="text-slate-400 text-sm">
+                        {tech.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
