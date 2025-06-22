@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "../../components/Header.jsx";
+import { motion } from "framer-motion";
 
 export default function TechnologiesPage() {
   const techCategories = [
@@ -80,14 +81,52 @@ export default function TechnologiesPage() {
     },
   ];
 
+  const pageVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.3,
+      },
+    },
+  };
+
+  const categoryVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+      },
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       <Header />
 
-      <main className="pt-24 pb-16">
+      <motion.main
+        className="pt-24 pb-16"
+        initial="hidden"
+        animate="visible"
+        variants={pageVariants}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
-          <div className="text-center mb-20">
+          <motion.div className="text-center mb-20" variants={categoryVariants}>
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Technology Stack
             </h1>
@@ -95,34 +134,48 @@ export default function TechnologiesPage() {
               The powerful and privacy-focused technologies that power our
               on-chain credit scoring system.
             </p>
-          </div>
+          </motion.div>
 
           {/* Technologies Grid */}
           <div className="space-y-16">
             {techCategories.map((category) => (
-              <div key={category.name}>
+              <motion.div key={category.name} variants={categoryVariants}>
                 <div className="flex items-center mb-8">
-                  <span className="text-3xl mr-4">{category.icon}</span>
-                  <h2 className="text-3xl font-bold">{category.name}</h2>
+                  <motion.span
+                    className="text-3xl mr-4"
+                    variants={itemVariants}
+                  >
+                    {category.icon}
+                  </motion.span>
+                  <motion.h2
+                    className="text-3xl font-bold"
+                    variants={itemVariants}
+                  >
+                    {category.name}
+                  </motion.h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                  variants={categoryVariants}
+                >
                   {category.techs.map((tech) => (
-                    <div
+                    <motion.div
                       key={tech.name}
                       className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 transition-all duration-300 hover:border-slate-500/50 hover:bg-slate-800/80"
+                      variants={itemVariants}
                     >
                       <h3 className="text-xl font-bold mb-3">{tech.name}</h3>
                       <p className="text-slate-400 text-sm">
                         {tech.description}
                       </p>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             ))}
           </div>
         </div>
-      </main>
+      </motion.main>
     </div>
   );
 }
