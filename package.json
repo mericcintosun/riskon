@@ -13,6 +13,7 @@
     "@creit.tech/stellar-wallets-kit": "^1.7.3",
     "@stellar/stellar-sdk": "13.3.0",
     "@tensorflow/tfjs": "^4.22.0",
+    "framer-motion": "^12.18.1",
     "next": "^15.3.2",
     "passkey-kit": "^0.10.24",
     "react": "^19.0.0",
