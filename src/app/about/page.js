@@ -3,6 +3,21 @@
 import { useState, useEffect } from "react";
 import Header from "../../components/Header.jsx";
 import Link from "next/link";
+import {
+  Target,
+  Zap,
+  Lock,
+  Leaf,
+  Rocket,
+  Eye,
+  Lightbulb,
+  Shield,
+  Handshake,
+  Unlock,
+  Github,
+  BookOpen,
+  Star,
+} from "lucide-react";
 
 export default function AboutPage() {
   const [activeAdvantage, setActiveAdvantage] = useState(0);
@@ -25,10 +40,8 @@ export default function AboutPage() {
         "Replaces one-size-fits-all LTV models",
         "Continuous learning from transaction patterns",
       ],
-      icon: "🎯",
+      icon: <Target className="w-6 h-6" />,
       color: "blue",
-      stat: "95% accuracy",
-      benefit: "Better rates for responsible users",
     },
     {
       title: "Instant Settlement & Real-time Updates",
@@ -41,7 +54,7 @@ export default function AboutPage() {
         "Immediate protocol integration",
         "Live risk monitoring",
       ],
-      icon: "⚡",
+      icon: <Zap className="w-6 h-6" />,
       color: "amber",
       stat: "< 1 second",
       benefit: "Instant DeFi access",
@@ -57,7 +70,7 @@ export default function AboutPage() {
         "Only compact scores stored on-chain",
         "GDPR compliant by design",
       ],
-      icon: "🔒",
+      icon: <Lock className="w-6 h-6" />,
       color: "emerald",
       stat: "0% data shared",
       benefit: "Complete privacy protection",
@@ -73,7 +86,7 @@ export default function AboutPage() {
         "Sustainable blockchain infrastructure",
         "Carbon-neutral operations",
       ],
-      icon: "🌱",
+      icon: <Leaf className="w-6 h-6" />,
       color: "green",
       stat: "99.9% less energy",
       benefit: "Sustainable DeFi future",
@@ -89,7 +102,7 @@ export default function AboutPage() {
         "Modular protocol architecture",
         "Next-gen DeFi credit markets",
       ],
-      icon: "🚀",
+      icon: <Rocket className="w-6 h-6" />,
       color: "purple",
       stat: "100% modular",
       benefit: "Evolves with DeFi innovation",
@@ -100,22 +113,22 @@ export default function AboutPage() {
     {
       title: "Transparency",
       description: "Open-source codebase with full community visibility",
-      icon: "👁️",
+      icon: <Eye className="w-8 h-8" />,
     },
     {
       title: "Innovation",
       description: "Pioneering AI-powered risk assessment in DeFi",
-      icon: "💡",
+      icon: <Lightbulb className="w-8 h-8" />,
     },
     {
       title: "Security",
       description: "Privacy-first design with rigorous audit standards",
-      icon: "🛡️",
+      icon: <Shield className="w-8 h-8" />,
     },
     {
       title: "Community",
       description: "Built by and for the Stellar ecosystem",
-      icon: "🤝",
+      icon: <Handshake className="w-8 h-8" />,
     },
   ];
 
@@ -201,46 +214,6 @@ export default function AboutPage() {
       <main className="pt-8 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
-          <div className="text-center mb-20">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              About{" "}
-              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                Riskon
-              </span>
-            </h1>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-12">
-              Pioneering transparent, personalized risk signals for the future
-              of decentralized finance
-            </p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-400 mb-2">
-                  {stats.users.toLocaleString()}+
-                </div>
-                <div className="text-slate-400 text-sm">Active Users</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-400 mb-2">
-                  {stats.scores.toLocaleString()}+
-                </div>
-                <div className="text-slate-400 text-sm">Risk Scores</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-400 mb-2">
-                  {stats.protocols}+
-                </div>
-                <div className="text-slate-400 text-sm">Protocols</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-amber-400 mb-2">
-                  {stats.accuracy}%
-                </div>
-                <div className="text-slate-400 text-sm">Accuracy</div>
-              </div>
-            </div>
-          </div>
 
           {/* Mission Section */}
           <div className="max-w-6xl mx-auto mb-20">
@@ -282,8 +255,8 @@ export default function AboutPage() {
                 <div className="space-y-6">
                   {teamValues.map((value, index) => (
                     <div key={index} className="flex items-start space-x-4">
-                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-xl flex items-center justify-center">
-                        <span className="text-xl">{value.icon}</span>
+                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-xl flex items-center justify-center text-blue-400">
+                        {value.icon}
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-white mb-1">
@@ -344,7 +317,7 @@ export default function AboutPage() {
                   >
                     <div className="flex items-start space-x-4">
                       <div
-                        className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all duration-300 ${
+                        className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
                           activeAdvantage === index
                             ? `bg-${advantage.color}-500/20 text-${advantage.color}-400`
                             : "bg-slate-700/50 text-slate-400"
@@ -380,7 +353,7 @@ export default function AboutPage() {
               <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50">
                 <div className="text-center mb-6">
                   <div
-                    className={`text-4xl mb-4 p-4 rounded-2xl bg-${advantages[activeAdvantage].color}-500/20 inline-block`}
+                    className={`text-4xl mb-4 p-4 rounded-2xl bg-${advantages[activeAdvantage].color}-500/20 inline-flex text-${advantages[activeAdvantage].color}-400`}
                   >
                     {advantages[activeAdvantage].icon}
                   </div>
@@ -514,7 +487,9 @@ export default function AboutPage() {
           <div className="max-w-4xl mx-auto mb-20">
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50">
               <div className="text-center mb-8">
-                <div className="text-4xl mb-4">🔓</div>
+                <div className="inline-flex p-4 bg-slate-700/50 rounded-2xl text-slate-300 mb-4">
+                  <Unlock className="w-8 h-8" />
+                </div>
                 <h2 className="text-3xl font-bold text-white mb-4">
                   Open Source & Auditable
                 </h2>
@@ -589,14 +564,14 @@ export default function AboutPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <button className="btn-primary text-lg px-8 py-4 transform hover:scale-105 transition-all duration-200">
-                    <span className="mr-2">🔗</span>
+                  <button className="btn-primary text-lg px-8 py-4 transform hover:scale-105 transition-all duration-200 inline-flex items-center">
+                    <Github className="mr-2 h-5 w-5" />
                     View on GitHub
                   </button>
                 </a>
                 <Link href="/features">
-                  <button className="btn-secondary text-lg px-8 py-4">
-                    <span className="mr-2">📚</span>
+                  <button className="btn-secondary text-lg px-8 py-4 inline-flex items-center">
+                    <BookOpen className="mr-2 h-5 w-5" />
                     Read Documentation
                   </button>
                 </Link>
@@ -617,14 +592,14 @@ export default function AboutPage() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link href="/wallet">
-                  <button className="btn-primary text-lg px-8 py-4 transform hover:scale-105 transition-all duration-200">
-                    <span className="mr-2">🚀</span>
+                  <button className="btn-primary text-lg px-8 py-4 transform hover:scale-105 transition-all duration-200 inline-flex items-center">
+                    <Rocket className="mr-2 h-5 w-5" />
                     Get Your Risk Score
                   </button>
                 </Link>
                 <Link href="/how-it-works">
-                  <button className="btn-secondary text-lg px-8 py-4">
-                    <span className="mr-2">🎯</span>
+                  <button className="btn-secondary text-lg px-8 py-4 inline-flex items-center">
+                    <Target className="mr-2 h-5 w-5" />
                     Learn How It Works
                   </button>
                 </Link>
@@ -633,19 +608,19 @@ export default function AboutPage() {
               {/* Trust indicators */}
               <div className="flex flex-wrap justify-center gap-6 text-slate-400 text-sm">
                 <div className="flex items-center space-x-2">
-                  <span className="text-emerald-400">🛡️</span>
+                  <Shield className="h-4 w-4 text-emerald-400" />
                   <span>Privacy Protected</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-blue-400">🔓</span>
+                  <Unlock className="h-4 w-4 text-blue-400" />
                   <span>Open Source</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-purple-400">⚡</span>
+                  <Zap className="h-4 w-4 text-purple-400" />
                   <span>Instant Results</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-amber-400">🌟</span>
+                  <Star className="h-4 w-4 text-amber-400" />
                   <span>Community Driven</span>
                 </div>
               </div>

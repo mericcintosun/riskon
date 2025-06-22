@@ -107,9 +107,11 @@ export default function Header() {
               className="flex items-center space-x-2 z-10"
               onClick={closeMobileMenu}
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">R</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Riskon Logo" 
+                className="w-12 h-12 object-contain rounded-xl"
+              />
               <span className="text-xl font-bold text-white">Riskon</span>
             </Link>
 

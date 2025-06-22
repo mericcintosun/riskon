@@ -21,6 +21,8 @@ import { useToast } from "../contexts/ToastContext";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
 import BlendDashboard from "./BlendDashboard.jsx";
 import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
+import { motion } from "framer-motion";
+import { Info, AlertTriangle, FileText, Zap, Settings } from "lucide-react";
 
 /**
  * Automated Risk Analyzer Component
