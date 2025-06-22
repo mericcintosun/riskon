@@ -76,7 +76,6 @@ function EnhancedLiquidityPools() {
 
       const poolData = await response.json();
       setPools(poolData);
-
     } catch (error) {
       console.error("❌ Failed to load liquidity pools:", error);
       setError("Failed to load liquidity pools");
@@ -230,7 +229,7 @@ function EnhancedLiquidityPools() {
   const startInvestment = () => {
     // TODO: Implement Blend protocol integration
     alert(
-      `Yatırım işlemi başlatılacak: ${selectedPool.poolId}\n(Blend entegrasyonu henüz aktif değil)`
+      `Investment process will be initiated: ${selectedPool.poolId}\n(Blend integration is not yet active)`
     );
   };
 
