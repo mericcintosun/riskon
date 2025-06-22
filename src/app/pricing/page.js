@@ -3,6 +3,7 @@
 import Header from "../../components/Header.jsx";
 import Link from "next/link";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState("monthly");
@@ -55,14 +56,40 @@ export default function PricingPage() {
     },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5,
+      },
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       <Header />
 
-      <main className="pt-24 pb-16">
+      <motion.main
+        className="pt-24 pb-16"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
-          <div className="text-center mb-20">
+          <motion.div className="text-center mb-20" variants={itemVariants}>
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Simple, Transparent Pricing
             </h1>
@@ -70,18 +97,22 @@ export default function PricingPage() {
               Choose the plan that fits your needs. All scores are AI-predicted
               and for informational purposes only, not financial advice.
             </p>
-          </div>
+          </motion.div>
 
           {/* Pricing Table */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <motion.div
+            className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
+            variants={containerVariants}
+          >
             {plans.map((plan, index) => (
-              <div
+              <motion.div
                 key={index}
                 className={`rounded-2xl p-8 border transition-all duration-300 flex flex-col ${
                   plan.isMostPopular
                     ? "bg-slate-800/80 border-purple-500/50 shadow-2xl shadow-purple-500/10"
                     : "bg-slate-800/50 border-slate-700/50 hover:border-slate-500/50"
                 }`}
+                variants={itemVariants}
               >
                 {plan.isMostPopular && (
                   <div className="text-center mb-6">
@@ -136,11 +167,11 @@ export default function PricingPage() {
                     {plan.cta}
                   </button>
                 </Link>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </main>
+      </motion.main>
     </div>
   );
 }
