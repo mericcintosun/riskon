@@ -1,6 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import {
+  Shield,
+  Scale,
+  Rocket,
+  CheckCircle2,
+  AlertTriangle,
+  Lock,
+  Gem,
+  Info,
+} from "lucide-react";
 
 const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
   const [showRiskModal, setShowRiskModal] = useState(false);
@@ -14,7 +24,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         color: "text-green-600",
         bgColor: "bg-green-50",
         borderColor: "border-green-200",
-        icon: "🛡️",
+        icon: <Shield className="w-8 h-8" />,
         description:
           "This score indicates a strong on-chain history and responsible usage patterns.",
         guidance:
@@ -26,7 +36,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         color: "text-yellow-600",
         bgColor: "bg-yellow-50",
         borderColor: "border-yellow-200",
-        icon: "⚖️",
+        icon: <Scale className="w-8 h-8" />,
         description:
           "This score indicates a standard on-chain history with moderate activity.",
         guidance:
@@ -38,7 +48,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         color: "text-red-600",
         bgColor: "bg-red-50",
         borderColor: "border-red-200",
-        icon: "🚀",
+        icon: <Rocket className="w-8 h-8" />,
         description:
           "This score may reflect a newer address or highly leveraged on-chain activities.",
         guidance:
@@ -56,7 +66,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         color: "text-green-600",
         bgColor: "bg-green-100",
         description: "High security, low-risk assets",
-        icon: "✅",
+        icon: <CheckCircle2 className="w-6 h-6" />,
       },
       TIER_2: {
         accessible: score >= 30,
@@ -67,7 +77,12 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
           score >= 30
             ? "Moderate risk, balanced asset pools"
             : "A higher credit score is required for access",
-        icon: score >= 30 ? "⚠️" : "🔒",
+        icon:
+          score >= 30 ? (
+            <AlertTriangle className="w-6 h-6" />
+          ) : (
+            <Lock className="w-6 h-6" />
+          ),
       },
       TIER_3: {
         accessible: score >= 70,
@@ -78,7 +93,12 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
           score >= 70
             ? "High-risk, high-reward potential assets"
             : "A high credit score is required (70+)",
-        icon: score >= 70 ? "💎" : "🔒",
+        icon:
+          score >= 70 ? (
+            <Gem className="w-6 h-6" />
+          ) : (
+            <Lock className="w-6 h-6" />
+          ),
         isOpportunity: score >= 70,
       },
     };
@@ -104,7 +124,9 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md mx-4">
         <div className="text-center">
-          <div className="text-6xl mb-4">⚠️</div>
+          <div className="text-6xl mb-4 text-red-500 flex justify-center">
+            <AlertTriangle className="w-16 h-16" />
+          </div>
           <h3 className="text-xl font-bold text-gray-900 mb-4">
             High-Risk Tier Acknowledgment
           </h3>
@@ -143,8 +165,9 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
   if (typeof riskScore !== "number" || riskScore < 0 || riskScore > 100) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div className="text-red-600">
-          ⚠️ Credit score has not been calculated. Please generate your score
+        <div className="text-red-600 flex items-center">
+          <AlertTriangle className="w-5 h-5 mr-2" />
+          Credit score has not been calculated. Please generate your score
           first.
         </div>
       </div>
@@ -165,7 +188,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
             <h2 className="text-xl font-bold text-gray-900">
               Credit Score Profile
             </h2>
-            <div className="text-3xl">{riskInfo.icon}</div>
+            <div className={`text-3xl ${riskInfo.color}`}>{riskInfo.icon}</div>
           </div>
 
           <div className="flex items-center gap-4 mb-4">
@@ -205,7 +228,9 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="text-2xl">{access.icon}</div>
+                    <div className={`text-2xl ${access.color}`}>
+                      {access.icon}
+                    </div>
                     <div>
                       <div className="font-semibold text-gray-900">
                         {tier.replace("_", "-")}
@@ -233,27 +258,21 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
         {/* Additional Guidelines */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="text-blue-600 text-xl">💡</div>
+            <div className="text-blue-600 text-xl">
+              <Info className="w-5 h-5" />
+            </div>
             <div>
               <h4 className="font-medium text-blue-900 mb-1">
                 General Information
               </h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>
-                  • Your credit score is a reflection of your on-chain activity.
-                </li>
-                <li>
-                  • Tier-1 pools typically contain the lowest-risk assets.
-                </li>
-                <li>
-                  • Interacting with high-risk pools should be done with caution
-                  and an understanding of the potential for capital loss.
-                </li>
-                <li>
-                  • Portfolio diversification is a common strategy to manage
-                  risk.
-                </li>
-              </ul>
+              <p className="text-sm text-blue-800">
+                This AI-predicted score is for informational purposes only and
+                does not constitute financial advice.
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
+                The analysis is based on on-chain data patterns and does not
+                represent a deep, financial audit of the address.
+              </p>
             </div>
           </div>
         </div>

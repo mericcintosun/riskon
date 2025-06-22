@@ -3,6 +3,18 @@
 import { useState, useEffect, useMemo } from "react";
 import Header from "../../components/Header.jsx";
 import Link from "next/link";
+import {
+  Link as LinkIcon,
+  Bot,
+  BarChart3,
+  Rocket,
+  Lock,
+  Zap,
+  Blocks,
+  Palette,
+  BookOpen,
+  Shield,
+} from "lucide-react";
 
 export default function HowItWorksPage() {
   const [activeStep, setActiveStep] = useState(0);
@@ -18,7 +30,7 @@ export default function HowItWorksPage() {
           "Connect your Stellar wallet using Albedo, xBull, or Freighter to get started.",
         details:
           "Secure connection with industry-standard protocols. Support for all major Stellar wallets including hardware wallets.",
-        icon: "🔗",
+        icon: <LinkIcon className="w-8 h-8" />,
         color: "blue",
         bgColor: "from-blue-500/10 to-purple-600/10",
         features: [
@@ -34,7 +46,7 @@ export default function HowItWorksPage() {
           "Our AI analyzes your transaction history and calculates your personalized risk score.",
         details:
           "Advanced machine learning algorithms process your on-chain data while maintaining complete privacy.",
-        icon: "🤖",
+        icon: <Bot className="w-8 h-8" />,
         color: "purple",
         bgColor: "from-purple-500/10 to-pink-600/10",
         features: [
@@ -50,7 +62,7 @@ export default function HowItWorksPage() {
           "Receive your risk score and insights to optimize your DeFi strategy.",
         details:
           "Comprehensive risk assessment with actionable recommendations and portfolio optimization tips.",
-        icon: "📊",
+        icon: <BarChart3 className="w-8 h-8" />,
         color: "emerald",
         bgColor: "from-emerald-500/10 to-green-600/10",
         features: [
@@ -66,7 +78,7 @@ export default function HowItWorksPage() {
           "Use your score to access better rates and opportunities in Blend and other protocols.",
         details:
           "Unlock premium DeFi features, better borrowing rates, and exclusive lending opportunities.",
-        icon: "🚀",
+        icon: <Rocket className="w-8 h-8" />,
         color: "amber",
         bgColor: "from-amber-500/10 to-orange-600/10",
         features: ["Better rates", "Premium access", "Exclusive opportunities"],
@@ -93,7 +105,7 @@ export default function HowItWorksPage() {
         title: "Privacy First",
         description:
           "All analysis happens in your browser. Your data never leaves your device.",
-        icon: "🔒",
+        icon: <Lock className="w-8 h-8" />,
         color: "emerald",
         features: [
           "Client-side processing",
@@ -102,24 +114,12 @@ export default function HowItWorksPage() {
         ],
         stats: "100% Private",
       },
-      {
-        title: "Better Rates",
-        description:
-          "Lower risk scores unlock better borrowing rates and lending opportunities.",
-        icon: "💰",
-        color: "blue",
-        features: [
-          "Up to 30% better rates",
-          "Premium tier access",
-          "Exclusive opportunities",
-        ],
-        stats: "30% Savings",
-      },
+
       {
         title: "Real-time",
         description:
           "Get instant results with sub-second finality on the Stellar network.",
-        icon: "⚡",
+        icon: <Zap className="w-8 h-8" />,
         color: "purple",
         features: [
           "Instant analysis",
@@ -143,7 +143,7 @@ export default function HowItWorksPage() {
           { label: "Consensus", value: "Stellar Consensus Protocol" },
           { label: "Finality", value: "3-5 seconds" },
         ],
-        icon: "⛓️",
+        icon: <Blocks className="w-8 h-8" />,
       },
       {
         title: "AI & Analytics",
@@ -153,7 +153,7 @@ export default function HowItWorksPage() {
           { label: "Privacy", value: "Zero data collection" },
           { label: "Performance", value: "Sub-second analysis" },
         ],
-        icon: "🤖",
+        icon: <Bot className="w-8 h-8" />,
       },
       {
         title: "User Experience",
@@ -163,7 +163,7 @@ export default function HowItWorksPage() {
           { label: "Mobile", value: "Native app experience" },
           { label: "Accessibility", value: "WCAG 2.1 AA" },
         ],
-        icon: "🎨",
+        icon: <Palette className="w-8 h-8" />,
       },
     ],
     []
@@ -259,10 +259,10 @@ export default function HowItWorksPage() {
                   >
                     <div className="flex items-start space-x-4">
                       <div
-                        className={`text-2xl p-3 rounded-xl ${
+                        className={`p-3 rounded-xl flex items-center justify-center ${
                           activeStep === index
-                            ? `bg-${step.color}-500/20`
-                            : "bg-slate-700/50"
+                            ? `bg-${step.color}-500/20 text-${step.color}-400`
+                            : "bg-slate-700/50 text-slate-300"
                         }`}
                       >
                         {step.icon}
@@ -292,7 +292,7 @@ export default function HowItWorksPage() {
               <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50">
                 <div className="text-center mb-6">
                   <div
-                    className={`text-4xl mb-4 p-4 rounded-2xl bg-${steps[activeStep].color}-500/20 inline-block`}
+                    className={`mb-4 p-4 rounded-2xl bg-${steps[activeStep].color}-500/20 inline-flex items-center justify-center text-${steps[activeStep].color}-400`}
                   >
                     {steps[activeStep].icon}
                   </div>
@@ -352,13 +352,13 @@ export default function HowItWorksPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {benefits.map((benefit, index) => (
                 <div key={index} className="group">
                   <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-6 border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 hover:transform hover:scale-105">
                     <div className="text-center mb-6">
                       <div
-                        className={`text-3xl mb-3 p-4 bg-${benefit.color}-500/20 rounded-2xl inline-block`}
+                        className={`mb-3 p-4 bg-${benefit.color}-500/20 rounded-2xl inline-flex items-center justify-center text-${benefit.color}-400`}
                       >
                         {benefit.icon}
                       </div>
@@ -415,7 +415,7 @@ export default function HowItWorksPage() {
                   className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-6 border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300"
                 >
                   <div className="text-center mb-6">
-                    <div className="text-3xl mb-3 p-4 bg-slate-700/50 rounded-2xl inline-block">
+                    <div className="mb-3 p-4 bg-slate-700/50 rounded-2xl inline-flex items-center justify-center text-slate-300">
                       {spec.icon}
                     </div>
                     <h3 className="text-xl font-bold text-white">
@@ -506,10 +506,10 @@ export default function HowItWorksPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                   <div className="text-2xl font-bold text-emerald-400 mb-2">
-                    99.9%
+                    100%
                   </div>
                   <div className="text-sm text-slate-400">Uptime</div>
                 </div>
@@ -524,12 +524,6 @@ export default function HowItWorksPage() {
                     $0.001
                   </div>
                   <div className="text-sm text-slate-400">Cost per Tx</div>
-                </div>
-                <div className="text-center p-4 bg-slate-800/50 rounded-xl">
-                  <div className="text-2xl font-bold text-amber-400 mb-2">
-                    95%
-                  </div>
-                  <div className="text-sm text-slate-400">Accuracy</div>
                 </div>
               </div>
             </div>
@@ -548,14 +542,14 @@ export default function HowItWorksPage() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link href="/wallet">
-                  <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg">
-                    <span className="mr-2">🚀</span>
+                  <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg inline-flex items-center">
+                    <Rocket className="mr-2 h-5 w-5" />
                     Connect Wallet Now
                   </button>
                 </Link>
                 <Link href="/features">
-                  <button className="border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 font-medium px-8 py-4 rounded-xl transition-all duration-200">
-                    <span className="mr-2">📖</span>
+                  <button className="border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 font-medium px-8 py-4 rounded-xl transition-all duration-200 inline-flex items-center">
+                    <BookOpen className="mr-2 h-5 w-5" />
                     Explore Features
                   </button>
                 </Link>
@@ -564,15 +558,15 @@ export default function HowItWorksPage() {
               {/* Trust Indicators */}
               <div className="flex justify-center items-center space-x-8 pt-6 border-t border-slate-700/30">
                 <div className="flex items-center space-x-2 text-slate-400">
-                  <span className="text-emerald-400">🔒</span>
+                  <Lock className="h-4 w-4 text-emerald-400" />
                   <span className="text-sm">Privacy First</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-400">
-                  <span className="text-blue-400">⚡</span>
+                  <Zap className="h-4 w-4 text-blue-400" />
                   <span className="text-sm">Lightning Fast</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-400">
-                  <span className="text-purple-400">🛡️</span>
+                  <Shield className="h-4 w-4 text-purple-400" />
                   <span className="text-sm">Blockchain Secured</span>
                 </div>
               </div>

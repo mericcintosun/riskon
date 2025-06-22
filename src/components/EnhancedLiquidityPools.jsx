@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { usePasskeyWallet } from "../lib/passkeyIntegration";
 import { useRiskTierContract } from "../lib/riskTierClient";
+import { motion } from "framer-motion";
+import { Info, ExternalLink, Link } from "lucide-react";
 
 /**
  * Enhanced Liquidity Pools Component

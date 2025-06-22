@@ -8,12 +8,22 @@ import {
 } from "../lib/blendHistoryAnalyzer";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
+import { motion } from "framer-motion";
+import {
+  TrendingUp,
+  TrendingDown,
+  Circle,
+  Clock,
+  Check,
+  X,
+  LineChart,
+} from "lucide-react";
 
 /**
  * Blend Protocol On-Chain History Component
  * Analyzes a user's past lending and borrowing activity on the Blend protocol.
  */
-export default function BlendHistoryPerformance({ onScoreImpactChange }) {
+export default function BlendHistoryPerformance() {
   const { walletAddress } = useWallet();
   const { toast } = useToast();
 
@@ -29,13 +39,9 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
       const cached = getCachedBlendHistory(walletAddress);
       if (cached && cached.success) {
         setHistoryData(cached);
-        // Notify parent component about score impact
-        if (onScoreImpactChange) {
-          onScoreImpactChange(cached.scoreImpact);
-        }
       }
     }
-  }, [walletAddress, onScoreImpactChange]);
+  }, [walletAddress]);
 
   /**
    * Run Blend Protocol history analysis
@@ -63,11 +69,6 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
 
         // Update state
         setHistoryData(analysisResult);
-
-        // Notify parent component about score impact
-        if (onScoreImpactChange) {
-          onScoreImpactChange(analysisResult.scoreImpact);
-        }
 
         if (analysisResult.transactionCount > 0) {
           toast.success(
@@ -250,23 +251,6 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           {historyData.transactionCount > 0 ? (
             <div className="space-y-6">
-              {/* Score Impact */}
-              <div className="text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Credit Score Impact
-                </div>
-                <div
-                  className={`text-2xl font-bold ${
-                    historyData.scoreImpact.totalChange >= 0
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }`}
-                >
-                  {historyData.scoreImpact.totalChange > 0 ? "+" : ""}
-                  {historyData.scoreImpact.totalChange} points
-                </div>
-              </div>
-
               {/* Key Metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
@@ -335,40 +319,6 @@ export default function BlendHistoryPerformance({ onScoreImpactChange }) {
 
               {/* Collapsible Details */}
               <div className="space-y-4">
-                {/* Score Impact Details */}
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      📊 Score Impact Details
-                    </h4>
-                    <button
-                      onClick={() => setShowDetails(!showDetails)}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                    >
-                      {showDetails ? "Hide" : "Show Details"}
-                    </button>
-                  </div>
-                  {showDetails && (
-                    <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                      {historyData.scoreImpact.breakdown.map((item, index) => (
-                        <li key={index} className="flex justify-between">
-                          <span>{item.reason}</span>
-                          <span
-                            className={
-                              item.change >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }
-                          >
-                            {item.change > 0 ? "+" : ""}
-                            {item.change}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
                 {/* Transaction History */}
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">

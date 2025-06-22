@@ -3,6 +3,21 @@
 import { useState } from "react";
 import Header from "../../components/Header.jsx";
 import Link from "next/link";
+import {
+  BrainCircuit,
+  Zap,
+  Trophy,
+  Link as LinkIcon,
+  BarChart3,
+  Wallet,
+  Blocks,
+  Bot,
+  Palette,
+  Rocket,
+  BookOpen,
+  Lock,
+  Shield,
+} from "lucide-react";
 
 export default function FeaturesPage() {
   const [activeFeature, setActiveFeature] = useState(0);
@@ -12,7 +27,7 @@ export default function FeaturesPage() {
       title: "AI-Powered Risk Analysis",
       description:
         "Advanced machine learning models analyze transaction patterns locally on your device for maximum privacy.",
-      icon: "🧠",
+      icon: <BrainCircuit className="w-6 h-6" />,
       color: "blue",
       benefits: [
         "Privacy-first approach",
@@ -25,25 +40,16 @@ export default function FeaturesPage() {
       title: "Stellar & Soroban Integration",
       description:
         "Built on Stellar's fast, low-cost network with next-generation Soroban smart contracts.",
-      icon: "⚡",
+      icon: <Zap className="w-6 h-6" />,
       color: "purple",
       benefits: ["3-5 second finality", "Ultra-low fees", "Proven security"],
       technical: "Soroban Smart Contracts",
     },
     {
-      title: "Dynamic NFT Badges",
-      description:
-        "Mint and showcase your risk tier achievements as evolving NFTs on the blockchain.",
-      icon: "🏆",
-      color: "emerald",
-      benefits: ["On-chain proof", "Dynamic metadata", "Transferable assets"],
-      technical: "SEP-41 NFT Standard",
-    },
-    {
       title: "DeFi Protocol Integration",
       description:
         "Seamlessly connect with Blend and other DeFi protocols for risk-adjusted lending and borrowing.",
-      icon: "🔗",
+      icon: <LinkIcon className="w-6 h-6" />,
       color: "amber",
       benefits: [
         "Automated risk tiers",
@@ -53,19 +59,10 @@ export default function FeaturesPage() {
       technical: "Blend Protocol API",
     },
     {
-      title: "Real-Time Leaderboard",
-      description:
-        "Global ranking system showcasing the most trusted addresses and risk management leaders.",
-      icon: "📊",
-      color: "indigo",
-      benefits: ["Social proof", "Competitive gaming", "Trust metrics"],
-      technical: "Horizon API + WebSockets",
-    },
-    {
       title: "Multi-Wallet Support",
       description:
         "Universal compatibility with all major Stellar wallets plus PWA mobile experience.",
-      icon: "👛",
+      icon: <Wallet className="w-6 h-6" />,
       color: "rose",
       benefits: ["Universal access", "Mobile-first", "Offline capable"],
       technical: "SEP-7 URI Scheme",
@@ -81,7 +78,7 @@ export default function FeaturesPage() {
         { label: "Consensus", value: "Stellar Consensus Protocol" },
         { label: "Finality", value: "3-5 seconds" },
       ],
-      icon: "⛓️",
+      icon: <Blocks className="w-8 h-8" />,
     },
     {
       title: "AI & Analytics",
@@ -91,7 +88,7 @@ export default function FeaturesPage() {
         { label: "Privacy", value: "Zero data collection" },
         { label: "Performance", value: "Sub-second analysis" },
       ],
-      icon: "🤖",
+      icon: <Bot className="w-8 h-8" />,
     },
     {
       title: "User Experience",
@@ -101,7 +98,7 @@ export default function FeaturesPage() {
         { label: "Mobile", value: "Native app experience" },
         { label: "Accessibility", value: "WCAG 2.1 AA" },
       ],
-      icon: "🎨",
+      icon: <Palette className="w-8 h-8" />,
     },
   ];
 
@@ -152,15 +149,7 @@ export default function FeaturesPage() {
             </p>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto mb-12">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">100%</div>
-                <div className="text-sm text-slate-400">Privacy Protected</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">&lt;1s</div>
-                <div className="text-sm text-slate-400">Analysis Time</div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-6 max-w-lg mx-auto mb-12">
               <div className="text-center">
                 <div className="text-2xl font-bold text-white mb-1">6+</div>
                 <div className="text-sm text-slate-400">Wallet Support</div>
@@ -198,10 +187,10 @@ export default function FeaturesPage() {
                   >
                     <div className="flex items-start space-x-4">
                       <div
-                        className={`text-2xl p-3 rounded-xl ${
+                        className={`p-3 rounded-xl ${
                           activeFeature === index
-                            ? `bg-${feature.color}-500/20`
-                            : "bg-slate-700/50"
+                            ? `bg-${feature.color}-500/20 text-${feature.color}-400`
+                            : "bg-slate-700/50 text-slate-300"
                         }`}
                       >
                         {feature.icon}
@@ -223,7 +212,7 @@ export default function FeaturesPage() {
               <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50">
                 <div className="text-center mb-6">
                   <div
-                    className={`text-4xl mb-4 p-4 rounded-2xl bg-${features[activeFeature].color}-500/20 inline-block`}
+                    className={`mb-4 p-4 rounded-2xl bg-${features[activeFeature].color}-500/20 text-${features[activeFeature].color}-400 inline-flex`}
                   >
                     {features[activeFeature].icon}
                   </div>
@@ -286,10 +275,10 @@ export default function FeaturesPage() {
                   className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-6 border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300"
                 >
                   <div className="text-center mb-6">
-                    <div className="text-3xl mb-3 p-4 bg-slate-700/50 rounded-2xl inline-block">
+                    <div className="p-4 bg-slate-700/50 rounded-2xl inline-flex text-slate-300">
                       {spec.icon}
                     </div>
-                    <h3 className="text-xl font-bold text-white">
+                    <h3 className="text-xl font-bold text-white mt-3">
                       {spec.title}
                     </h3>
                   </div>
@@ -364,7 +353,7 @@ export default function FeaturesPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                   <div className="text-2xl font-bold text-emerald-400 mb-2">
                     99.9%
@@ -372,22 +361,10 @@ export default function FeaturesPage() {
                   <div className="text-sm text-slate-400">Uptime</div>
                 </div>
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
-                  <div className="text-2xl font-bold text-blue-400 mb-2">
-                    0.8s
-                  </div>
-                  <div className="text-sm text-slate-400">Avg Analysis</div>
-                </div>
-                <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                   <div className="text-2xl font-bold text-purple-400 mb-2">
                     $0.001
                   </div>
                   <div className="text-sm text-slate-400">Cost per Tx</div>
-                </div>
-                <div className="text-center p-4 bg-slate-800/50 rounded-xl">
-                  <div className="text-2xl font-bold text-amber-400 mb-2">
-                    95%
-                  </div>
-                  <div className="text-sm text-slate-400">Accuracy</div>
                 </div>
               </div>
             </div>
@@ -406,14 +383,14 @@ export default function FeaturesPage() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/wallet">
-                  <button className="btn-primary text-lg px-8 py-4 transform hover:scale-105 transition-all duration-200">
-                    <span className="mr-2">🚀</span>
+                  <button className="btn-primary text-lg px-8 py-4 transform hover:scale-105 transition-all duration-200 inline-flex items-center">
+                    <Rocket className="mr-2 h-5 w-5" />
                     Start Your Analysis
                   </button>
                 </Link>
                 <Link href="/how-it-works">
-                  <button className="btn-secondary text-lg px-8 py-4">
-                    <span className="mr-2">📖</span>
+                  <button className="btn-secondary text-lg px-8 py-4 inline-flex items-center">
+                    <BookOpen className="mr-2 h-5 w-5" />
                     Learn How It Works
                   </button>
                 </Link>
@@ -422,15 +399,15 @@ export default function FeaturesPage() {
               {/* Trust Indicators */}
               <div className="flex justify-center items-center space-x-8 mt-8 pt-8 border-t border-slate-700/30">
                 <div className="flex items-center space-x-2 text-slate-400">
-                  <span className="text-emerald-400">🔒</span>
+                  <Lock className="h-4 w-4 text-emerald-400" />
                   <span className="text-sm">Privacy First</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-400">
-                  <span className="text-blue-400">⚡</span>
+                  <Zap className="h-4 w-4 text-blue-400" />
                   <span className="text-sm">Lightning Fast</span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-400">
-                  <span className="text-purple-400">🛡️</span>
+                  <Shield className="h-4 w-4 text-purple-400" />
                   <span className="text-sm">Blockchain Secured</span>
                 </div>
               </div>
