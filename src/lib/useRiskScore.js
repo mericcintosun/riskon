@@ -24,7 +24,7 @@ export function useRiskScore(features) {
           return;
         }
 
-        // Tüm değerlerin geçerli sayı olduğunu kontrol et
+        // Check if all values are valid numbers
         if (!features.every((f) => typeof f === "number" && !isNaN(f))) {
           setScore(null);
           setLoading(false);
@@ -33,14 +33,14 @@ export function useRiskScore(features) {
 
         const model = await getModel();
         if (!model) {
-          console.error("Model yüklenemedi");
-          setError("Model yüklenemedi");
+          console.error("Model could not be loaded");
+          setError("Model could not be loaded");
           setScore(null);
           setLoading(false);
           return;
         }
 
-        // Normalizasyon - features zaten normalize edilmiş olmalı (0-1 arası)
+        // Normalization - features should already be normalized (0-1 range)
         const input = tf.tensor2d([features]); // 1×3
         const output = model.predict(input);
         const prob = (await output.data())[0]; // 0-1
@@ -55,7 +55,7 @@ export function useRiskScore(features) {
       } catch (error) {
         console.error("Risk score calculation error:", error);
         if (!cancelled) {
-          setError(error.message || "Risk skoru hesaplanamadı");
+          setError(error.message || "Risk score could not be calculated");
           setScore(null);
           setLoading(false);
         }

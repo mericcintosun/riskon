@@ -13,7 +13,7 @@ export async function testContractExists() {
     const contractInfo = await getContractInfo();
     return contractInfo.exists;
   } catch (error) {
-    console.error("❌ Contract test hatası:", error);
+    console.error("❌ Contract test error:", error);
     return false;
   }
 }
@@ -80,11 +80,11 @@ export async function getContractInfo() {
       }
     }
 
-    // Contract ID formatını kontrol et
+    // Check contract ID format
     if (!CONTRACT_ID || CONTRACT_ID.length !== 56) {
       return {
         exists: false,
-        error: "Geçersiz Contract ID formatı",
+        error: "Invalid Contract ID format",
       };
     }
 
@@ -140,7 +140,7 @@ export async function getContractInfo() {
         data: {
           contractId: CONTRACT_ID,
           status: "Network is accessible, assuming contract is deployed",
-          note: "Contract CLI ile test edildi ve çalışıyor",
+          note: "Contract tested with CLI and working",
         },
       };
     }
@@ -150,12 +150,12 @@ export async function getContractInfo() {
       exists: true,
       data: {
         contractId: CONTRACT_ID,
-        status: "Contract deploy edildi ve hazır",
-        note: "Contract CLI ile test edildi ve çalışıyor",
+        status: "Contract deployed and ready",
+        note: "Contract tested with CLI and working",
       },
     };
   } catch (error) {
-    console.error("❌ Contract bilgileri alınamadı:", error);
+    console.error("❌ Contract information could not be retrieved:", error);
 
     // Enhanced error handling
     if (
@@ -164,7 +164,7 @@ export async function getContractInfo() {
     ) {
       return {
         exists: false,
-        error: "Ağ bağlantı hatası. Stellar Testnet'e erişilemiyor.",
+        error: "Network connection error. Stellar Testnet is unreachable.",
       };
     } else if (error.message?.includes("404")) {
       return {
@@ -179,7 +179,7 @@ export async function getContractInfo() {
     } else {
       return {
         exists: false,
-        error: `Contract test hatası: ${error.message}`,
+        error: `Contract test error: ${error.message}`,
       };
     }
   }

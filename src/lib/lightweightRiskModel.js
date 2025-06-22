@@ -42,7 +42,6 @@ const NORMALIZATION = {
  */
 export function calculateRiskScore(metrics) {
   try {
-
     // Normalize features to 0-1 range
     const normalizedFeatures = normalizeFeatures(metrics);
 
@@ -190,11 +189,11 @@ function generateExplanation(riskScore, featureImportance) {
 
   // Main tier explanation
   if (tier === "TIER_1") {
-    explanation.push("🟢 Düşük Risk - Premium havuzlara erişim");
+    explanation.push("🟢 Low Risk - Premium pool access");
   } else if (tier === "TIER_2") {
-    explanation.push("🟡 Orta Risk - Standart havuzlara erişim");
+    explanation.push("🟡 Medium Risk - Standard pool access");
   } else {
-    explanation.push("🔴 Yüksek Risk - Fırsat havuzlarına erişim");
+    explanation.push("🔴 High Risk - Opportunity pool access");
   }
 
   // Feature-based explanations
@@ -205,25 +204,25 @@ function generateExplanation(riskScore, featureImportance) {
   sortedFeatures.slice(0, 2).forEach(([feature, data]) => {
     if (feature === "totalVolume") {
       if (data.isPositive && data.rawValue > 100) {
-        explanation.push("✅ Yüksek işlem hacmi güven artırıyor");
+        explanation.push("✅ High transaction volume increases trust");
       } else {
-        explanation.push("⚠️ Düşük işlem hacmi riski artırıyor");
+        explanation.push("⚠️ Low transaction volume increases risk");
       }
     } else if (feature === "uniqueCounterparties") {
       if (data.isPositive && data.rawValue > 5) {
-        explanation.push("✅ Çeşitli karşı taraflar güven artırıyor");
+        explanation.push("✅ Diverse counterparties increase trust");
       } else {
-        explanation.push("⚠️ Az sayıda karşı taraf riski artırıyor");
+        explanation.push("⚠️ Few counterparties increase risk");
       }
     } else if (feature === "assetDiversity") {
       if (data.isPositive && data.rawValue > 2) {
-        explanation.push("✅ Varlık çeşitliliği güven artırıyor");
+        explanation.push("✅ Asset diversity increases trust");
       } else {
-        explanation.push("⚠️ Tek varlık kullanımı riski artırıyor");
+        explanation.push("⚠️ Single asset usage increases risk");
       }
     } else if (feature === "nightDayRatio") {
       if (!data.isPositive && data.rawValue > 0.5) {
-        explanation.push("⚠️ Yüksek gece aktivitesi riski artırıyor");
+        explanation.push("⚠️ High night activity increases risk");
       }
     }
   });
@@ -239,21 +238,23 @@ function generateRecommendations(featureImportance) {
 
   Object.entries(featureImportance).forEach(([feature, data]) => {
     if (feature === "totalVolume" && data.rawValue < 50) {
-      recommendations.push("📈 İşlem hacmini organik olarak artırın");
+      recommendations.push("📈 Increase transaction volume organically");
     }
     if (feature === "uniqueCounterparties" && data.rawValue < 3) {
-      recommendations.push("🤝 Farklı karşı taraflarla işlem yapın");
+      recommendations.push("🤝 Transact with different counterparties");
     }
     if (feature === "assetDiversity" && data.rawValue < 2) {
-      recommendations.push("🎯 Farklı varlıklarla işlem çeşitlendirin");
+      recommendations.push("🎯 Diversify transactions with different assets");
     }
     if (feature === "nightDayRatio" && data.rawValue > 0.3) {
-      recommendations.push("🌞 Gündüz saatlerde daha fazla işlem yapın");
+      recommendations.push("🌞 Make more transactions during daytime hours");
     }
   });
 
   if (recommendations.length === 0) {
-    recommendations.push("🎉 Mükemmel! Risk profiliniz çok iyi durumda");
+    recommendations.push(
+      "🎉 Excellent! Your risk profile is in great condition"
+    );
   }
 
   return recommendations;
@@ -263,7 +264,6 @@ function generateRecommendations(featureImportance) {
  * Fallback rule-based calculation if ML fails
  */
 function fallbackRiskCalculation(metrics) {
-
   let score = 50; // Start with medium risk
 
   // Simple rule-based adjustments
@@ -279,8 +279,8 @@ function fallbackRiskCalculation(metrics) {
     tier: calculateTier(score),
     confidence: 75,
     featureImportance: {},
-    explanation: ["📊 Basit kural tabanlı hesaplama kullanıldı"],
-    recommendations: ["🔄 Daha detaylı analiz için tekrar deneyin"],
+    explanation: ["📊 Simple rule-based calculation was used"],
+    recommendations: ["🔄 Try again for more detailed analysis"],
     rawMetrics: metrics,
     modelVersion: "fallback-1.0",
   };
