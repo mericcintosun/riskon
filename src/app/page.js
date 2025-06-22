@@ -508,34 +508,53 @@ export default function RiskScoringApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header Navigation */}
-      <Header
-        walletAddress={walletAddress}
-        connectedWallet={connectedWallet}
-        isLoading={walletLoading}
-        onConnectWallet={handleConnectWallet}
-        onDisconnectWallet={handleDisconnectWallet}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <Header />
 
-      {/* Main Content - Risk Scoring Dashboard */}
-      <main className="flex-1 pb-8">
-        <div className="container-modern section-compact">
-          {/* Page Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-hero mb-8">
-              Risk <span className="text-gradient-accent">Assessment</span>
+      <main className="pt-8 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Hero Section */}
+          <div className="text-center mb-20">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              AI-Powered{" "}
+              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                Risk Scoring
+              </span>
             </h1>
-            <p className="text-body max-w-2xl mx-auto mb-8">
-              Calculate your personalized blockchain risk score using AI-powered
-              analysis. Get tailored DeFi recommendations based on your
-              transaction patterns.
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-8">
+              Calculate your personalized blockchain risk score using advanced
+              AI analysis. Get tailored DeFi recommendations and unlock better
+              rates based on your transaction patterns.
             </p>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto mb-12">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white mb-1">
+                  AI-Powered
+                </div>
+                <div className="text-sm text-slate-400">Risk Analysis</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white mb-1">&lt;5s</div>
+                <div className="text-sm text-slate-400">Analysis Time</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white mb-1">100%</div>
+                <div className="text-sm text-slate-400">Privacy Protected</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white mb-1">
+                  Instant
+                </div>
+                <div className="text-sm text-slate-400">DeFi Access</div>
+              </div>
+            </div>
 
             {/* Quick Navigation */}
             <div className="flex flex-wrap justify-center gap-4 mb-8">
               <Link href="/how-it-works">
-                <button className="btn-secondary px-6 py-3">
+                <button className="bg-slate-800/50 hover:bg-slate-700/50 text-white px-6 py-3 rounded-xl border border-slate-700/50 transition-all duration-300 flex items-center">
                   <svg
                     className="w-5 h-5 mr-2"
                     fill="none"
@@ -553,7 +572,7 @@ export default function RiskScoringApp() {
                 </button>
               </Link>
               <Link href="/features">
-                <button className="btn-secondary px-6 py-3">
+                <button className="bg-slate-800/50 hover:bg-slate-700/50 text-white px-6 py-3 rounded-xl border border-slate-700/50 transition-all duration-300 flex items-center">
                   <svg
                     className="w-5 h-5 mr-2"
                     fill="none"
@@ -570,87 +589,64 @@ export default function RiskScoringApp() {
                   Features
                 </button>
               </Link>
-              {!walletAddress && (
-                <Link href="/wallet">
-                  <button className="btn-primary px-6 py-3">
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
-                    Connect Wallet
-                  </button>
-                </Link>
-              )}
-
-              {/* Issue Analysis Button */}
-              <button
-                onClick={analyzeApplication}
-                disabled={isAnalyzing}
-                className="btn-secondary px-6 py-3 disabled:opacity-50"
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                {isAnalyzing ? "Analyzing..." : "Check Issues"}
-              </button>
+              <Link href="/about">
+                <button className="bg-slate-800/50 hover:bg-slate-700/50 text-white px-6 py-3 rounded-xl border border-slate-700/50 transition-all duration-300 flex items-center">
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  About
+                </button>
+              </Link>
             </div>
           </div>
 
           {/* Wallet Connection Prompt */}
           {!walletAddress && (
-            <div className="card-glass max-w-2xl mx-auto mb-12 text-center animate-fade-in">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-purple-600/10 rounded-3xl"></div>
-                <div className="relative">
-                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center">
-                    <svg
-                      className="w-8 h-8 text-violet-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
+            <div className="max-w-4xl mx-auto mb-16">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 text-center">
+                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center">
+                  <svg
+                    className="w-10 h-10 text-violet-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-4">
+                  Connect Your Wallet
+                </h2>
+                <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
+                  To calculate your risk score and access DeFi features, please
+                  connect your Stellar wallet first.
+                </p>
+                {!isReady && (
+                  <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    <p className="text-amber-400 text-sm">
+                      ⚠️ Wallet system is initializing... Please wait
+                    </p>
                   </div>
-                  <h2 className="text-subheading mb-4">Connect Your Wallet</h2>
-                  <p className="text-body mb-6">
-                    To calculate your risk score and access DeFi features,
-                    please connect your Stellar wallet first.
-                  </p>
-                  {!isReady && (
-                    <div className="mb-4 p-3 bg-amber-500/20 rounded-lg">
-                      <p className="text-amber-400 text-sm">
-                        ⚠️ Wallet system is initializing... Please wait
-                      </p>
-                    </div>
-                  )}
+                )}
+                <div className="flex flex-wrap justify-center gap-4">
                   <Link href="/wallet">
                     <button
-                      className="btn-primary text-lg px-10 py-4 disabled:opacity-50"
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center disabled:opacity-50"
                       disabled={!isReady}
                     >
                       <svg
@@ -669,19 +665,13 @@ export default function RiskScoringApp() {
                       Connect Wallet
                     </button>
                   </Link>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Contract Status - Only show if there's an issue */}
-          {contractStatus === "missing" && (
-            <div className="card-modern border-red-500/30 mb-8 animate-fade-in">
-              <div className="flex items-center space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center">
+                  <button
+                    onClick={analyzeApplication}
+                    disabled={isAnalyzing}
+                    className="bg-slate-700/50 hover:bg-slate-600/50 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center disabled:opacity-50"
+                  >
                     <svg
-                      className="w-6 h-6 text-red-400"
+                      className="w-6 h-6 mr-3"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -690,22 +680,90 @@ export default function RiskScoringApp() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
+                    {isAnalyzing ? "Analyzing..." : "Check Issues"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Contract Status - Only show if there's an issue */}
+          {contractStatus === "missing" && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center">
+                      <svg
+                        className="w-6 h-6 text-red-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
                   </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-red-400 mb-1">
+                      Smart Contract Not Found
+                    </h3>
+                    <p className="text-slate-400">
+                      Contract not deployed or inaccessible
+                    </p>
+                  </div>
+                  <button
+                    onClick={testContract}
+                    className="bg-slate-700/50 hover:bg-slate-600/50 text-white px-4 py-2 rounded-xl transition-all duration-300 flex items-center"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Retry
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-subheading text-red-400 mb-1">
-                    Smart Contract Not Found
-                  </h3>
-                  <p className="text-caption">
-                    Contract not deployed or inaccessible
-                  </p>
-                </div>
-                <button onClick={testContract} className="btn-secondary">
+              </div>
+            </div>
+          )}
+
+          {/* Risk Scoring Section */}
+          {walletAddress && (
+            <div className="max-w-6xl mx-auto mb-16">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold text-white mb-4">Risk Score Analysis</h2>
+                <p className="text-slate-400 text-lg">Choose your preferred analysis method</p>
+              </div>
+
+              {/* Analysis Mode Toggle */}
+              <div className="flex items-center justify-center space-x-4 mb-12 flex-wrap">
+                <button
+                  onClick={() => setAnalysisMode("enhanced")}
+                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
+                    analysisMode === "enhanced"
+                      ? "bg-gradient-to-r from-emerald-500/20 to-blue-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
+                  }`}
+                >
                   <svg
-                    className="w-4 h-4 mr-2"
+                    className="w-5 h-5 mr-2"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -714,94 +772,60 @@ export default function RiskScoringApp() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                     />
                   </svg>
-                  Retry
+                  🧠 AI Enhanced
+                </button>
+                <button
+                  onClick={() => setAnalysisMode("auto")}
+                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
+                    analysisMode === "auto"
+                      ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
+                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
+                  }`}
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  ⚡ Quick Auto
+                </button>
+                <button
+                  onClick={() => setAnalysisMode("manual")}
+                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
+                    analysisMode === "manual"
+                      ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
+                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
+                  }`}
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    />
+                  </svg>
+                  ✍️ Manual
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Risk Scoring Form */}
-          {walletAddress && (
-            <div className="card-modern max-w-2xl mx-auto mb-8 animate-slide-up">
-              <div className="mb-6">
-                <h2 className="text-subheading mb-4">Risk Score Analysis</h2>
-
-                {/* Analysis Mode Toggle */}
-                <div className="flex items-center justify-center space-x-2 mb-6 flex-wrap">
-                  <button
-                    onClick={() => setAnalysisMode("enhanced")}
-                    className={`px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
-                      analysisMode === "enhanced"
-                        ? "bg-gradient-to-r from-emerald-500/20 to-blue-500/20 text-emerald-400 border border-emerald-500/30"
-                        : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-                    }`}
-                  >
-                    <svg
-                      className="w-4 h-4 mr-2 inline"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                      />
-                    </svg>
-                    🧠 AI Enhanced
-                  </button>
-                  <button
-                    onClick={() => setAnalysisMode("auto")}
-                    className={`px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
-                      analysisMode === "auto"
-                        ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
-                        : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-                    }`}
-                  >
-                    <svg
-                      className="w-4 h-4 mr-2 inline"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    Quick Auto
-                  </button>
-                  <button
-                    onClick={() => setAnalysisMode("manual")}
-                    className={`px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
-                      analysisMode === "manual"
-                        ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
-                        : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-                    }`}
-                  >
-                    <svg
-                      className="w-4 h-4 mr-2 inline"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                    Manual
-                  </button>
-                </div>
-              </div>
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8">
 
               {/* Enhanced AI Analysis */}
               {analysisMode === "enhanced" && <AutomatedRiskAnalyzer />}
@@ -1145,6 +1169,7 @@ export default function RiskScoringApp() {
                   </div>
                 )}
               </div>
+            </div>
             </div>
           )}
 
