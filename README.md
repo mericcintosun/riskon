@@ -1,187 +1,187 @@
 # Riskon - Stellar Risk Scoring & Blend DeFi Platform
 
-Stellar Hackathon için geliştirilmiş risk tabanlı DeFi önerileri sunan platform. Kullanıcıların işlem geçmişine dayalı risk skorlarını hesaplayan ve bu skorlara göre kişiselleştirilmiş Blend DeFi önerileri sunan bir uygulama.
+A platform developed for Stellar Hackathon that provides risk-based DeFi recommendations. An application that calculates users' risk scores based on transaction history and offers personalized Blend DeFi recommendations according to these scores.
 
-## 🚀 Özellikler
+## 🚀 Features
 
-### ⚡ Risk Skorlama Sistemi
+### ⚡ Risk Scoring System
 
-- **Otomatik Wallet Analizi**: Stellar Horizon API'den işlem geçmişi otomatik çekilir
-- **6 faktörlü makine öğrenmesi modeli**
-- İşlem sayısı, saat aralığı, varlık çeşidi analizi (otomatik)
-- Opsiyonel: ortalama/max tutar, gece/gündüz oranı
-- Manuel mod da desteklenir (fallback)
-- Stellar blockchain'e kayıt (Soroban smart contract)
+- **Automatic Wallet Analysis**: Transaction history is automatically pulled from Stellar Horizon API
+- **6-factor machine learning model**
+- Transaction count, time interval, asset diversity analysis (automatic)
+- Optional: average/max amount, night/day ratio
+- Manual mode also supported (fallback)
+- Record to Stellar blockchain (Soroban smart contract)
 
-### 🌊 Blend DeFi Entegrasyonu
+### 🌊 Blend DeFi Integration
 
-- **Demo Pool Sistemi** (Stable çalışır)
-- Supply, Borrow, Withdraw, Repay işlemleri
-- Risk tabanlı öneriler
-- Multi-asset desteği (XLM, USDC, BLND, wETH, wBTC)
+- **Demo Pool System** (Stable working)
+- Supply, Borrow, Withdraw, Repay operations
+- Risk-based recommendations
+- Multi-asset support (XLM, USDC, BLND, wETH, wBTC)
 
-### 💰 Wallet Desteği
+### 💰 Wallet Support
 
 - Albedo, xBull, Freighter
-- Stellar Testnet entegrasyonu
-- Güvenli key yönetimi
+- Stellar Testnet integration
+- Secure key management
 
-## 🛠️ Teknoloji Stack
+## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 15, React 19, Tailwind CSS
 - **Blockchain**: Stellar Testnet, Soroban Smart Contracts
 - **DeFi**: Blend Protocol v2 SDK
 - **Risk Scoring**: JavaScript + Rust (Soroban)
 
-## 📁 Proje Yapısı
+## 📁 Project Structure
 
 ```
 stellar-hackathon/
 ├── src/
 │   ├── app/
-│   │   ├── page.js               # Ana uygulama
+│   │   ├── page.js               # Main application
 │   │   └── layout.js             # Layout
 │   ├── components/
-│   │   ├── BlendDashboard.jsx    # DeFi işlem paneli
-│   │   └── Header.jsx            # Navigasyon
+│   │   ├── BlendDashboard.jsx    # DeFi transaction panel
+│   │   └── Header.jsx            # Navigation
 │   ├── lib/
-│   │   ├── blendConfig.js        # Blend konfigürasyonu
-│   │   ├── blendUtils.js         # DeFi işlem fonksiyonları
-│   │   ├── writeScore.js         # Blockchain yazma
-│   │   └── useRiskScore.js       # Risk skoru hook
+│   │   ├── blendConfig.js        # Blend configuration
+│   │   ├── blendUtils.js         # DeFi transaction functions
+│   │   ├── writeScore.js         # Blockchain writing
+│   │   └── useRiskScore.js       # Risk score hook
 │   └── providers/
 │       └── WalletProvider.jsx    # Wallet context
 ├── risk_score/                  # Rust smart contract
-│   └── src/lib.rs               # Risk skoru kaydetme
-└── docs/                       # Dokümantasyon
+│   └── src/lib.rs               # Risk score recording
+└── docs/                       # Documentation
 ```
 
-## 🚀 Kurulum ve Çalıştırma
+## 🚀 Installation and Running
 
-### Gereksinimler
+### Requirements
 
 - Node.js 18+
-- npm veya yarn
+- npm or yarn
 
-### Adımlar
+### Steps
 
-1. **Projeyi klonlayın**
+1. **Clone the project**
 
 ```bash
 git clone <repository-url>
 cd stellar-hackathon
 ```
 
-2. **Bağımlılıkları yükleyin**
+2. **Install dependencies**
 
 ```bash
 npm install
 ```
 
-3. **Uygulamayı çalıştırın**
+3. **Run the application**
 
 ```bash
 npm run dev
 ```
 
-4. **Tarayıcıda açın**
+4. **Open in browser**
 
 ```
 http://localhost:3000
 ```
 
-## 📱 Kullanım Kılavuzu
+## 📱 Usage Guide
 
-### 1. Risk Skoru Hesaplama
+### 1. Risk Score Calculation
 
-1. Wallet bağlayın (Albedo/xBull/Freighter)
-2. İşlem verilerinizi girin:
-   - İşlem sayısı (0-100)
-   - Ortalama saat aralığı (0-24)
-   - Varlık çeşidi (0-10)
-   - Opsiyonel: Ortalama/Max tutar, Gece oranı
-3. "Risk Skorunu Hesapla ve Kaydet" butonuna tıklayın
-4. Blockchain'e kaydetme işlemini onaylayın
+1. Connect wallet (Albedo/xBull/Freighter)
+2. Enter your transaction data:
+   - Transaction count (0-100)
+   - Average time interval (0-24)
+   - Asset diversity (0-10)
+   - Optional: Average/Max amount, Night ratio
+3. Click "Calculate and Save Risk Score" button
+4. Confirm blockchain recording transaction
 
 ### 2. Blend DeFi Dashboard
 
-Risk skoru kaydedildikten sonra:
+After risk score is recorded:
 
-- ✅ Blend Dashboard otomatik görünür
-- 🎯 Risk tabanlı öneriler gösterilir
-- 🌊 Demo pool'larla DeFi işlemleri test edebilirsiniz
+- ✅ Blend Dashboard appears automatically
+- 🎯 Risk-based recommendations are shown
+- 🌊 Test DeFi operations with demo pools
 
-### 3. Demo Pool İşlemleri
+### 3. Demo Pool Operations
 
-- **Supply**: Teminat yatırma simülasyonu
-- **Borrow**: Borç alma simülasyonu
-- **Withdraw**: Çekme simülasyonu
-- **Repay**: Ödeme simülasyonu
+- **Supply**: Collateral deposit simulation
+- **Borrow**: Borrowing simulation
+- **Withdraw**: Withdrawal simulation
+- **Repay**: Payment simulation
 
-## ⚠️ Önemli Notlar
+## ⚠️ Important Notes
 
-### Mevcut Durum
+### Current Status
 
-- ✅ Risk skorlama sistemi çalışıyor
-- ✅ Demo pool'lar stabil çalışıyor
-- ⚠️ Gerçek Blend pool'lar geçici olarak devre dışı
-- 🔧 Blend SDK v2 konfigürasyon sorunları nedeniyle
+- ✅ Risk scoring system working
+- ✅ Demo pools working stably
+- ⚠️ Real Blend pools temporarily disabled
+- 🔧 Due to Blend SDK v2 configuration issues
 
-### Risk Önerileri
+### Risk Recommendations
 
-- **Düşük Risk (0-30)**: %80 teminat oranı, agresif pozisyonlar
-- **Orta Risk (31-70)**: %70 teminat oranı, dengeli yaklaşım
-- **Yüksek Risk (71-100)**: %50 teminat oranı, konservatif strateji
+- **Low Risk (0-30)**: 80% collateral ratio, aggressive positions
+- **Medium Risk (31-70)**: 70% collateral ratio, balanced approach
+- **High Risk (71-100)**: 50% collateral ratio, conservative strategy
 
-## 🔧 Geliştirme Notları
+## 🔧 Development Notes
 
-### Bilinen Sorunlar
+### Known Issues
 
-1. ✅ **ÇÖZÜLDÜ**: React key prop hataları
-2. ✅ **ÇÖZÜLDÜ**: Pool loading hatası (demo modda bypass)
-3. ⚠️ **DEVAM EDIYOR**: Blend SDK v2 `min_collateral` uyumsuzluğu
+1. ✅ **RESOLVED**: React key prop errors
+2. ✅ **RESOLVED**: Pool loading error (bypassed in demo mode)
+3. ⚠️ **ONGOING**: Blend SDK v2 `min_collateral` incompatibility
 
-### Sonraki Adımlar
+### Next Steps
 
-- [ ] Blend SDK konfigürasyon sorunlarını çöz
-- [ ] Gerçek pool'ları yeniden aktifleştir
-- [ ] Mainnet desteği ekle
-- [ ] Gelişmiş risk analitikleri
+- [ ] Resolve Blend SDK configuration issues
+- [ ] Reactivate real pools
+- [ ] Add Mainnet support
+- [ ] Advanced risk analytics
 
-## 📋 Test Senaryosu
+## 📋 Test Scenario
 
-1. **Risk Skoru Testi**
+1. **Risk Score Test**
 
-   - İşlem sayısı: 25, Saat aralığı: 8, Varlık çeşidi: 3
-   - Beklenen: ~40-50 risk skoru (Orta Risk)
+   - Transaction count: 25, Time interval: 8, Asset diversity: 3
+   - Expected: ~40-50 risk score (Medium Risk)
 
-2. **Demo Pool Testi**
+2. **Demo Pool Test**
 
-   - Demo Main Pool seçin
-   - 10 XLM supply simülasyonu yapın
-   - Success mesajını onaylayın
+   - Select Demo Main Pool
+   - Perform 10 XLM supply simulation
+   - Confirm success message
 
-3. **Wallet Testi**
-   - Farklı wallet'ları test edin
-   - Bağlantı kesme/yeniden bağlama
+3. **Wallet Test**
+   - Test different wallets
+   - Disconnect/reconnect
 
-## 🤝 Katkıda Bulunma
+## 🤝 Contributing
 
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
-3. Commit yapın (`git commit -m 'Add some AmazingFeature'`)
-4. Push yapın (`git push origin feature/AmazingFeature`)
-5. Pull Request oluşturun
+1. Fork it
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Create a Pull Request
 
-## 📄 Lisans
+## 📄 License
 
-Bu proje Stellar Hackathon için geliştirilmiştir.
+This project was developed for Stellar Hackathon.
 
-## 📞 İletişim
+## 📞 Contact
 
-- GitHub Issues: Teknik problemler için
-- Stellar Discord: Topluluk desteği için
+- GitHub Issues: For technical problems
+- Stellar Discord: For community support
 
 ---
 
-**Not**: Bu uygulama Stellar Testnet üzerinde çalışır. Mainnet kullanımı için ek güvenlik önlemleri gereklidir.
+**Note**: This application runs on Stellar Testnet. Additional security measures are required for Mainnet usage.
