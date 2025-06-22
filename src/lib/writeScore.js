@@ -40,6 +40,17 @@ export async function writeScore({ address, score }) {
     const addrVal = Address.fromString(address).toScVal();
     const scoreVal = nativeToScVal(Math.round(score), { type: "u32" });
 
+    // Check address type and handle accordingly
+    if (address.startsWith("C")) {
+      // Smart contract addresses cannot be used directly for transactions
+      console.log(
+        "⚠️ Passkey smart contract detected - this function doesn't support smart contracts"
+      );
+      throw new Error(
+        "Passkey smart contracts are not supported by this function. Please use the enhanced blockchain writer."
+      );
+    }
+
     // Get account information with auto-creation
     let account;
     try {
