@@ -64,8 +64,14 @@ impl RiskTierContract {
         }
 
         // Store user's chosen tier separately for quick access
-        let chosen_key = (user, Symbol::new(&env, "chosen_tier"));
+        let chosen_key = (user.clone(), Symbol::new(&env, "chosen_tier"));
         env.storage().persistent().set(&chosen_key, &chosen_tier);
+
+        // Emit Event for Indexers
+        env.events().publish(
+            (Symbol::new(&env, "risk_set"), user),
+            (score, tier, chosen_tier),
+        );
     }
 
     /// Get complete risk and tier data for user
@@ -130,10 +136,14 @@ impl RiskTierContract {
             env.storage().persistent().set(&tuple_key, &risk_data);
 
             // Update chosen tier cache
-            let chosen_key = (user, Symbol::new(&env, "chosen_tier"));
+            let chosen_key = (user.clone(), Symbol::new(&env, "chosen_tier"));
             env.storage()
                 .persistent()
                 .set(&chosen_key, &new_chosen_tier);
+
+            // Emit Event for Indexers
+            env.events()
+                .publish((Symbol::new(&env, "tier_updated"), user), new_chosen_tier);
         }
     }
 
