@@ -76,14 +76,7 @@ async function testFileStructure() {
     }
   }
 
-  // Check for test files separately (they might be in root or elsewhere)
-  const testFileExists = fs.existsSync(path.join(__dirname, 'test-indexeddb.html')) ||
-                         fs.existsSync(path.join(__dirname, 'test-indexeddb.js'));
-  
-  if (!testFileExists) {
-    console.log('⚠️ Test files not in expected location (this is OK for production)');
-  }
-
+  // RiskDataDevTools.jsx serves as the primary test interface; no additional test file path check is required here.
   console.log('✅ All required implementation files exist');
   return true;
 }
