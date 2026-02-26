@@ -128,7 +128,8 @@ export const updateUserChosenTier = async (address, chosenTier) => {
     const updatedData = {
       ...existingData,
       chosenTier,
-      timestamp: Date.now() // Update timestamp to reflect the change
+      // Preserve original risk calculation timestamp; track preference change separately
+      lastModified: Date.now()
     };
 
     // Save updated data
