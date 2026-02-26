@@ -427,4 +427,6 @@ export const testIndexedDB = async (): Promise<{ success: boolean; message: stri
   }
 };
 
-export default dbInstance;
+// Deprecated: use the JavaScript implementation in storage/db.js as the single source of truth.
+// Re-export the default from ./db.js so any default import from this file uses that implementation.
+export { default } from './db.js';
