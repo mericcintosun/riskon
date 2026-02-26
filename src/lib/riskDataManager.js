@@ -35,12 +35,7 @@ export const getUserRiskData = async (address) => {
       return cached.data;
     }
 
-    // Check if migration is needed (only on first access)
-    if (checkMigrationNeeded()) {
-      console.log('🔄 Migrating localStorage data to IndexedDB...');
-      const migrationResult = await migrateFromLocalStorage();
-      console.log(`✅ Migration completed: ${migrationResult.migrated} records migrated, ${migrationResult.errors} errors`);
-    }
+    // Migration from localStorage to IndexedDB is handled during app initialization.
 
     // Get data from IndexedDB
     let riskData = await getRiskData(address);
