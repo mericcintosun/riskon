@@ -13,6 +13,9 @@
 import { useState } from "react";
 import { Address, nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 import { passkeyWallet } from "./passkeyIntegration";
+import { getCache, setCache, invalidateCache } from "./cacheManager";
+import { dispatchCacheEvent } from "../hooks/useCacheInvalidation";
+import { CACHE_KEYS } from "../types/cache";
 
 // Type definitions matching the Rust smart contract
 export interface RiskTierData {
@@ -31,9 +34,13 @@ export const RISK_TIER_CONTRACT_CONFIG = {
   rpcUrl: "https://soroban-testnet.stellar.org",
 };
 
+// Cache configuration
+const RISK_TIER_CACHE_TTL = 15 * 60 * 1000; // 15 minutes for risk tier data
+
 /**
  * Type-Safe Risk Tier Contract Client
  * Following Soroban CLI TypeScript bindings pattern
+ * Enhanced with intelligent caching
  */
 export class RiskTierContractClient {
   private contractId: string;
@@ -88,6 +95,14 @@ export class RiskTierContractClient {
         signature
       );
 
+      // Invalidate related cache entries after successful update
+      await this.invalidateUserCache(userAddress);
+
+      // Dispatch cache invalidation event
+      dispatchCacheEvent.riskTierUpdated(userAddress, tier);
+
+      console.log("✅ Risk tier updated and cache invalidated");
+
       return result.hash;
     } catch (error) {
       console.error("❌ Failed to set risk tier:", error);
@@ -101,6 +116,17 @@ export class RiskTierContractClient {
    */
   async getRiskTier(userAddress: string): Promise<RiskTierData | null> {
     try {
+      // Check cache first
+      const cacheKey = `${CACHE_KEYS.USER_RISK_TIER}_${userAddress}`;
+      const cachedData = await getCache<RiskTierData>(cacheKey);
+      
+      if (cachedData) {
+        console.log("🚀 Using cached risk tier data");
+        return cachedData;
+      }
+
+      console.log("📡 Fetching fresh risk tier data from contract...");
+
       // In production, use generated contract bindings
       const result = await this.simulateContractCall("get_risk_tier", [
         nativeToScVal(Address.fromString(userAddress)),
@@ -118,6 +144,11 @@ export class RiskTierContractClient {
         chosen_tier: scValToNative(result.chosen_tier),
       };
 
+      // Cache the result
+      await setCache(cacheKey, riskTierData, { 
+        ttl: RISK_TIER_CACHE_TTL 
+      });
+
       return riskTierData;
     } catch (error) {
       console.error("❌ Failed to get risk tier:", error);
@@ -131,6 +162,14 @@ export class RiskTierContractClient {
    */
   async getScore(userAddress: string): Promise<number> {
     try {
+      // Try to get from cached tier data first
+      const tierData = await this.getRiskTier(userAddress);
+      if (tierData) {
+        return tierData.score;
+      }
+
+      // Fallback to direct score call
+      console.log("📡 Fetching score directly from contract...");
       const result = await this.simulateContractCall("get_score", [
         nativeToScVal(Address.fromString(userAddress)),
       ]);
@@ -148,6 +187,14 @@ export class RiskTierContractClient {
    */
   async getChosenTier(userAddress: string): Promise<TierLevel> {
     try {
+      // Try to get from cached tier data first
+      const tierData = await this.getRiskTier(userAddress);
+      if (tierData) {
+        return tierData.chosen_tier as TierLevel;
+      }
+
+      // Fallback to direct chosen tier call
+      console.log("📡 Fetching chosen tier directly from contract...");
       const result = await this.simulateContractCall("get_chosen_tier", [
         nativeToScVal(Address.fromString(userAddress)),
       ]);
@@ -292,6 +339,24 @@ export class RiskTierContractClient {
     } catch (error) {
       console.error("❌ Failed to simulate contract call:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Invalidate all cache entries for a specific user
+   * Called after risk tier updates
+   */
+  private async invalidateUserCache(userAddress: string): Promise<void> {
+    try {
+      await Promise.all([
+        invalidateCache(`${CACHE_KEYS.USER_RISK_TIER}_${userAddress}`),
+        invalidateCache(`${CACHE_KEYS.RISK_SCORE}_${userAddress}`),
+        invalidateCache(`${CACHE_KEYS.HORIZON_DATA}_${userAddress}`),
+      ]);
+      
+      console.log(`✅ Cache invalidated for user: ${userAddress}`);
+    } catch (error) {
+      console.warn('Failed to invalidate user cache:', error);
     }
   }
 }

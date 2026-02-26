@@ -8,13 +8,58 @@
 const RATE_LIMIT_HOURS = 24;
 const RATE_LIMIT_MS = RATE_LIMIT_HOURS * 60 * 60 * 1000;
 
+"use client";
+
+import { getCache, setCache, invalidateCache } from './cacheManager';
+import { dispatchCacheEvent } from '../hooks/useCacheInvalidation';
+import { CACHE_KEYS } from '../types/cache';
+
+/**
+ * Rate Limiter for Risk Score Updates
+ * Prevents spam by limiting one risk score update per wallet per 24 hours
+ * Now integrated with structured caching system
+ */
+
+const RATE_LIMIT_HOURS = 24;
+const RATE_LIMIT_MS = RATE_LIMIT_HOURS * 60 * 60 * 1000;
+const RATE_LIMIT_CACHE_TTL = RATE_LIMIT_MS + (60 * 60 * 1000); // +1 hour buffer
+
 /**
  * Check if user can update their risk score
  * @param {string} walletAddress - User's Stellar address
  * @returns {Object} Rate limit status
  */
-export function checkRateLimit(walletAddress) {
+export async function checkRateLimit(walletAddress) {
   try {
+    const cacheKey = `${CACHE_KEYS.RATE_LIMIT}_${walletAddress}`;
+    
+    // Check new cache system first
+    const cachedRateLimit = await getCache(cacheKey);
+    if (cachedRateLimit) {
+      const currentTime = Date.now();
+      const timeSinceLastUpdate = currentTime - cachedRateLimit.lastUpdate;
+
+      if (timeSinceLastUpdate >= RATE_LIMIT_MS) {
+        return {
+          canUpdate: true,
+          remainingTime: 0,
+          lastUpdate: new Date(cachedRateLimit.lastUpdate),
+          nextUpdateTime: null,
+        };
+      }
+
+      const remainingTime = RATE_LIMIT_MS - timeSinceLastUpdate;
+      const nextUpdateTime = new Date(cachedRateLimit.lastUpdate + RATE_LIMIT_MS);
+
+      return {
+        canUpdate: false,
+        remainingTime,
+        lastUpdate: new Date(cachedRateLimit.lastUpdate),
+        nextUpdateTime,
+      };
+    }
+
+    // Fallback to legacy localStorage check for migration
     const lastUpdateKey = `risk_score_last_update_${walletAddress}`;
     const lastUpdate = localStorage.getItem(lastUpdateKey);
 
@@ -27,9 +72,20 @@ export function checkRateLimit(walletAddress) {
       };
     }
 
+    // Migrate legacy data to new cache system
     const lastUpdateTime = parseInt(lastUpdate);
     const currentTime = Date.now();
     const timeSinceLastUpdate = currentTime - lastUpdateTime;
+
+    // Migrate to new cache system
+    const rateLimitData = {
+      lastUpdate: lastUpdateTime,
+      walletAddress,
+    };
+    await setCache(cacheKey, rateLimitData, { ttl: RATE_LIMIT_CACHE_TTL });
+    
+    // Clean up legacy storage
+    localStorage.removeItem(lastUpdateKey);
 
     if (timeSinceLastUpdate >= RATE_LIMIT_MS) {
       return {
@@ -68,13 +124,25 @@ export function checkRateLimit(walletAddress) {
  * Record a risk score update
  * @param {string} walletAddress - User's Stellar address
  */
-export function recordUpdate(walletAddress) {
+export async function recordUpdate(walletAddress) {
   try {
-    const updateKey = `risk_score_last_update_${walletAddress}`;
     const currentTime = Date.now();
+    const cacheKey = `${CACHE_KEYS.RATE_LIMIT}_${walletAddress}`;
+    
+    // Store in new cache system
+    const rateLimitData = {
+      lastUpdate: currentTime,
+      walletAddress,
+    };
+    
+    await setCache(cacheKey, rateLimitData, { ttl: RATE_LIMIT_CACHE_TTL });
+    
+    // Legacy support - clean up old localStorage entry if exists
+    const legacyKey = `risk_score_last_update_${walletAddress}`;
+    localStorage.removeItem(legacyKey);
 
-    localStorage.setItem(updateKey, currentTime.toString());
-
+    // Dispatch cache invalidation event
+    dispatchCacheEvent.riskTierUpdated(walletAddress);
 
     return {
       success: true,
@@ -112,10 +180,14 @@ export function formatRemainingTime(remainingTime) {
  * Clear rate limit for a wallet (admin/debug function)
  * @param {string} walletAddress - User's Stellar address
  */
-export function clearRateLimit(walletAddress) {
+export async function clearRateLimit(walletAddress) {
   try {
-    const updateKey = `risk_score_last_update_${walletAddress}`;
-    localStorage.removeItem(updateKey);
+    const cacheKey = `${CACHE_KEYS.RATE_LIMIT}_${walletAddress}`;
+    const legacyKey = `risk_score_last_update_${walletAddress}`;
+    
+    // Clear from both new cache system and legacy localStorage
+    await invalidateCache(cacheKey);
+    localStorage.removeItem(legacyKey);
 
     return { success: true };
   } catch (error) {
@@ -158,10 +230,18 @@ export function getAllRateLimits() {
  * @param {string} walletAddress - User's Stellar address
  * @returns {boolean} Whether user has updated before
  */
-export function hasUpdatedBefore(walletAddress) {
+export async function hasUpdatedBefore(walletAddress) {
   try {
-    const updateKey = `risk_score_last_update_${walletAddress}`;
-    return localStorage.getItem(updateKey) !== null;
+    const cacheKey = `${CACHE_KEYS.RATE_LIMIT}_${walletAddress}`;
+    const cachedData = await getCache(cacheKey);
+    
+    if (cachedData) {
+      return true;
+    }
+    
+    // Check legacy localStorage for migration
+    const legacyKey = `risk_score_last_update_${walletAddress}`;
+    return localStorage.getItem(legacyKey) !== null;
   } catch (error) {
     console.warn("⚠️ Error checking update history:", error);
     return false;
@@ -173,12 +253,25 @@ export function hasUpdatedBefore(walletAddress) {
  * @param {string} walletAddress - User's Stellar address
  * @returns {Object} Update history summary
  */
-export function getUpdateHistory(walletAddress) {
+export async function getUpdateHistory(walletAddress) {
   try {
-    const updateKey = `risk_score_last_update_${walletAddress}`;
-    const lastUpdate = localStorage.getItem(updateKey);
+    const cacheKey = `${CACHE_KEYS.RATE_LIMIT}_${walletAddress}`;
+    let lastUpdateTime = null;
+    
+    // Check new cache system first
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      lastUpdateTime = cachedData.lastUpdate;
+    } else {
+      // Check legacy localStorage for migration
+      const legacyKey = `risk_score_last_update_${walletAddress}`;
+      const legacyUpdate = localStorage.getItem(legacyKey);
+      if (legacyUpdate) {
+        lastUpdateTime = parseInt(legacyUpdate);
+      }
+    }
 
-    if (!lastUpdate) {
+    if (!lastUpdateTime) {
       return {
         hasUpdated: false,
         totalUpdates: 0,
@@ -187,7 +280,6 @@ export function getUpdateHistory(walletAddress) {
       };
     }
 
-    const lastUpdateTime = parseInt(lastUpdate);
     const daysSinceLastUpdate = Math.floor(
       (Date.now() - lastUpdateTime) / (24 * 60 * 60 * 1000)
     );
