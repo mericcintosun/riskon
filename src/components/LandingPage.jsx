@@ -56,9 +56,9 @@ const LandingPage = () => {
       initial="hidden"
       animate="visible"
     >
-      <div className="container mx-auto px-4 py-16">
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <h1 className="text-5xl font-extrabold mb-4 leading-tight">
+      <div className="container mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        <motion.div variants={itemVariants} className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
             An On-Chain Credit Scoring System
           </h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
@@ -101,24 +101,26 @@ const LandingPage = () => {
         <section className="section-modern container-modern text-center">
           <div className="max-w-4xl mx-auto">
             {/* Main Heading */}
-            <h1 className="text-hero mb-8 animate-fade-in">
-              On-Chain Credit Scoring <br />
-              <span className="text-white">
-                for Undercollateralized Lending
+            <h1 className="text-hero mb-6 sm:mb-8 animate-fade-in">
+              On-Chain Credit Scoring{" "}
+              <span className="block sm:inline"><br className="hidden sm:block" />
+                <span className="text-white">
+                  for Undercollateralized Lending
+                </span>
               </span>
             </h1>
 
             {/* Subheading */}
-            <p className="text-body mb-12 max-w-2xl mx-auto animate-fade-in">
+            <p className="text-body mb-8 sm:mb-12 max-w-2xl mx-auto animate-fade-in">
               Riskon provides a transparent, privacy-first credit scoring system
               for the Stellar DeFi ecosystem, enabling possibilities for
               undercollateralized lending.
             </p>
 
             {/* Main CTA */}
-            <div className="mb-16 animate-scale-in">
+            <div className="mb-10 sm:mb-16 animate-scale-in">
               <Link href="/wallet">
-                <button className="btn-primary text-lg px-10 py-4 shadow-accent hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                <button className="btn-primary text-base sm:text-lg px-8 sm:px-10 py-3 sm:py-4 shadow-accent hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
                   Get Started
                 </button>
               </Link>
@@ -126,20 +128,20 @@ const LandingPage = () => {
 
             {/* Hero Stats */}
             <div className="grid-modern-3 max-w-2xl mx-auto animate-fade-in">
-              <div className="card-modern card-hover text-center p-6">
-                <div className="text-3xl font-bold text-gradient-modern font-montserrat mb-2">
+              <div className="card-modern card-hover text-center p-4 sm:p-6">
+                <div className="text-2xl sm:text-3xl font-bold text-gradient-modern font-montserrat mb-2">
                   AI
                 </div>
                 <div className="text-caption">Risk Analysis</div>
               </div>
-              <div className="card-modern card-hover text-center p-6">
-                <div className="text-3xl font-bold text-gradient-modern font-montserrat mb-2">
+              <div className="card-modern card-hover text-center p-4 sm:p-6">
+                <div className="text-2xl sm:text-3xl font-bold text-gradient-modern font-montserrat mb-2">
                   DeFi
                 </div>
                 <div className="text-caption">Blend Integration</div>
               </div>
-              <div className="card-modern card-hover text-center p-6">
-                <div className="text-3xl font-bold text-gradient-modern font-montserrat mb-2">
+              <div className="card-modern card-hover text-center p-4 sm:p-6">
+                <div className="text-2xl sm:text-3xl font-bold text-gradient-modern font-montserrat mb-2">
                   3
                 </div>
                 <div className="text-caption">Wallet Support</div>
@@ -158,13 +160,13 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="grid-modern-3 gap-12">
+            <div className="grid-modern-3 gap-8 sm:gap-12">
               {/* Step 1 */}
               <div className="text-center animate-slide-up">
-                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-gray-600/20 to-gray-800/20 rounded-3xl flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">1</span>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-gray-600/20 to-gray-800/20 rounded-3xl flex items-center justify-center">
+                  <span className="text-xl sm:text-2xl font-bold text-white">1</span>
                 </div>
-                <h3 className="text-subheading mb-4">Connect Wallet</h3>
+                <h3 className="text-subheading mb-3 sm:mb-4">Connect Wallet</h3>
                 <p className="text-body">
                   Connect your Stellar wallet using Albedo, xBull, or Freighter
                 </p>
@@ -172,10 +174,10 @@ const LandingPage = () => {
 
               {/* Step 2 */}
               <div className="text-center animate-slide-up">
-                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-gray-500/20 to-gray-700/20 rounded-3xl flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">2</span>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-gray-500/20 to-gray-700/20 rounded-3xl flex items-center justify-center">
+                  <span className="text-xl sm:text-2xl font-bold text-white">2</span>
                 </div>
-                <h3 className="text-subheading mb-4">AI Analysis</h3>
+                <h3 className="text-subheading mb-3 sm:mb-4">AI Analysis</h3>
                 <p className="text-body">
                   Our AI analyzes your transaction history and patterns
                 </p>
@@ -183,10 +185,10 @@ const LandingPage = () => {
 
               {/* Step 3 */}
               <div className="text-center animate-slide-up">
-                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-gray-400/20 to-gray-600/20 rounded-3xl flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">3</span>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-gray-400/20 to-gray-600/20 rounded-3xl flex items-center justify-center">
+                  <span className="text-xl sm:text-2xl font-bold text-white">3</span>
                 </div>
-                <h3 className="text-subheading mb-4">Get Score</h3>
+                <h3 className="text-subheading mb-3 sm:mb-4">Get Score</h3>
                 <p className="text-body">
                   Receive your credit score and unlock new DeFi capabilities
                 </p>

@@ -26,7 +26,7 @@ export type TierLevel = "TIER_1" | "TIER_2" | "TIER_3";
 
 // Contract configuration
 export const RISK_TIER_CONTRACT_CONFIG = {
-  contractId: process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID || "",
+  contractId: process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID || "CACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
   network: "TESTNET",
   rpcUrl: "https://soroban-testnet.stellar.org",
 };

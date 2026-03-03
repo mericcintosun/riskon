@@ -6,7 +6,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import Footer from "../components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
-const montserrat = Montserrat({ 
+const montserrat = Montserrat({
   subsets: ["latin"],
   display: 'swap',
   variable: '--font-montserrat'
@@ -36,8 +36,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.className} ${montserrat.variable}`}>
-      <body className="bg-black min-h-screen text-white antialiased flex flex-col">
+    <html lang="en" className={`${inter.className} ${montserrat.variable}`} suppressHydrationWarning>
+      <body className="bg-black min-h-screen text-white antialiased flex flex-col" suppressHydrationWarning>
         <ErrorBoundary>
           <ToastProvider>
             <WalletProvider>

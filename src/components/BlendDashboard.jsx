@@ -283,8 +283,8 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
   const riskRecommendations = getRiskBasedRecommendations();
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+    <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
         🌊 Blend DeFi Protocol
         <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
           Testnet
@@ -294,15 +294,14 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       {/* Enhanced Pool Status Display */}
       {selectedPool?.isActive && selectedPool?.status && (
         <div
-          className={`border rounded-lg p-4 mb-6 ${
-            selectedPool.status === "FULLY_OPERATIONAL"
+          className={`border rounded-lg p-4 mb-6 ${selectedPool.status === "FULLY_OPERATIONAL"
               ? "bg-green-50 border-green-200"
               : selectedPool.status === "NETWORK_READY"
-              ? "bg-blue-50 border-blue-200"
-              : selectedPool.status === "CONTRACT_EXISTS"
-              ? "bg-yellow-50 border-yellow-200"
-              : "bg-orange-50 border-orange-200"
-          }`}
+                ? "bg-blue-50 border-blue-200"
+                : selectedPool.status === "CONTRACT_EXISTS"
+                  ? "bg-yellow-50 border-yellow-200"
+                  : "bg-orange-50 border-orange-200"
+            }`}
         >
           <div className="flex items-start">
             <div className="flex-shrink-0">
@@ -358,30 +357,28 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
             </div>
             <div className="ml-3 flex-1">
               <h3
-                className={`text-sm font-medium ${
-                  selectedPool.status === "FULLY_OPERATIONAL"
+                className={`text-sm font-medium ${selectedPool.status === "FULLY_OPERATIONAL"
                     ? "text-green-800"
                     : selectedPool.status === "NETWORK_READY"
-                    ? "text-blue-800"
-                    : selectedPool.status === "CONTRACT_EXISTS"
-                    ? "text-yellow-800"
-                    : "text-orange-800"
-                }`}
+                      ? "text-blue-800"
+                      : selectedPool.status === "CONTRACT_EXISTS"
+                        ? "text-yellow-800"
+                        : "text-orange-800"
+                  }`}
               >
                 {selectedPool.description}
               </h3>
               <div
-                className={`mt-2 text-sm ${
-                  selectedPool.status === "FULLY_OPERATIONAL"
+                className={`mt-2 text-sm ${selectedPool.status === "FULLY_OPERATIONAL"
                     ? "text-green-700"
                     : selectedPool.status === "NETWORK_READY"
-                    ? "text-blue-700"
-                    : selectedPool.status === "CONTRACT_EXISTS"
-                    ? "text-yellow-700"
-                    : "text-orange-700"
-                }`}
+                      ? "text-blue-700"
+                      : selectedPool.status === "CONTRACT_EXISTS"
+                        ? "text-yellow-700"
+                        : "text-orange-700"
+                  }`}
               >
-                <div className="grid grid-cols-2 gap-4 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                   <div>
                     <p className="font-medium">Pool Capabilities:</p>
                     <ul className="text-xs mt-1 space-y-1">
@@ -398,11 +395,10 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                     <div className="text-xs mt-1 space-y-1">
                       <div className="flex items-center">
                         <span
-                          className={`mr-2 ${
-                            selectedPool.health?.contract
+                          className={`mr-2 ${selectedPool.health?.contract
                               ? "text-green-600"
                               : "text-red-600"
-                          }`}
+                            }`}
                         >
                           {selectedPool.health?.contract ? "✓" : "✗"}
                         </span>
@@ -410,11 +406,10 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                       </div>
                       <div className="flex items-center">
                         <span
-                          className={`mr-2 ${
-                            selectedPool.health?.network
+                          className={`mr-2 ${selectedPool.health?.network
                               ? "text-green-600"
                               : "text-red-600"
-                          }`}
+                            }`}
                         >
                           {selectedPool.health?.network ? "✓" : "✗"}
                         </span>
@@ -422,11 +417,10 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                       </div>
                       <div className="flex items-center">
                         <span
-                          className={`mr-2 ${
-                            selectedPool.health?.ledger
+                          className={`mr-2 ${selectedPool.health?.ledger
                               ? "text-green-600"
                               : "text-red-600"
-                          }`}
+                            }`}
                         >
                           {selectedPool.health?.ledger ? "✓" : "✗"}
                         </span>
@@ -459,25 +453,23 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200 mb-6">
+      {/* Tab Navigation - horizontally scrollable on mobile */}
+      <div className="filter-scroll border-b border-gray-200 mb-4 sm:mb-6">
         <button
           onClick={() => setActiveTab("pools")}
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === "pools"
+          className={`px-4 py-2 font-medium text-sm ${activeTab === "pools"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
           🏊 Lending Pools
         </button>
         <button
           onClick={() => setActiveTab("position")}
-          className={`px-4 py-2 font-medium text-sm ${
-            activeTab === "position"
+          className={`px-4 py-2 font-medium text-sm ${activeTab === "position"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
           📊 My Position
         </button>
@@ -486,33 +478,30 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       {/* Risk-Based Recommendations */}
       {riskRecommendations && (
         <div
-          className={`rounded-lg p-4 mb-6 border-l-4 ${
-            riskRecommendations.color === "green"
+          className={`rounded-lg p-4 mb-6 border-l-4 ${riskRecommendations.color === "green"
               ? "bg-green-50 border-green-400"
               : riskRecommendations.color === "yellow"
-              ? "bg-yellow-50 border-yellow-400"
-              : "bg-red-50 border-red-400"
-          }`}
+                ? "bg-yellow-50 border-yellow-400"
+                : "bg-red-50 border-red-400"
+            }`}
         >
           <h3
-            className={`font-medium ${
-              riskRecommendations.color === "green"
+            className={`font-medium ${riskRecommendations.color === "green"
                 ? "text-green-800"
                 : riskRecommendations.color === "yellow"
-                ? "text-yellow-800"
-                : "text-red-800"
-            }`}
+                  ? "text-yellow-800"
+                  : "text-red-800"
+              }`}
           >
             🎯 DeFi Recommendations Based on Your Risk Score ({riskRecommendations.level})
           </h3>
           <ul
-            className={`mt-2 text-sm list-disc list-inside ${
-              riskRecommendations.color === "green"
+            className={`mt-2 text-sm list-disc list-inside ${riskRecommendations.color === "green"
                 ? "text-green-700"
                 : riskRecommendations.color === "yellow"
-                ? "text-yellow-700"
-                : "text-red-700"
-            }`}
+                  ? "text-yellow-700"
+                  : "text-red-700"
+              }`}
           >
             {riskRecommendations.recommendations.map((rec, index) => (
               <li key={`rec-${index}`}>{rec}</li>
@@ -538,11 +527,10 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
               {availablePools.map((pool) => (
                 <div
                   key={pool.id}
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedPool?.id === pool.id
+                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${selectedPool?.id === pool.id
                       ? "border-blue-500 bg-blue-50"
                       : "border-gray-200 hover:border-gray-300"
-                  }`}
+                    }`}
                   onClick={() => setSelectedPool(pool)}
                 >
                   <div className="flex justify-between items-start">
@@ -718,13 +706,12 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                 </h4>
                 {userPosition.healthFactor !== null ? (
                   <div
-                    className={`text-2xl font-bold ${
-                      userPosition.healthFactor > 1.5
+                    className={`text-2xl font-bold ${userPosition.healthFactor > 1.5
                         ? "text-green-600"
                         : userPosition.healthFactor > 1.2
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                    }`}
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                      }`}
                   >
                     {userPosition.healthFactor === Infinity
                       ? "∞"
@@ -762,13 +749,12 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       {/* Message Display */}
       {message && (
         <div
-          className={`mt-6 rounded-lg p-4 ${
-            messageType === "success"
+          className={`mt-6 rounded-lg p-4 ${messageType === "success"
               ? "bg-green-50 border border-green-200 text-green-800"
               : messageType === "error"
-              ? "bg-red-50 border border-red-200 text-red-800"
-              : "bg-blue-50 border border-blue-200 text-blue-800"
-          }`}
+                ? "bg-red-50 border border-red-200 text-red-800"
+                : "bg-blue-50 border border-blue-200 text-blue-800"
+            }`}
         >
           <p className="font-medium">{message}</p>
         </div>

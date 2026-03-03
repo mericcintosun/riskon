@@ -190,9 +190,8 @@ function EnhancedLiquidityPools() {
       return {
         level: "FULL",
         borrowLimit: limit.borrowLimit,
-        message: `Full access with ${
-          limit.borrowLimit * 100
-        }% max borrow ratio`,
+        message: `Full access with ${limit.borrowLimit * 100
+          }% max borrow ratio`,
       };
     }
 
@@ -374,7 +373,7 @@ function EnhancedLiquidityPools() {
     <div className="max-w-6xl mx-auto p-6">
       {/* Header with Risk Profile */}
       <div className="mb-8">
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Risk-Based Liquidity Pools
@@ -385,7 +384,7 @@ function EnhancedLiquidityPools() {
           </div>
 
           {userRiskData && (
-            <div className="bg-white border rounded-lg p-4 min-w-[200px]">
+            <div className="bg-white border rounded-lg p-4 w-full sm:min-w-[200px] sm:w-auto">
               <div className="text-sm text-gray-600 mb-1">
                 Your Risk Profile
               </div>
@@ -408,31 +407,31 @@ function EnhancedLiquidityPools() {
 
         {/* Liquidity Statistics */}
         {liquidityStats && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="text-sm text-green-600 mb-1">Tier 1 Pools</div>
-              <div className="text-2xl font-bold text-green-800">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 md:p-4">
+              <div className="text-xs md:text-sm text-green-600 mb-1">Tier 1 Pools</div>
+              <div className="text-xl md:text-2xl font-bold text-green-800">
                 {liquidityStats.TIER_1 || 0}
               </div>
               <div className="text-xs text-green-600">≥$1M TVL</div>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-sm text-blue-600 mb-1">Tier 2 Pools</div>
-              <div className="text-2xl font-bold text-blue-800">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
+              <div className="text-xs md:text-sm text-blue-600 mb-1">Tier 2 Pools</div>
+              <div className="text-xl md:text-2xl font-bold text-blue-800">
                 {liquidityStats.TIER_2 || 0}
               </div>
               <div className="text-xs text-blue-600">$250K-1M TVL</div>
             </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="text-sm text-yellow-600 mb-1">Tier 3 Pools</div>
-              <div className="text-2xl font-bold text-yellow-800">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 md:p-4">
+              <div className="text-xs md:text-sm text-yellow-600 mb-1">Tier 3 Pools</div>
+              <div className="text-xl md:text-2xl font-bold text-yellow-800">
                 {liquidityStats.TIER_3 || 0}
               </div>
               <div className="text-xs text-yellow-600">&lt;$250K TVL</div>
             </div>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-1">Total Pools</div>
-              <div className="text-2xl font-bold text-gray-800">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 md:p-4">
+              <div className="text-xs md:text-sm text-gray-600 mb-1">Total Pools</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-800">
                 {liquidityStats.total || 0}
               </div>
               <div className="text-xs text-gray-600">All tiers</div>
@@ -440,17 +439,16 @@ function EnhancedLiquidityPools() {
           </div>
         )}
 
-        {/* Tier Filter */}
-        <div className="flex gap-2 mb-6">
+        {/* Tier Filter - horizontally scrollable on mobile */}
+        <div className="filter-scroll mb-6">
           {["ALL", "TIER_1", "TIER_2", "TIER_3"].map((tier) => (
             <button
               key={tier}
               onClick={() => setSelectedTier(tier)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedTier === tier
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedTier === tier
+                ? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
             >
               {tier === "ALL" ? "All Pools" : `Tier ${tier.split("_")[1]}`}
             </button>
@@ -553,20 +551,19 @@ function EnhancedLiquidityPools() {
               {/* Action Button */}
               <button
                 onClick={() => handlePoolSelect(pool)}
-                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                  pool.riskStatus === "RESTRICTED"
-                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                    : pool.riskStatus === "OPPORTUNITY"
+                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${pool.riskStatus === "RESTRICTED"
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : pool.riskStatus === "OPPORTUNITY"
                     ? "bg-purple-500 text-white hover:bg-purple-600 shadow-lg"
                     : "bg-blue-500 text-white hover:bg-blue-600"
-                }`}
+                  }`}
                 disabled={pool.riskStatus === "RESTRICTED"}
               >
                 {pool.riskStatus === "RESTRICTED"
                   ? "🔒 Access Restricted"
                   : pool.riskStatus === "OPPORTUNITY"
-                  ? "💎 Explore Opportunity"
-                  : "🌊 Enter Pool"}
+                    ? "💎 Explore Opportunity"
+                    : "🌊 Enter Pool"}
               </button>
 
               {/* Pool Metadata */}
@@ -608,45 +605,45 @@ function EnhancedLiquidityPools() {
         </div>
       </div>
 
-      {/* Risk Warning Modal */}
+      {/* Risk Warning Modal - bottom sheet on mobile */}
       {showRiskWarning && selectedPool && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-md mx-4 p-6">
+        <div className="modal-mobile">
+          <div className="modal-content-mobile sm:max-w-md">
             <div className="text-center">
-              <div className="text-6xl mb-4">⚠️</div>
+              <div className="text-5xl mb-4">⚠️</div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Yüksek Risk Uyarısı
+                High Risk Warning
               </h3>
               <div className="text-gray-600 mb-6 space-y-3">
                 <p>
-                  Bu havuz düşük likiditeye sahip ve yüksek risk taşımaktadır.
+                  This pool has low liquidity and carries high risk.
                 </p>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="font-semibold text-red-700 mb-2">
-                    Potansiyel Riskler:
+                    Potential Risks:
                   </p>
                   <ul className="text-sm text-red-600 text-left space-y-1">
-                    <li>• Yüksek volatilite ve değer kaybı riski</li>
-                    <li>• Düşük likidite nedeniyle çıkış zorluğu</li>
-                    <li>• Potansiyel kayıplar yüksek olabilir</li>
+                    <li>• High volatility and risk of value loss</li>
+                    <li>• Difficulty exiting due to low liquidity</li>
+                    <li>• Potential losses can be significant</li>
                   </ul>
                 </div>
                 <p className="font-medium">
-                  Devam etmek istediğinizden emin misiniz?
+                  Are you sure you want to continue?
                 </p>
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowRiskWarning(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
                 >
-                  İptal
+                  Cancel
                 </button>
                 <button
                   onClick={confirmRiskAndProceed}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >
-                  Riski Kabul Et
+                  Accept Risk
                 </button>
               </div>
             </div>
@@ -654,15 +651,16 @@ function EnhancedLiquidityPools() {
         </div>
       )}
 
-      {/* Pool Details Modal */}
+      {/* Pool Details Modal - bottom sheet on mobile */}
       {showPoolDetails && selectedPool && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-2xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div className="modal-mobile">
+          <div className="modal-content-mobile sm:max-w-2xl">
             <div className="flex justify-between items-start mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Pool Details</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Pool Details</h3>
               <button
                 onClick={() => setShowPoolDetails(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 p-1"
+                aria-label="Close"
               >
                 ✕
               </button>
@@ -671,7 +669,7 @@ function EnhancedLiquidityPools() {
             <div className="space-y-6">
               {/* Pool Header */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
                   <h4 className="text-lg font-semibold">
                     Pool #{selectedPool.poolId?.slice(-8) || "Unknown"}
                   </h4>
@@ -685,7 +683,7 @@ function EnhancedLiquidityPools() {
                     {selectedPool.riskStatus === "OPPORTUNITY" && " 💎"}
                   </span>
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                   {formatTVL(selectedPool.tvl)}
                 </div>
                 <div className="text-gray-600">Total Value Locked</div>
@@ -710,9 +708,8 @@ function EnhancedLiquidityPools() {
                       <div
                         className="bg-yellow-600 h-2 rounded-full"
                         style={{
-                          width: `${
-                            selectedPool.accessLevel.borrowLimit * 100
-                          }%`,
+                          width: `${selectedPool.accessLevel.borrowLimit * 100
+                            }%`,
                         }}
                       ></div>
                     </div>
@@ -763,17 +760,16 @@ function EnhancedLiquidityPools() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowPoolDetails(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
                 >
                   Close
                 </button>
                 <button
                   onClick={startInvestment}
-                  className={`flex-1 px-4 py-2 rounded-lg font-medium ${
-                    selectedPool.riskStatus === "OPPORTUNITY"
-                      ? "bg-purple-600 text-white hover:bg-purple-700"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
-                  }`}
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium ${selectedPool.riskStatus === "OPPORTUNITY"
+                    ? "bg-purple-600 text-white hover:bg-purple-700"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
                 >
                   {selectedPool.riskStatus === "OPPORTUNITY"
                     ? "💎 Start Opportunity Investment"

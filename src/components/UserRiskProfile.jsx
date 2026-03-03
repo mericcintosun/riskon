@@ -121,11 +121,11 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
 
   // Risk confirmation modal
   const RiskConfirmationModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+    <div className="modal-mobile">
+      <div className="modal-content-mobile">
         <div className="text-center">
-          <div className="text-6xl mb-4 text-red-500 flex justify-center">
-            <AlertTriangle className="w-16 h-16" />
+          <div className="text-5xl mb-4 text-red-500 flex justify-center">
+            <AlertTriangle className="w-14 h-14" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-4">
             High-Risk Tier Acknowledgment
@@ -143,7 +143,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
           <div className="flex gap-3">
             <button
               onClick={() => setShowRiskModal(false)}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
             >
               Cancel
             </button>
@@ -152,9 +152,9 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
                 setShowRiskModal(false);
                 onTierSelect?.(selectedTier);
               }}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
-              Acknowledge & Proceed
+              Acknowledge &amp; Proceed
             </button>
           </div>
         </div>
@@ -219,14 +219,13 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
             {Object.entries(tierAccess).map(([tier, access]) => (
               <div
                 key={tier}
-                className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                  access.accessible
+                className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${access.accessible
                     ? `${access.bgColor} border-gray-200 hover:shadow-md`
                     : "bg-gray-50 border-gray-200 cursor-not-allowed opacity-60"
-                }`}
+                  }`}
                 onClick={() => handleTierSelect(tier)}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className={`text-2xl ${access.color}`}>
                       {access.icon}
@@ -246,7 +245,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
                     </div>
                   </div>
 
-                  <div className={`text-sm font-medium ${access.color}`}>
+                  <div className={`text-sm font-medium ${access.color} sm:text-right`}>
                     {access.status}
                   </div>
                 </div>

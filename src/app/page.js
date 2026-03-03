@@ -745,14 +745,13 @@ export default function RiskScoringApp() {
               </div>
 
               {/* Analysis Mode Toggle */}
-              <div className="flex items-center justify-center space-x-4 mb-12 flex-wrap">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
                 <button
                   onClick={() => setAnalysisMode("enhanced")}
-                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
-                    analysisMode === "enhanced"
+                  className={`w-full sm:w-auto justify-center px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${analysisMode === "enhanced"
                       ? "bg-gradient-to-r from-emerald-500/20 to-blue-500/20 text-emerald-400 border border-emerald-500/30"
                       : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
-                  }`}
+                    }`}
                 >
                   <svg
                     className="w-5 h-5 mr-2"
@@ -771,11 +770,10 @@ export default function RiskScoringApp() {
                 </button>
                 <button
                   onClick={() => setAnalysisMode("auto")}
-                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
-                    analysisMode === "auto"
+                  className={`w-full sm:w-auto justify-center px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${analysisMode === "auto"
                       ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
                       : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
-                  }`}
+                    }`}
                 >
                   <svg
                     className="w-5 h-5 mr-2"
@@ -794,11 +792,10 @@ export default function RiskScoringApp() {
                 </button>
                 <button
                   onClick={() => setAnalysisMode("manual")}
-                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
-                    analysisMode === "manual"
+                  className={`w-full sm:w-auto justify-center px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${analysisMode === "manual"
                       ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
                       : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
-                  }`}
+                    }`}
                 >
                   <svg
                     className="w-5 h-5 mr-2"
@@ -919,13 +916,12 @@ export default function RiskScoringApp() {
                             <div>
                               <span className="text-white/70">Confidence:</span>
                               <span
-                                className={`ml-2 font-semibold ${
-                                  autoAnalysisResult.confidence === "High"
+                                className={`ml-2 font-semibold ${autoAnalysisResult.confidence === "High"
                                     ? "text-emerald-400"
                                     : autoAnalysisResult.confidence === "Medium"
-                                    ? "text-amber-400"
-                                    : "text-red-400"
-                                }`}
+                                      ? "text-amber-400"
+                                      : "text-red-400"
+                                  }`}
                               >
                                 {autoAnalysisResult.confidence}
                               </span>
@@ -962,29 +958,28 @@ export default function RiskScoringApp() {
                                   </p>
                                   {autoAnalysisResult.analysis
                                     .contractStatus && (
-                                    <div className="mt-2 text-xs">
-                                      <span className="text-purple-300">
-                                        Status:{" "}
-                                      </span>
-                                      <span
-                                        className={`capitalize ${
-                                          autoAnalysisResult.analysis
-                                            .contractStatus === "active"
-                                            ? "text-emerald-400"
-                                            : autoAnalysisResult.analysis
+                                      <div className="mt-2 text-xs">
+                                        <span className="text-purple-300">
+                                          Status:{" "}
+                                        </span>
+                                        <span
+                                          className={`capitalize ${autoAnalysisResult.analysis
+                                              .contractStatus === "active"
+                                              ? "text-emerald-400"
+                                              : autoAnalysisResult.analysis
                                                 .contractStatus ===
-                                              "new_or_inactive"
-                                            ? "text-amber-400"
-                                            : "text-gray-400"
-                                        }`}
-                                      >
-                                        {autoAnalysisResult.analysis.contractStatus.replace(
-                                          "_",
-                                          " "
-                                        )}
-                                      </span>
-                                    </div>
-                                  )}
+                                                "new_or_inactive"
+                                                ? "text-amber-400"
+                                                : "text-gray-400"
+                                            }`}
+                                        >
+                                          {autoAnalysisResult.analysis.contractStatus.replace(
+                                            "_",
+                                            " "
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
                                 </div>
                               )}
 
@@ -1083,8 +1078,8 @@ export default function RiskScoringApp() {
                         {riskScore <= 30
                           ? "Low Risk"
                           : riskScore <= 70
-                          ? "Medium Risk"
-                          : "High Risk"}
+                            ? "Medium Risk"
+                            : "High Risk"}
                       </div>
                       <div className="risk-bar">
                         <div
@@ -1140,8 +1135,8 @@ export default function RiskScoringApp() {
                       {analysisMode === "auto" && autoAnalysisResult
                         ? `Automatically calculated score: ${riskScore} (${autoAnalysisResult.confidence} confidence)`
                         : analysisMode === "manual"
-                        ? "Manual entry - your risk score will be saved to the blockchain"
-                        : "Complete analysis to save your risk score"}
+                          ? "Manual entry - your risk score will be saved to the blockchain"
+                          : "Complete analysis to save your risk score"}
                     </p>
                   </div>
 
@@ -1261,13 +1256,12 @@ export default function RiskScoringApp() {
                     step="0.01"
                     value={collateralAmount}
                     onChange={handleCollateralChange}
-                    className={`input-modern ${
-                      collateralAmount &&
-                      (isNaN(parseFloat(collateralAmount)) ||
-                        parseFloat(collateralAmount) < 0)
+                    className={`input-modern ${collateralAmount &&
+                        (isNaN(parseFloat(collateralAmount)) ||
+                          parseFloat(collateralAmount) < 0)
                         ? "border-red-500/50 focus:border-red-500"
                         : ""
-                    }`}
+                      }`}
                     placeholder="0.00"
                   />
                 </div>
@@ -1289,13 +1283,12 @@ export default function RiskScoringApp() {
                         </div>
                         <div className="flex items-center justify-center space-x-4 text-sm">
                           <span
-                            className={`px-3 py-1 rounded-full font-medium ${
-                              getTier(riskScore).name === "low"
+                            className={`px-3 py-1 rounded-full font-medium ${getTier(riskScore).name === "low"
                                 ? "bg-emerald-500/20 text-emerald-400"
                                 : getTier(riskScore).name === "medium"
-                                ? "bg-amber-500/20 text-amber-400"
-                                : "bg-red-500/20 text-red-400"
-                            }`}
+                                  ? "bg-amber-500/20 text-amber-400"
+                                  : "bg-red-500/20 text-red-400"
+                              }`}
                           >
                             tier = {getTier(riskScore).name}
                           </span>
