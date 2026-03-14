@@ -234,12 +234,51 @@ soroban contract deploy \
 
 ---
 
+## Testing
+
+`riskon` includes a comprehensive testing infrastructure to ensure reliability and production readiness.
+
+### Test Coverage
+
+- **Smart Contract Tests**: 18 comprehensive Rust tests covering all contract functionality
+- **Frontend Tests**: Jest + React Testing Library setup for component testing
+- **Risk Model Tests**: Unit tests for ML score calculation and feature importance
+- **CI/CD**: GitHub Actions workflow for automated testing
+
+### Running Tests
+
+```bash
+# Smart contract tests
+cd risk_score
+cargo test
+
+# Frontend tests (after installing dependencies)
+npm install --save-dev jest @testing-library/react @testing-library/jest-dom
+npm test
+
+# Run all tests with coverage
+npm test -- --coverage
+```
+
+### Test Categories
+
+1. **Validation Tests**: Score bounds (0-100), tier validation, input sanitization
+2. **Tier Access Tests**: TIER_1 (≤30), TIER_2 (≤70), TIER_3 (all users)
+3. **Edge Cases**: Zero scores, boundary values, missing data, concurrent updates
+4. **Integration Tests**: Contract-frontend interaction, Horizon data collection
+
+**📖 Full Testing Documentation**: See [TESTING.md](./TESTING.md) for detailed testing guide.
+
+---
+
 ## MVP Checklist
 
 - [x] Public GitHub repo with this detailed README.
 - [x] `RiskTierContract` deployed to the Stellar Testnet.
 - [x] Next.js demo app with Passkey authentication and score computation.
 - [x] 100% of contract logic written in Rust using the Soroban SDK.
+- [x] Comprehensive testing infrastructure with 18+ smart contract tests.
+- [x] CI/CD pipeline with GitHub Actions for automated testing.
 
 ---
 
