@@ -19,7 +19,8 @@
     "passkey-kit": "^0.10.24",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-hot-toast": "^2.5.2"
+    "react-hot-toast": "^2.5.2",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "postcss": "^8",

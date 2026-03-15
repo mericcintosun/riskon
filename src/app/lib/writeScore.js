@@ -12,6 +12,7 @@ import {
   Operation,
 } from "@stellar/stellar-sdk";
 import { Server } from "@stellar/stellar-sdk/rpc";
+import { saveRiskData } from "../../lib/storage/db.js";
 
 // New Enhanced Risk Scoring Contract ID
 const RISK_SCORE_CONTRACT_ID =
@@ -564,9 +565,10 @@ export async function checkContractExists() {
  * @param {Object} params.kit - Stellar wallet kit
  * @param {string} params.address - User's Stellar address
  * @param {number} params.score - Risk score (0-100)
+ * @param {string} params.chosenTier - User-chosen tier (optional)
  * @returns {Promise<Object>} Transaction result
  */
-export async function storeScoreInAccountData({ kit, address, score }) {
+export async function storeScoreInAccountData({ kit, address, score, chosenTier }) {
   try {
 
     if (!address || typeof score !== "number" || score < 0 || score > 100) {
@@ -575,27 +577,46 @@ export async function storeScoreInAccountData({ kit, address, score }) {
       );
     }
 
-    // Store in local storage as backup
+    // Calculate tier from score
+    const calculatedTier = calculateTier(score);
+
+    // Prepare risk data for IndexedDB
     const riskData = {
-      score: Math.round(score),
-      tier: calculateTier(score),
-      timestamp: Date.now(),
       address: address,
+      score: Math.round(score),
+      tier: calculatedTier,
+      timestamp: Date.now(),
+      chosenTier: chosenTier || calculatedTier,
     };
 
-    localStorage.setItem(`risk_score_${address}`, JSON.stringify(riskData));
+    // Store in IndexedDB
+    try {
+      await saveRiskData(riskData);
+      console.log("✅ Risk data stored in IndexedDB successfully");
+    } catch (dbError) {
+      console.error("⚠️ IndexedDB storage failed, falling back to localStorage:", dbError);
+      
+      // Fallback to localStorage if IndexedDB fails
+      try {
+        localStorage.setItem(`risk_score_${address}`, JSON.stringify(riskData));
+        console.log("✅ Risk data stored in localStorage fallback");
+      } catch (localError) {
+        console.error("❌ Both IndexedDB and localStorage failed:", localError);
+      }
+    }
 
     // Always return success
     return {
       successful: true,
       hash: `local_${Date.now()}`, // Fake hash for UI
-      method: "local_storage",
+      method: "indexed_db",
       rl: null,
       riskData: {
         score,
         address,
-        tier: calculateTier(score),
-        method: "local_storage",
+        tier: calculatedTier,
+        chosenTier: riskData.chosenTier,
+        method: "indexed_db",
       },
       note: "Score stored locally - blockchain storage temporarily unavailable",
     };
@@ -612,6 +633,7 @@ export async function storeScoreInAccountData({ kit, address, score }) {
         score,
         address,
         tier: calculateTier(score),
+        chosenTier: chosenTier || calculateTier(score),
         method: "memory_only",
       },
       note: "Risk score calculated - storage temporarily unavailable",
