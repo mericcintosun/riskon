@@ -48,7 +48,7 @@ class CacheManager {
     try {
       if (useIndexedDB) {
         await this.setIndexedDBCache(key, cacheEntry);
-      } else {
+      } else if (typeof localStorage !== 'undefined') {
         localStorage.setItem(`cache_${key}`, serializedData);
       }
     } catch (error) {
@@ -70,19 +70,21 @@ class CacheManager {
   async getCache<T>(key: string): Promise<T | null> {
     try {
       // Try localStorage first
-      const localData = localStorage.getItem(`cache_${key}`);
-      if (localData) {
-        const cacheEntry: CacheEntry<T> = JSON.parse(localData);
-        if (this.isValidCacheEntry(cacheEntry)) {
-          if (isCacheDebuggingEnabled()) {
-            console.log(`🎯 Cache HIT for key: ${key}`);
-          }
-          return cacheEntry.data;
-        } else {
-          // Remove invalid/expired entry
-          localStorage.removeItem(`cache_${key}`);
-          if (isCacheDebuggingEnabled()) {
-            console.log(`⏰ Cache EXPIRED for key: ${key}`);
+      if (typeof localStorage !== 'undefined') {
+        const localData = localStorage.getItem(`cache_${key}`);
+        if (localData) {
+          const cacheEntry: CacheEntry<T> = JSON.parse(localData);
+          if (this.isValidCacheEntry(cacheEntry)) {
+            if (isCacheDebuggingEnabled()) {
+              console.log(`🎯 Cache HIT for key: ${key}`);
+            }
+            return cacheEntry.data;
+          } else {
+            // Remove invalid/expired entry
+            localStorage.removeItem(`cache_${key}`);
+            if (isCacheDebuggingEnabled()) {
+              console.log(`⏰ Cache EXPIRED for key: ${key}`);
+            }
           }
         }
       }
@@ -97,7 +99,7 @@ class CacheManager {
       }
 
       if (isCacheDebuggingEnabled()) {
-        console.log(`❌ Cache MISS for key: ${key}`);
+        console.log(`ℹ️ Cache MISS for key: ${key}`);
       }
       return null;
     } catch (error) {
@@ -111,7 +113,9 @@ class CacheManager {
    */
   async invalidateCache(key: string): Promise<void> {
     try {
-      localStorage.removeItem(`cache_${key}`);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(`cache_${key}`);
+      }
       await this.removeIndexedDBCache(key);
     } catch (error) {
       console.warn(`Failed to invalidate cache for key ${key}:`, error);
@@ -124,14 +128,16 @@ class CacheManager {
   async clearAllCache(): Promise<void> {
     try {
       // Clear localStorage cache entries
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('cache_')) {
-          keysToRemove.push(key);
+      if (typeof localStorage !== 'undefined') {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('cache_')) {
+            keysToRemove.push(key);
+          }
         }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
       }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
 
       // Clear IndexedDB
       await this.clearIndexedDBCache();
@@ -305,6 +311,7 @@ class CacheManager {
    */
   private async cleanupExpiredCache(): Promise<void> {
     try {
+      if (typeof localStorage === 'undefined') return;
       // Cleanup localStorage
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
@@ -336,10 +343,12 @@ class CacheManager {
    */
   getCacheStats(): { localStorageEntries: number; version: string } {
     let localStorageEntries = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('cache_')) {
-        localStorageEntries++;
+    if (typeof localStorage !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('cache_')) {
+          localStorageEntries++;
+        }
       }
     }
 
@@ -350,256 +359,22 @@ class CacheManager {
   }
 }
 
-// Export singleton instance
-export const cacheManager = new CacheManager();
+const _cacheManager = new CacheManager();
+export const cacheManager = _cacheManager;
 
 // Export helper functions for easier usage
-export const setCache = <T>(key: string, data: T, options?: CacheOptions) => 
-  cacheManager.setCache(key, data, options);
-
-export const getCache = <T>(key: string) => 
-  cacheManager.getCache<T>(key);
-
-export const invalidateCache = (key: string) => 
-  cacheManager.invalidateCache(key);
-
-export const clearAllCache = () => 
-  cacheManager.clearAllCache();
-/**
- * Cache Management with Expiration and Invalidation
- *
- * Implements intelligent caching strategy with TTL, versioning, and invalidation
- * Related Issue: #17 - Caching Strategy Improvements
- */
-
-export interface CacheOptions {
-  ttl?: number; // Time to live in milliseconds
-  version?: string; // Cache version for invalidation
-  storage?: 'memory' | 'localStorage' | 'sessionStorage';
+export function setCache<T>(key: string, data: T, options?: CacheOptions) {
+  return _cacheManager.setCache(key, data, options);
 }
 
-export interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  ttl: number;
-  version: string;
+export function getCache<T>(key: string) {
+  return _cacheManager.getCache<T>(key);
 }
 
-class CacheManager {
-  private memoryCache: Map<string, CacheEntry<any>> = new Map();
-  private defaultTTL: number = 5 * 60 * 1000; // 5 minutes
-  private currentVersion: string = '1.0.0';
-
-  /**
-   * Set a cache entry
-   */
-  set<T>(key: string, data: T, options: CacheOptions = {}): void {
-    const {
-      ttl = this.defaultTTL,
-      version = this.currentVersion,
-      storage = 'memory',
-    } = options;
-
-    const entry: CacheEntry<T> = {
-      data,
-      timestamp: Date.now(),
-      ttl,
-      version,
-    };
-
-    if (storage === 'memory') {
-      this.memoryCache.set(key, entry);
-    } else if (typeof window !== 'undefined') {
-      const storageObj = storage === 'localStorage' ? localStorage : sessionStorage;
-      try {
-        storageObj.setItem(key, JSON.stringify(entry));
-      } catch (error) {
-        console.warn('Cache storage failed:', error);
-      }
-    }
-  }
-
-  /**
-   * Get a cache entry
-   */
-  get<T>(key: string, storage: 'memory' | 'localStorage' | 'sessionStorage' = 'memory'): T | null {
-    let entry: CacheEntry<T> | null = null;
-
-    if (storage === 'memory') {
-      entry = this.memoryCache.get(key) || null;
-    } else if (typeof window !== 'undefined') {
-      const storageObj = storage === 'localStorage' ? localStorage : sessionStorage;
-      try {
-        const stored = storageObj.getItem(key);
-        if (stored) {
-          entry = JSON.parse(stored);
-        }
-      } catch (error) {
-        console.warn('Cache retrieval failed:', error);
-        return null;
-      }
-    }
-
-    if (!entry) return null;
-
-    // Check version
-    if (entry.version !== this.currentVersion) {
-      this.delete(key, storage);
-      return null;
-    }
-
-    // Check expiration
-    const age = Date.now() - entry.timestamp;
-    if (age > entry.ttl) {
-      this.delete(key, storage);
-      return null;
-    }
-
-    return entry.data;
-  }
-
-  /**
-   * Delete a cache entry
-   */
-  delete(key: string, storage: 'memory' | 'localStorage' | 'sessionStorage' = 'memory'): void {
-    if (storage === 'memory') {
-      this.memoryCache.delete(key);
-    } else if (typeof window !== 'undefined') {
-      const storageObj = storage === 'localStorage' ? localStorage : sessionStorage;
-      storageObj.removeItem(key);
-    }
-  }
-
-  /**
-   * Clear all cache entries
-   */
-  clear(storage: 'memory' | 'localStorage' | 'sessionStorage' = 'memory'): void {
-    if (storage === 'memory') {
-      this.memoryCache.clear();
-    } else if (typeof window !== 'undefined') {
-      const storageObj = storage === 'localStorage' ? localStorage : sessionStorage;
-      storageObj.clear();
-    }
-  }
-
-  /**
-   * Invalidate cache by pattern
-   */
-  invalidatePattern(pattern: RegExp, storage: 'memory' | 'localStorage' | 'sessionStorage' = 'memory'): void {
-    if (storage === 'memory') {
-      for (const key of this.memoryCache.keys()) {
-        if (pattern.test(key)) {
-          this.memoryCache.delete(key);
-        }
-      }
-    } else if (typeof window !== 'undefined') {
-      const storageObj = storage === 'localStorage' ? localStorage : sessionStorage;
-      const keysToDelete: string[] = [];
-
-      for (let i = 0; i < storageObj.length; i++) {
-        const key = storageObj.key(i);
-        if (key && pattern.test(key)) {
-          keysToDelete.push(key);
-        }
-      }
-
-      keysToDelete.forEach(key => storageObj.removeItem(key));
-    }
-  }
-
-  /**
-   * Update cache version (invalidates all old entries)
-   */
-  updateVersion(newVersion: string): void {
-    this.currentVersion = newVersion;
-  }
-
-  /**
-   * Get cache statistics
-   */
-  getStats(): { size: number; keys: string[] } {
-    return {
-      size: this.memoryCache.size,
-      keys: Array.from(this.memoryCache.keys()),
-    };
-  }
-
-  /**
-   * Wrapper for async operations with caching
-   */
-  async wrap<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    options: CacheOptions = {}
-  ): Promise<T> {
-    const { storage = 'memory' } = options;
-
-    // Try to get from cache
-    const cached = this.get<T>(key, storage);
-    if (cached !== null) {
-      return cached;
-    }
-
-    // Fetch and cache
-    const data = await fetcher();
-    this.set(key, data, options);
-    return data;
-  }
+export function invalidateCache(key: string) {
+  return _cacheManager.invalidateCache(key);
 }
 
-// Export singleton instance
-export const cache = new CacheManager();
-
-// Convenience functions
-export const cacheHelpers = {
-  /**
-   * Cache account data
-   */
-  cacheAccount: (address: string, data: any, ttl = 5 * 60 * 1000) => {
-    cache.set(`account:${address}`, data, { ttl, storage: 'localStorage' });
-  },
-
-  /**
-   * Get cached account data
-   */
-  getCachedAccount: (address: string) => {
-    return cache.get(`account:${address}`, 'localStorage');
-  },
-
-  /**
-   * Cache transaction history
-   */
-  cacheTransactions: (address: string, data: any, ttl = 10 * 60 * 1000) => {
-    cache.set(`transactions:${address}`, data, { ttl, storage: 'localStorage' });
-  },
-
-  /**
-   * Get cached transactions
-   */
-  getCachedTransactions: (address: string) => {
-    return cache.get(`transactions:${address}`, 'localStorage');
-  },
-
-  /**
-   * Cache risk score
-   */
-  cacheRiskScore: (address: string, score: number, ttl = 30 * 60 * 1000) => {
-    cache.set(`risk:${address}`, score, { ttl, storage: 'localStorage' });
-  },
-
-  /**
-   * Get cached risk score
-   */
-  getCachedRiskScore: (address: string) => {
-    return cache.get<number>(`risk:${address}`, 'localStorage');
-  },
-
-  /**
-   * Invalidate all account-related cache
-   */
-  invalidateAccount: (address: string) => {
-    cache.invalidatePattern(new RegExp(`^(account|transactions|risk):${address}`), 'localStorage');
-  },
-};
-
-export default cache;
+export function clearAllCache() {
+  return _cacheManager.clearAllCache();
+}

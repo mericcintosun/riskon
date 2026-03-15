@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * Rate Limiter for Risk Score Updates
- * Prevents spam by limiting one risk score update per wallet per 24 hours
- */
-
-const RATE_LIMIT_HOURS = 24;
-const RATE_LIMIT_MS = RATE_LIMIT_HOURS * 60 * 60 * 1000;
-
-"use client";
-
 import { getCache, setCache, invalidateCache } from './cacheManager';
 import { dispatchCacheEvent } from '../hooks/useCacheInvalidation';
 import { CACHE_KEYS } from '../types/cache';

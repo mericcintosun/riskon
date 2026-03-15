@@ -17,18 +17,25 @@ const initializeStellarSDK = async () => {
       StellarSDK = SDK;
 
       // Handle different SDK export patterns
-      if (SDK.default && SDK.default.SorobanRpc) {
+      if (SDK.default && SDK.default.rpc) {
         StellarSDK = SDK.default;
+        SorobanRpc = SDK.default.rpc;
+      } else if (SDK.rpc) {
+        StellarSDK = SDK;
+        SorobanRpc = SDK.rpc;
+      } else if (SDK.default && SDK.default.SorobanRpc) {
+        StellarSDK = SDK.default;
+        SorobanRpc = SDK.default.SorobanRpc;
       } else if (SDK.SorobanRpc) {
         StellarSDK = SDK;
+        SorobanRpc = SDK.SorobanRpc;
       } else {
         console.warn(
-          "⚠️ SorobanRpc not found in expected locations, using fallback"
+          "⚠️ SorobanRpc/rpc not found in expected locations, using fallback"
         );
         StellarSDK = SDK.default || SDK;
       }
 
-      SorobanRpc = StellarSDK.SorobanRpc;
       return true;
     }
   } catch (error) {

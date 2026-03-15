@@ -114,10 +114,12 @@ export async function getContractInfo() {
           };
         }
       } catch (contractError) {
-        console.warn(
-          "⚠️ Contract data not found, but this may be normal for new contracts:",
-          contractError.message
-        );
+        if (!contractError.message?.includes("invalid durability")) {
+          console.warn(
+            "⚠️ Contract data not found, but this may be normal for new contracts:",
+            contractError.message
+          );
+        }
 
         // Even if contract data is not found, the contract might still exist
         // This is normal for contracts that haven't been initialized yet
