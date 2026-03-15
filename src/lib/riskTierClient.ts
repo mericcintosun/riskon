@@ -21,6 +21,9 @@ import {
 } from "@stellar/stellar-sdk";
 import { Server } from "@stellar/stellar-sdk/rpc";
 import { passkeyWallet } from "./passkeyIntegration";
+import { getCache, setCache, invalidateCache } from "./cacheManager";
+import { dispatchCacheEvent } from "../hooks/useCacheInvalidation";
+import { CACHE_KEYS } from "../types/cache";
 
 // ─── Type Definitions ──────────────────────────────────────────────
 
@@ -137,6 +140,13 @@ export const RISK_TIER_CONTRACT_CONFIG = {
   rpcUrl: DEFAULT_RPC_URL,
 };
 
+// Cache configuration
+const RISK_TIER_CACHE_TTL = 15 * 60 * 1000; // 15 minutes for risk tier data
+
+/**
+ * Type-Safe Risk Tier Contract Client
+ * Following Soroban CLI TypeScript bindings pattern
+ * Enhanced with intelligent caching
 // ─── Contract Client (Fixes #16) ──────────────────────────────────
 
 /**
@@ -218,6 +228,19 @@ export class RiskTierContractClient {
     return this.signAndSubmit(xdr);
   }
 
+      // Invalidate related cache entries after successful update
+      await this.invalidateUserCache(userAddress);
+
+      // Dispatch cache invalidation event
+      dispatchCacheEvent.riskTierUpdated(userAddress, tier);
+
+      console.log("✅ Risk tier updated and cache invalidated");
+
+      return result.hash;
+    } catch (error) {
+      console.error("❌ Failed to set risk tier:", error);
+      throw error;
+    }
   /**
    * Update user's chosen tier with risk-based validation.
    * Maps to Rust: `update_chosen_tier(user, new_chosen_tier)`
@@ -252,6 +275,22 @@ export class RiskTierContractClient {
    * Maps to Rust: `get_risk_tier(user) -> Option<RiskTierData>`
    */
   async getRiskTier(userAddress: string): Promise<RiskTierData | null> {
+    try {
+      // Check cache first
+      const cacheKey = `${CACHE_KEYS.USER_RISK_TIER}_${userAddress}`;
+      const cachedData = await getCache<RiskTierData>(cacheKey);
+      
+      if (cachedData) {
+        console.log("🚀 Using cached risk tier data");
+        return cachedData;
+      }
+
+      console.log("📡 Fetching fresh risk tier data from contract...");
+
+      // In production, use generated contract bindings
+      const result = await this.simulateContractCall("get_risk_tier", [
+        nativeToScVal(Address.fromString(userAddress)),
+      ]);
     const addr = validateAddress(userAddress, "User address");
 
     const retval = await this.simulateReadCall("get_risk_tier", [
@@ -260,6 +299,14 @@ export class RiskTierContractClient {
 
     if (!retval) return null;
 
+      // Cache the result
+      await setCache(cacheKey, riskTierData, { 
+        ttl: RISK_TIER_CACHE_TTL 
+      });
+
+      return riskTierData;
+    } catch (error) {
+      console.error("❌ Failed to get risk tier:", error);
     try {
       const native = scValToNative(retval);
       return {
@@ -279,6 +326,24 @@ export class RiskTierContractClient {
    * Maps to Rust: `get_score(user) -> u32`
    */
   async getScore(userAddress: string): Promise<number> {
+    try {
+      // Try to get from cached tier data first
+      const tierData = await this.getRiskTier(userAddress);
+      if (tierData) {
+        return tierData.score;
+      }
+
+      // Fallback to direct score call
+      console.log("📡 Fetching score directly from contract...");
+      const result = await this.simulateContractCall("get_score", [
+        nativeToScVal(Address.fromString(userAddress)),
+      ]);
+
+      return result ? scValToNative(result) : 0;
+    } catch (error) {
+      console.error("❌ Failed to get score:", error);
+      return 0;
+    }
     const addr = validateAddress(userAddress, "User address");
 
     const retval = await this.simulateReadCall("get_score", [
@@ -293,6 +358,24 @@ export class RiskTierContractClient {
    * Maps to Rust: `get_chosen_tier(user) -> Symbol`
    */
   async getChosenTier(userAddress: string): Promise<TierLevel> {
+    try {
+      // Try to get from cached tier data first
+      const tierData = await this.getRiskTier(userAddress);
+      if (tierData) {
+        return tierData.chosen_tier as TierLevel;
+      }
+
+      // Fallback to direct chosen tier call
+      console.log("📡 Fetching chosen tier directly from contract...");
+      const result = await this.simulateContractCall("get_chosen_tier", [
+        nativeToScVal(Address.fromString(userAddress)),
+      ]);
+
+      return result ? scValToNative(result) : "TIER_3";
+    } catch (error) {
+      console.error("❌ Failed to get chosen tier:", error);
+      return "TIER_3";
+    }
     const addr = validateAddress(userAddress, "User address");
 
     const retval = await this.simulateReadCall("get_chosen_tier", [
@@ -441,6 +524,22 @@ export class RiskTierContractClient {
     }
   }
 
+  /**
+   * Invalidate all cache entries for a specific user
+   * Called after risk tier updates
+   */
+  private async invalidateUserCache(userAddress: string): Promise<void> {
+    try {
+      await Promise.all([
+        invalidateCache(`${CACHE_KEYS.USER_RISK_TIER}_${userAddress}`),
+        invalidateCache(`${CACHE_KEYS.RISK_SCORE}_${userAddress}`),
+        invalidateCache(`${CACHE_KEYS.HORIZON_DATA}_${userAddress}`),
+      ]);
+      
+      console.log(`✅ Cache invalidated for user: ${userAddress}`);
+    } catch (error) {
+      console.warn('Failed to invalidate user cache:', error);
+    }
   // ── Internal: Signing & Submission ────────────────────────────
 
   /**

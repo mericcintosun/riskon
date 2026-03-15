@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { getModel } from "./loadModel";
+import { getCache, setCache } from "./cacheManager";
+import { dispatchCacheEvent } from "../hooks/useCacheInvalidation";
+import { CACHE_KEYS } from "../types/cache";
 import * as tf from "@tensorflow/tfjs";
 
-export function useRiskScore(features) {
+const RISK_SCORE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes for risk scores
+
+export function useRiskScore(features, walletAddress = null) {
   // features = [txCount, medianHours, assetKinds]
   const [score, setScore] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -31,6 +36,21 @@ export function useRiskScore(features) {
           return;
         }
 
+        // Check cache first if walletAddress is provided
+        if (walletAddress) {
+          const cacheKey = `${CACHE_KEYS.RISK_SCORE}_${walletAddress}`;
+          const cachedScore = await getCache(cacheKey);
+          
+          if (cachedScore && !cancelled) {
+            console.log("🚀 Using cached risk score");
+            setScore(cachedScore.score);
+            setLoading(false);
+            return;
+          }
+        }
+
+        console.log("🧠 Calculating fresh risk score...");
+
         const model = await getModel();
         if (!model) {
           console.error("Model could not be loaded");
@@ -46,7 +66,26 @@ export function useRiskScore(features) {
         const prob = (await output.data())[0]; // 0-1
 
         if (!cancelled && typeof prob === "number" && !isNaN(prob)) {
-          setScore(Math.round(Math.max(0, Math.min(100, prob * 100))));
+          const calculatedScore = Math.round(Math.max(0, Math.min(100, prob * 100)));
+          setScore(calculatedScore);
+
+          // Cache the result if walletAddress is provided
+          if (walletAddress) {
+            const cacheKey = `${CACHE_KEYS.RISK_SCORE}_${walletAddress}`;
+            const cacheData = {
+              score: calculatedScore,
+              features,
+              walletAddress,
+              timestamp: Date.now(),
+            };
+            
+            await setCache(cacheKey, cacheData, { 
+              ttl: RISK_SCORE_CACHE_TTL 
+            });
+
+            // Dispatch event for cache invalidation hooks
+            dispatchCacheEvent.riskScoreUpdated(walletAddress, calculatedScore);
+          }
         }
 
         // Memory cleanup
@@ -67,7 +106,7 @@ export function useRiskScore(features) {
     return () => {
       cancelled = true;
     };
-  }, [features]);
+  }, [features, walletAddress]);
 
   return {
     riskScore: score,
