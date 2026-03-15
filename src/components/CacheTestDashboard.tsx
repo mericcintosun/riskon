@@ -248,7 +248,7 @@ export const CacheTestDashboard: React.FC = () => {
           <div><strong>Test 1 – TTL Expiration:</strong> Stores data with 5-second TTL, retrieves immediately (should work), waits 6 seconds, retrieves again (should return null)</div>
           <div><strong>Test 2 – Version Invalidation:</strong> Tests cache rejection when version mismatches</div>
           <div><strong>Test 3 – Manual Invalidation:</strong> Tests automatic cache clearing after risk score updates</div>
-          <div><strong>Test 4 – IndexedDB Fallback:</strong> Tests large dataset storage (>1MB) in IndexedDB</div>
+          <div><strong>Test 4 – IndexedDB Fallback:</strong> Tests large dataset storage (&gt;1MB) in IndexedDB</div>
           <div><strong>Test 5 – Service Worker:</strong> Tests service worker registration and cache management</div>
         </div>
         
