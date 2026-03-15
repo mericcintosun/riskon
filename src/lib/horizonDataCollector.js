@@ -1,12 +1,17 @@
 "use client";
 
+import { getCache, setCache } from './cacheManager';
+import { CACHE_KEYS } from '../types/cache';
+
 /**
  * Horizon Data Collector
  * Collects last 30 days transaction data for automated risk analysis
+ * Now with intelligent caching (5min TTL)
  */
 
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const DAYS_TO_ANALYZE = 30;
+const HORIZON_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for Horizon data
 
 /**
  * Collect comprehensive transaction data for risk analysis
@@ -15,6 +20,16 @@ const DAYS_TO_ANALYZE = 30;
  */
 export async function collectTransactionData(walletAddress) {
   try {
+    // Check cache first
+    const cacheKey = `${CACHE_KEYS.HORIZON_DATA}_${walletAddress}`;
+    const cachedData = await getCache(cacheKey);
+    
+    if (cachedData) {
+      console.log("🚀 Using cached Horizon data");
+      return cachedData;
+    }
+
+    console.log("📡 Fetching fresh Horizon data...");
 
     // Calculate date range (last 30 days)
     const endDate = new Date();
@@ -32,8 +47,7 @@ export async function collectTransactionData(walletAddress) {
     // Calculate the 4 key metrics
     const metrics = calculateRiskMetrics(payments, transactions, walletAddress);
 
-
-    return {
+    const result = {
       success: true,
       metrics,
       dataPoints: {
@@ -43,6 +57,14 @@ export async function collectTransactionData(walletAddress) {
       },
       timestamp: Date.now(),
     };
+
+    // Cache the result
+    await setCache(cacheKey, result, { 
+      ttl: HORIZON_CACHE_TTL,
+      useIndexedDB: true // Horizon data can be large
+    });
+
+    return result;
   } catch (error) {
     console.error("❌ Data collection failed:", error);
     return {
