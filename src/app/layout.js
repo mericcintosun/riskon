@@ -4,6 +4,7 @@ import { WalletProvider } from "../contexts/WalletContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Footer from "../components/Footer";
+import RiskDataInitializer from "../components/RiskDataInitializer";
 
 const inter = Inter({ subsets: ["latin"] });
 const montserrat = Montserrat({ 
@@ -41,6 +42,7 @@ export default function RootLayout({ children }) {
         <ErrorBoundary>
           <ToastProvider>
             <WalletProvider>
+              <RiskDataInitializer />
               <div className="flex-1">
                 {children}
               </div>
