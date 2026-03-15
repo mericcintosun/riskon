@@ -358,6 +358,9 @@ export const importRiskData = async (file) => {
  * Utility function to check if migration is needed
  */
 export const checkMigrationNeeded = () => {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return false;
+  }
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
