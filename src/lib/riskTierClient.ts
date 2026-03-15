@@ -18,12 +18,15 @@ import {
   Networks,
   BASE_FEE,
   StrKey,
+  Horizon,
 } from "@stellar/stellar-sdk";
 import { Server } from "@stellar/stellar-sdk/rpc";
 import { passkeyWallet } from "./passkeyIntegration";
 import { getCache, setCache, invalidateCache } from "./cacheManager";
 import { dispatchCacheEvent } from "../hooks/useCacheInvalidation";
 import { CACHE_KEYS } from "../types/cache";
+
+const horizonServer = new Server("https://horizon-testnet.stellar.org");
 
 // ─── Type Definitions ──────────────────────────────────────────────
 
@@ -225,8 +228,8 @@ export class RiskTierContractClient {
       nativeToScVal(safeChosen, { type: "symbol" }),
     ]);
 
-    return this.signAndSubmit(xdr);
-  }
+    try {
+      const hash = await this.signAndSubmit(xdr);
 
       // Invalidate related cache entries after successful update
       await this.invalidateUserCache(userAddress);
@@ -236,11 +239,12 @@ export class RiskTierContractClient {
 
       console.log("✅ Risk tier updated and cache invalidated");
 
-      return result.hash;
+      return hash;
     } catch (error) {
       console.error("❌ Failed to set risk tier:", error);
       throw error;
     }
+  }
   /**
    * Update user's chosen tier with risk-based validation.
    * Maps to Rust: `update_chosen_tier(user, new_chosen_tier)`
@@ -287,17 +291,20 @@ export class RiskTierContractClient {
 
       console.log("📡 Fetching fresh risk tier data from contract...");
 
-      // In production, use generated contract bindings
-      const result = await this.simulateContractCall("get_risk_tier", [
-        nativeToScVal(Address.fromString(userAddress)),
+      const addr = validateAddress(userAddress, "User address");
+      const retval = await this.simulateReadCall("get_risk_tier", [
+        Address.fromString(addr).toScVal(),
       ]);
-    const addr = validateAddress(userAddress, "User address");
 
-    const retval = await this.simulateReadCall("get_risk_tier", [
-      Address.fromString(addr).toScVal(),
-    ]);
+      if (!retval) return null;
 
-    if (!retval) return null;
+      const native = scValToNative(retval);
+      const riskTierData = {
+        score: Number(native.score),
+        tier: String(native.tier),
+        timestamp: BigInt(native.timestamp),
+        chosen_tier: String(native.chosen_tier),
+      };
 
       // Cache the result
       await setCache(cacheKey, riskTierData, { 
@@ -307,16 +314,6 @@ export class RiskTierContractClient {
       return riskTierData;
     } catch (error) {
       console.error("❌ Failed to get risk tier:", error);
-    try {
-      const native = scValToNative(retval);
-      return {
-        score: Number(native.score),
-        tier: String(native.tier),
-        timestamp: BigInt(native.timestamp),
-        chosen_tier: String(native.chosen_tier),
-      };
-    } catch (err) {
-      console.error("Failed to parse RiskTierData:", err);
       return null;
     }
   }
@@ -335,22 +332,17 @@ export class RiskTierContractClient {
 
       // Fallback to direct score call
       console.log("📡 Fetching score directly from contract...");
-      const result = await this.simulateContractCall("get_score", [
-        nativeToScVal(Address.fromString(userAddress)),
+      const addr = validateAddress(userAddress, "User address");
+
+      const retval = await this.simulateReadCall("get_score", [
+        Address.fromString(addr).toScVal(),
       ]);
 
-      return result ? scValToNative(result) : 0;
+      return retval ? Number(scValToNative(retval)) : 0;
     } catch (error) {
       console.error("❌ Failed to get score:", error);
       return 0;
     }
-    const addr = validateAddress(userAddress, "User address");
-
-    const retval = await this.simulateReadCall("get_score", [
-      Address.fromString(addr).toScVal(),
-    ]);
-
-    return retval ? Number(scValToNative(retval)) : 0;
   }
 
   /**
@@ -367,24 +359,19 @@ export class RiskTierContractClient {
 
       // Fallback to direct chosen tier call
       console.log("📡 Fetching chosen tier directly from contract...");
-      const result = await this.simulateContractCall("get_chosen_tier", [
-        nativeToScVal(Address.fromString(userAddress)),
+      const addr = validateAddress(userAddress, "User address");
+
+      const retval = await this.simulateReadCall("get_chosen_tier", [
+        Address.fromString(addr).toScVal(),
       ]);
 
-      return result ? scValToNative(result) : "TIER_3";
+      if (!retval) return "TIER_3";
+      const raw = String(scValToNative(retval));
+      return isValidTier(raw) ? raw : "TIER_3";
     } catch (error) {
       console.error("❌ Failed to get chosen tier:", error);
       return "TIER_3";
     }
-    const addr = validateAddress(userAddress, "User address");
-
-    const retval = await this.simulateReadCall("get_chosen_tier", [
-      Address.fromString(addr).toScVal(),
-    ]);
-
-    if (!retval) return "TIER_3";
-    const raw = String(scValToNative(retval));
-    return isValidTier(raw) ? raw : "TIER_3";
   }
 
   /**
@@ -540,6 +527,7 @@ export class RiskTierContractClient {
     } catch (error) {
       console.warn('Failed to invalidate user cache:', error);
     }
+  }
   // ── Internal: Signing & Submission ────────────────────────────
 
   /**
@@ -550,7 +538,7 @@ export class RiskTierContractClient {
    */
   private async signAndSubmit(transactionXDR: string): Promise<string> {
     const signature = await passkeyWallet.signTransaction(transactionXDR);
-    const result = await passkeyWallet.submitTransactionWithSponsorship(
+    const result = await passkeyWallet.submitTransactionDirectly(
       transactionXDR,
       signature
     );
@@ -567,14 +555,17 @@ export class RiskTierContractClient {
    *   (derived from the "kalepail" seed per PasskeyKit conventions)
    */
   private async resolveSourceAccount(address: string) {
+    // Lazy horizon server connection
+    const horizon = new Horizon.Server("https://horizon-testnet.stellar.org");
+    
     if (StrKey.isValidEd25519PublicKey(address)) {
       try {
-        return await this.server.getAccount(address);
+        return await horizon.loadAccount(address);
       } catch {
         // On testnet, attempt to fund via friendbot
         if (this.networkPassphrase === Networks.TESTNET) {
           await this.fundViaFriendbot(address);
-          return await this.server.getAccount(address);
+          return await horizon.loadAccount(address);
         }
         throw new Error(
           `Account ${address} not found on the network. ` +
@@ -614,12 +605,14 @@ export class RiskTierContractClient {
     const seed = hash(Buffer.from("kalepail"));
     const sponsorAddress = Keypair.fromRawEd25519Seed(seed).publicKey();
 
+    const horizon = new Horizon.Server("https://horizon-testnet.stellar.org");
+
     try {
-      return await this.server.getAccount(sponsorAddress);
+      return await horizon.loadAccount(sponsorAddress);
     } catch {
       if (this.networkPassphrase === Networks.TESTNET) {
         await this.fundViaFriendbot(sponsorAddress);
-        return await this.server.getAccount(sponsorAddress);
+        return await horizon.loadAccount(sponsorAddress);
       }
       throw new Error(
         "Sponsor account not found and network is not testnet. " +

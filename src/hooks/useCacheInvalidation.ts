@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from 'react';
-import { invalidateCache } from './cacheManager';
+import { invalidateCache } from '../lib/cacheManager';
 import { CACHE_KEYS } from '../types/cache';
 
 /**

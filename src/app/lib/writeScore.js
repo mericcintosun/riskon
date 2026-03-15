@@ -10,6 +10,7 @@ import {
   nativeToScVal,
   scValToNative,
   Operation,
+  Horizon,
 } from "@stellar/stellar-sdk";
 import { Server } from "@stellar/stellar-sdk/rpc";
 import { saveRiskData } from "../../lib/storage/db.js";
@@ -22,6 +23,7 @@ const RISK_SCORE_CONTRACT_ID =
 
 // Soroban RPC endpoint for testnet
 const server = new Server("https://soroban-testnet.stellar.org");
+const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
 
 // Network configuration
 const NETWORK_PASSPHRASE = Networks.TESTNET;
@@ -111,6 +113,7 @@ export async function writeScoreToBlockchain({
         `Contract operation creation failed: ${operationError.message}`
       );
     }
+    console.log("Operation created successfully");
 
     // Get account info for transaction building
     // Special handling for Passkey smart contracts (C addresses)
@@ -126,7 +129,7 @@ export async function writeScoreToBlockchain({
       const sponsorAddress = sponsorKeypair.publicKey();
 
       try {
-        sourceAccount = await server.getAccount(sponsorAddress);
+        sourceAccount = await horizonServer.loadAccount(sponsorAddress);
       } catch (error) {
         // Try to fund the sponsor account if it doesn't exist
         if (error.response?.status === 404) {
@@ -141,7 +144,7 @@ export async function writeScoreToBlockchain({
               // Wait for account to be available
               await new Promise((resolve) => setTimeout(resolve, 3000));
 
-              sourceAccount = await server.getAccount(sponsorAddress);
+              sourceAccount = await horizonServer.loadAccount(sponsorAddress);
             } else {
               throw new Error(`Friendbot failed: ${friendbotResponse.status}`);
             }
@@ -154,7 +157,41 @@ export async function writeScoreToBlockchain({
       }
     } else {
       // Traditional account - use the address directly
-      sourceAccount = await server.getAccount(address);
+      try {
+        sourceAccount = await horizonServer.loadAccount(address);
+      } catch (error) {
+        if (error?.response?.status === 404 || error.message?.includes("not found")) {
+          console.log("Account not found, requesting friendbot funding...");
+          try {
+            const friendbotResponse = await fetch(
+              `https://friendbot.stellar.org?addr=${encodeURIComponent(address)}`
+            );
+            if (friendbotResponse.ok) {
+              console.log("Friendbot OK, waiting for indexing...");
+              let retries = 5;
+              while (retries > 0) {
+                await new Promise((resolve) => setTimeout(resolve, 3000));
+                try {
+                  sourceAccount = await horizonServer.loadAccount(address);
+                  console.log("Account successfully indexed!");
+                  break;
+                } catch (e) {
+                  console.log("Still waiting for account...", retries);
+                  retries--;
+                  if (retries === 0) throw e;
+                }
+              }
+            } else {
+              throw new Error(`Friendbot failed: ${friendbotResponse.status}`);
+            }
+          } catch (fundingError) {
+             console.error("Friendbot funding failed:", fundingError);
+             throw new Error(`Account not found: ${address}`);
+          }
+        } else {
+          throw error;
+        }
+      }
     }
 
     // Build the transaction with high fee for Soroban operations
@@ -170,19 +207,30 @@ export async function writeScoreToBlockchain({
     // This should work for simple contract calls
     let preparedTransaction = transaction;
 
+    console.log("Requesting signature from wallet toolkit...");
     // Sign the transaction using the wallet kit
-    const signedTransaction = await kit.signTransaction(
-      preparedTransaction.toXDR()
-    );
+    let signedTransaction;
+    try {
+      signedTransaction = await kit.signTransaction(
+        preparedTransaction.toXDR()
+      );
+      console.log("Signature received", signedTransaction);
+    } catch (e) {
+      console.error("Error signing transaction", e);
+      throw e;
+    }
 
+    console.log("Parsing signed transaction...");
     // Parse the signed transaction
     const parsedSignedTx = TransactionBuilder.fromXDR(
-      signedTransaction.signedTxXdr,
+      signedTransaction.signedTxXdr || signedTransaction,
       NETWORK_PASSPHRASE
     );
 
+    console.log("Submitting transaction to Soroban RPC...");
     // Submit the transaction
     const result = await server.sendTransaction(parsedSignedTx);
+    console.log("Transaction submitted:", result);
 
     // Check immediate response status - handle multiple possible formats
     if (
@@ -330,7 +378,7 @@ export async function writeScoreToBlockchain({
           riskData: {
             score,
             address,
-            tier,
+            tier: calculateTier(score),
             chosenTier: chosenTierName,
             method: "set_risk_tier",
           },
@@ -420,7 +468,7 @@ export async function readRiskTierFromBlockchain(address) {
 
         return null; // For now, return null for smart contract addresses
       } else {
-        account = await server.getAccount(address);
+        account = await horizonServer.loadAccount(address);
       }
     } catch (error) {
       console.warn("❌ Could not get account for address:", address, error);
@@ -490,7 +538,7 @@ export async function checkTierAccess(address, targetTier) {
 
       return false;
     } else {
-      account = await server.getAccount(address);
+      account = await horizonServer.loadAccount(address);
     }
 
     const operation = contract.call(
@@ -549,7 +597,7 @@ export async function checkContractExists() {
     if (data.result && data.result.entries && data.result.entries.length > 0) {
       return true;
     } else {
-      ("❌ Contract not found - may not be deployed");
+      console.error("❌ Contract not found - may not be deployed");
       return false;
     }
   } catch (error) {
@@ -591,7 +639,11 @@ export async function storeScoreInAccountData({ kit, address, score, chosenTier 
 
     // Store in IndexedDB
     try {
-      await saveRiskData(riskData);
+      // Add timeout to prevent UI hang if IndexedDB is stuck
+      await Promise.race([
+        saveRiskData(riskData),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("IndexedDB timeout")), 3000))
+      ]);
       console.log("✅ Risk data stored in IndexedDB successfully");
     } catch (dbError) {
       console.error("⚠️ IndexedDB storage failed, falling back to localStorage:", dbError);

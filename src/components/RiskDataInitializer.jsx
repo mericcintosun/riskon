@@ -15,18 +15,14 @@ const RiskDataInitializer = () => {
   useEffect(() => {
     const initSystem = async () => {
       try {
-        console.log('🚀 Initializing Risk Data System...');
         const result = await initializeRiskDataSystem();
         
         if (result.success) {
-          console.log('✅ Risk Data System initialized successfully');
           setInitialized(true);
         } else {
-          console.error('⚠️ Risk Data System initialization failed:', result.message);
           setError(result.message);
         }
       } catch (err) {
-        console.error('❌ Failed to initialize Risk Data System:', err);
         setError(err.message);
       }
     };
