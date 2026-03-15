@@ -14,18 +14,34 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error
+    // Log the error with more context
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     this.setState({
       error: error,
       errorInfo: errorInfo
     });
 
+    // Report error to external logging service (e.g., Sentry)
+    this.logErrorToService(error, errorInfo);
+
     // Report error to toast system if available
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
+  }
+
+  logErrorToService(error, errorInfo) {
+    // In production, this would send to Sentry, LogRocket, etc.
+    if (process.env.NODE_ENV === 'production') {
+      // Integration point for error tracking services
+      // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+      console.log('Error logged to monitoring service:', error.message);
+    }
+  }
+
+  resetErrorBoundary = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
   }
 
   render() {
@@ -79,10 +95,17 @@ class ErrorBoundary extends React.Component {
                 </button>
                 
                 <button
-                  onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+                  onClick={this.resetErrorBoundary}
                   className="w-full bg-white/10 hover:bg-white/20 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 border border-white/20"
                 >
                   Try Again
+                </button>
+
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="w-full bg-white/5 hover:bg-white/10 text-white/70 font-medium py-2 px-6 rounded-xl transition-all duration-200 text-sm"
+                >
+                  Go to Home
                 </button>
               </div>
               
