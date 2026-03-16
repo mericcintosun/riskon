@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@sentry/nextjs": "^9.14.0",
     "@blend-capital/blend-sdk": "^2.2.0",
     "@creit.tech/stellar-wallets-kit": "^1.7.3",
     "@stellar/stellar-sdk": "13.3.0",

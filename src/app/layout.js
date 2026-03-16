@@ -5,6 +5,7 @@ import { ToastProvider } from "../contexts/ToastContext";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Footer from "../components/Footer";
 import RiskDataInitializer from "../components/RiskDataInitializer";
+import PlausibleAnalytics from "../components/PlausibleAnalytics";
 
 const inter = Inter({ subsets: ["latin"] });
 const montserrat = Montserrat({ 
@@ -43,6 +44,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.className} ${montserrat.variable}`}>
       <body className="bg-black min-h-screen text-white antialiased flex flex-col">
+        <PlausibleAnalytics />
         <ErrorBoundary>
           <ToastProvider>
             <WalletProvider>
