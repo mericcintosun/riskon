@@ -7,6 +7,16 @@
  */
 
 import { PasskeyKit } from "passkey-kit";
+import {
+  getSafeLocalStorageItem,
+  removeSafeLocalStorageItem,
+  setSafeLocalStorageItem,
+} from "./secureStorage";
+import {
+  sanitizeString,
+  validateContractId,
+  validateStellarAddress,
+} from "./validation";
 
 // Passkey-Kit configuration - client-side only
 const PASSKEY_CONFIG = {
@@ -76,27 +86,27 @@ export async function createPasskeyWallet(
 
     // Store wallet info locally for future reference
     const walletInfo = {
-      keyId: walletResult.keyIdBase64,
-      contractId: walletResult.contractId,
-      walletAddress: walletResult.contractId,
+      keyId: sanitizeString(walletResult.keyIdBase64 || ""),
+      contractId: sanitizeString(walletResult.contractId || ""),
+      walletAddress: sanitizeString(walletResult.contractId || ""),
       createdAt: Date.now(),
       type: "passkey",
-      appName: appName,
-      userName: userName,
+      appName: sanitizeString(appName || ""),
+      userName: sanitizeString(userName || ""),
     };
 
-    localStorage.setItem(
+    setSafeLocalStorageItem(
       `passkey_wallet_${walletResult.keyIdBase64}`,
       JSON.stringify(walletInfo)
     );
-    localStorage.setItem("last_passkey_wallet", walletResult.keyIdBase64);
+    setSafeLocalStorageItem("last_passkey_wallet", walletResult.keyIdBase64);
 
 
     return {
       success: true,
-      walletAddress: walletResult.contractId,
-      keyId: walletResult.keyIdBase64,
-      contractId: walletResult.contractId,
+      walletAddress: sanitizeString(walletResult.contractId || ""),
+      keyId: sanitizeString(walletResult.keyIdBase64 || ""),
+      contractId: sanitizeString(walletResult.contractId || ""),
       walletInfo: walletInfo,
       signedTx: walletResult.signedTx,
     };
@@ -129,16 +139,26 @@ export async function createPasskeyWallet(
 export async function connectPasskeyWallet(keyId) {
   try {
 
-    const walletInfo = getStoredWalletInfo(keyId);
+    const sanitizedKeyId = sanitizeString(keyId || "");
+    if (!sanitizedKeyId) {
+      throw new Error("Invalid key ID");
+    }
+
+    const walletInfo = getStoredWalletInfo(sanitizedKeyId);
     if (!walletInfo) {
       throw new Error("Wallet not found in local storage");
+    }
+
+    const contractValidation = validateContractId(walletInfo.contractId || "");
+    if (!contractValidation.isValid) {
+      throw new Error(contractValidation.error || "Invalid contract ID");
     }
 
     const kit = await initializePasskeyKit();
 
     // Use PasskeyKit's connectWallet method with correct parameters
     const connection = await kit.connectWallet({
-      keyId: keyId,
+      keyId: sanitizedKeyId,
       getContractId: async (keyId) => {
         // Return the stored contract ID for this keyId
         const info = getStoredWalletInfo(keyId);
@@ -149,9 +169,11 @@ export async function connectPasskeyWallet(keyId) {
 
     return {
       success: true,
-      walletAddress: connection.contractId || walletInfo.walletAddress,
-      keyId: keyId,
-      contractId: connection.contractId || walletInfo.contractId,
+      walletAddress: sanitizeString(
+        connection.contractId || walletInfo.walletAddress || ""
+      ),
+      keyId: sanitizedKeyId,
+      contractId: sanitizeString(connection.contractId || walletInfo.contractId || ""),
       walletInfo: walletInfo,
     };
   } catch (error) {
@@ -169,7 +191,12 @@ export async function connectPasskeyWallet(keyId) {
 export async function signWithPasskey(keyId, transaction) {
   try {
 
-    const walletInfo = getStoredWalletInfo(keyId);
+    const sanitizedKeyId = sanitizeString(keyId || "");
+    if (!sanitizedKeyId) {
+      throw new Error("Invalid key ID");
+    }
+
+    const walletInfo = getStoredWalletInfo(sanitizedKeyId);
     if (!walletInfo) {
       throw new Error("Wallet not found");
     }
@@ -178,7 +205,7 @@ export async function signWithPasskey(keyId, transaction) {
 
     // Use PasskeyKit's sign method
     const signedTransaction = await kit.sign({
-      keyId: keyId,
+      keyId: sanitizedKeyId,
       transaction: transaction,
     });
 
@@ -239,8 +266,24 @@ export function getStoredPasskeyWallets() {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith("passkey_wallet_")) {
-        const walletInfo = JSON.parse(localStorage.getItem(key));
-        wallets.push(walletInfo);
+        const rawWalletInfo = getSafeLocalStorageItem(key);
+        if (!rawWalletInfo) {
+          continue;
+        }
+
+        const walletInfo = JSON.parse(rawWalletInfo);
+        const validatedAddress = validateStellarAddress(
+          walletInfo.walletAddress || ""
+        );
+
+        if (validatedAddress.isValid) {
+          wallets.push({
+            ...walletInfo,
+            walletAddress: validatedAddress.sanitized,
+            contractId: sanitizeString(walletInfo.contractId || ""),
+            keyId: sanitizeString(walletInfo.keyId || ""),
+          });
+        }
       }
     }
     return wallets.sort((a, b) => b.createdAt - a.createdAt);
@@ -257,8 +300,26 @@ export function getStoredPasskeyWallets() {
  */
 export function getStoredWalletInfo(keyId) {
   try {
-    const stored = localStorage.getItem(`passkey_wallet_${keyId}`);
-    return stored ? JSON.parse(stored) : null;
+    const sanitizedKeyId = sanitizeString(keyId || "");
+    const stored = getSafeLocalStorageItem(`passkey_wallet_${sanitizedKeyId}`);
+    if (!stored) {
+      return null;
+    }
+
+    const walletInfo = JSON.parse(stored);
+    const validatedAddress = validateStellarAddress(walletInfo.walletAddress || "");
+    const validatedContract = validateContractId(walletInfo.contractId || "");
+
+    if (!validatedAddress.isValid || !validatedContract.isValid) {
+      return null;
+    }
+
+    return {
+      ...walletInfo,
+      walletAddress: validatedAddress.sanitized,
+      contractId: validatedContract.sanitized,
+      keyId: sanitizeString(walletInfo.keyId || ""),
+    };
   } catch (error) {
     console.error("❌ Failed to get wallet info:", error);
     return null;
@@ -271,7 +332,7 @@ export function getStoredWalletInfo(keyId) {
  */
 export function getLastPasskeyWallet() {
   try {
-    const lastKeyId = localStorage.getItem("last_passkey_wallet");
+    const lastKeyId = getSafeLocalStorageItem("last_passkey_wallet");
     if (!lastKeyId) return null;
 
     return getStoredWalletInfo(lastKeyId);
@@ -288,12 +349,13 @@ export function getLastPasskeyWallet() {
  */
 export function deletePasskeyWallet(keyId) {
   try {
-    localStorage.removeItem(`passkey_wallet_${keyId}`);
+    const sanitizedKeyId = sanitizeString(keyId || "");
+    removeSafeLocalStorageItem(`passkey_wallet_${sanitizedKeyId}`);
 
     // Clear last wallet if it was this one
-    const lastKeyId = localStorage.getItem("last_passkey_wallet");
-    if (lastKeyId === keyId) {
-      localStorage.removeItem("last_passkey_wallet");
+    const lastKeyId = getSafeLocalStorageItem("last_passkey_wallet");
+    if (lastKeyId === sanitizedKeyId) {
+      removeSafeLocalStorageItem("last_passkey_wallet");
     }
 
     return true;

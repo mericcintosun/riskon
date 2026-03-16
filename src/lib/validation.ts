@@ -171,6 +171,15 @@ export function sanitizeString(input: string): string {
 }
 
 /**
+ * Escapes unsafe HTML characters for safe rendering in text contexts
+ * @param input - Raw user input
+ * @returns Escaped string with dangerous characters encoded
+ */
+export function escapeUnsafeHtml(input: string): string {
+  return sanitizeString(input);
+}
+
+/**
  * Validates and sanitizes a URL
  * @param url - The URL to validate
  * @param allowedProtocols - Array of allowed protocols (default: ['http', 'https'])

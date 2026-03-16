@@ -7,6 +7,12 @@
  */
 
 import React, { useState } from "react";
+import {
+  getSafeLocalStorageItem,
+  removeSafeLocalStorageItem,
+  setSafeLocalStorageItem,
+} from "./secureStorage";
+import { sanitizeString } from "./validation";
 
 // Passkey-Kit configuration
 const PASSKEY_CONFIG = {
@@ -132,11 +138,11 @@ class PasskeyWalletManager {
       this.isConnected = true;
 
       // Store in local storage for future use
-      localStorage.setItem(
+      setSafeLocalStorageItem(
         "passkey_wallet_info",
         JSON.stringify({
-          passkeyId: credential.id,
-          smartWalletAddress: smartWalletAddress,
+          passkeyId: sanitizeString(credential.id || ""),
+          smartWalletAddress: sanitizeString(smartWalletAddress || ""),
           publicKey: Array.from(publicKey),
           created_at: new Date().toISOString(),
         })
@@ -162,7 +168,7 @@ class PasskeyWalletManager {
     try {
 
       // Check if we have stored wallet info
-      const stored = localStorage.getItem("passkey_wallet_info");
+      const stored = getSafeLocalStorageItem("passkey_wallet_info");
       if (!stored) {
         throw new Error("No stored passkey wallet found");
       }
@@ -364,7 +370,7 @@ class PasskeyWalletManager {
     this.passkeyId = null;
 
     // Clear stored information
-    localStorage.removeItem("passkey_wallet_info");
+    removeSafeLocalStorageItem("passkey_wallet_info");
 
   }
 
