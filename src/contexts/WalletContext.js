@@ -14,6 +14,12 @@ import {
   getStoredPasskeyWallets,
   checkPasskeySupport,
 } from "../lib/passkeyWallet";
+import {
+  getSafeLocalStorageItem,
+  removeSafeLocalStorageItem,
+  setSafeLocalStorageItem,
+} from "../lib/secureStorage";
+import { sanitizeString, validateStellarAddress } from "../lib/validation";
 
 const WalletContext = createContext();
 
@@ -41,12 +47,15 @@ export function WalletProvider({ children }) {
         setPasskeySupport(passkeyStatus);
 
         // Try to restore wallet connection from localStorage
-        const savedWallet = localStorage.getItem("connectedWallet");
-        const savedAddress = localStorage.getItem("walletAddress");
+        const savedWallet = getSafeLocalStorageItem("connectedWallet");
+        const savedAddress = getSafeLocalStorageItem("walletAddress");
 
-        if (savedWallet && savedAddress) {
-          setConnectedWallet(savedWallet);
-          setWalletAddress(savedAddress);
+        const sanitizedWallet = sanitizeString(savedWallet || "");
+        const validatedAddress = validateStellarAddress(savedAddress || "");
+
+        if (sanitizedWallet && validatedAddress.isValid) {
+          setConnectedWallet(sanitizedWallet);
+          setWalletAddress(validatedAddress.sanitized);
         }
 
         setInitError(null);
@@ -55,8 +64,8 @@ export function WalletProvider({ children }) {
         setInitError(error);
 
         // Clear any corrupted localStorage data
-        localStorage.removeItem("connectedWallet");
-        localStorage.removeItem("walletAddress");
+        removeSafeLocalStorageItem("connectedWallet");
+        removeSafeLocalStorageItem("walletAddress");
       }
     };
 
@@ -78,16 +87,25 @@ export function WalletProvider({ children }) {
         // Direct wallet connection
         kit.setWallet(walletId);
         const { address } = await kit.getAddress();
+        const sanitizedWalletName = sanitizeString(getWalletName(walletId));
+        const validatedAddress = validateStellarAddress(address || "");
 
-        const walletName = getWalletName(walletId);
-        setWalletAddress(address);
-        setConnectedWallet(walletName);
+        if (!validatedAddress.isValid) {
+          throw new Error(validatedAddress.error || "Invalid wallet address");
+        }
+
+        setWalletAddress(validatedAddress.sanitized);
+        setConnectedWallet(sanitizedWalletName);
 
         // Save to localStorage
-        localStorage.setItem("connectedWallet", walletName);
-        localStorage.setItem("walletAddress", address);
+        setSafeLocalStorageItem("connectedWallet", sanitizedWalletName);
+        setSafeLocalStorageItem("walletAddress", validatedAddress.sanitized);
 
-        return { success: true, walletName, address };
+        return {
+          success: true,
+          walletName: sanitizedWalletName,
+          address: validatedAddress.sanitized,
+        };
       } else {
         // Modal-based wallet selection
         return new Promise((resolve, reject) => {
@@ -97,15 +115,30 @@ export function WalletProvider({ children }) {
                 try {
                   kit.setWallet(option.id);
                   const { address } = await kit.getAddress();
+                  const sanitizedWalletName = sanitizeString(option.name || "");
+                  const validatedAddress = validateStellarAddress(address || "");
 
-                  setWalletAddress(address);
-                  setConnectedWallet(option.name);
+                  if (!validatedAddress.isValid) {
+                    throw new Error(
+                      validatedAddress.error || "Invalid wallet address"
+                    );
+                  }
+
+                  setWalletAddress(validatedAddress.sanitized);
+                  setConnectedWallet(sanitizedWalletName);
 
                   // Save to localStorage
-                  localStorage.setItem("connectedWallet", option.name);
-                  localStorage.setItem("walletAddress", address);
+                  setSafeLocalStorageItem("connectedWallet", sanitizedWalletName);
+                  setSafeLocalStorageItem(
+                    "walletAddress",
+                    validatedAddress.sanitized
+                  );
 
-                  resolve({ success: true, walletName: option.name, address });
+                  resolve({
+                    success: true,
+                    walletName: sanitizedWalletName,
+                    address: validatedAddress.sanitized,
+                  });
                 } catch (error) {
                   // Categorize wallet connection errors
                   if (error.message?.includes("User rejected")) {
@@ -209,8 +242,8 @@ export function WalletProvider({ children }) {
       setConnectedWallet(null);
 
       // Clear localStorage
-      localStorage.removeItem("connectedWallet");
-      localStorage.removeItem("walletAddress");
+      removeSafeLocalStorageItem("connectedWallet");
+      removeSafeLocalStorageItem("walletAddress");
 
       return { success: true };
     } catch (error) {
@@ -237,13 +270,18 @@ export function WalletProvider({ children }) {
       }
 
       if (result.success) {
-        setWalletAddress(result.walletAddress);
+        const validatedAddress = validateStellarAddress(result.walletAddress || "");
+        if (!validatedAddress.isValid) {
+          throw new Error(validatedAddress.error || "Invalid passkey wallet address");
+        }
+
+        setWalletAddress(validatedAddress.sanitized);
         setConnectedWallet("Passkey");
 
         // Save to localStorage
-        localStorage.setItem("connectedWallet", "Passkey");
-        localStorage.setItem("walletAddress", result.walletAddress);
-        localStorage.setItem("passkeyKeyId", result.keyId);
+        setSafeLocalStorageItem("connectedWallet", "Passkey");
+        setSafeLocalStorageItem("walletAddress", validatedAddress.sanitized);
+        setSafeLocalStorageItem("passkeyKeyId", sanitizeString(result.keyId || ""));
       }
 
       return result;
@@ -259,20 +297,27 @@ export function WalletProvider({ children }) {
   };
 
   const validateWalletConnection = () => {
-    const storedWallet = localStorage.getItem("connectedWallet");
-    const storedAddress = localStorage.getItem("walletAddress");
+    const storedWallet = getSafeLocalStorageItem("connectedWallet");
+    const storedAddress = getSafeLocalStorageItem("walletAddress");
+
+    const sanitizedWallet = sanitizeString(storedWallet || "");
+    const validatedAddress = validateStellarAddress(storedAddress || "");
 
     // Check for inconsistent state
-    if ((storedWallet && !storedAddress) || (!storedWallet && storedAddress)) {
+    if (
+      (sanitizedWallet && !storedAddress) ||
+      (!sanitizedWallet && storedAddress) ||
+      (storedAddress && !validatedAddress.isValid)
+    ) {
       // Clear corrupted data
-      localStorage.removeItem("connectedWallet");
-      localStorage.removeItem("walletAddress");
+      removeSafeLocalStorageItem("connectedWallet");
+      removeSafeLocalStorageItem("walletAddress");
       setConnectedWallet(null);
       setWalletAddress("");
       return false;
     }
 
-    return !!(storedWallet && storedAddress);
+    return !!(sanitizedWallet && validatedAddress.isValid);
   };
 
   const getWalletName = (walletId) => {
