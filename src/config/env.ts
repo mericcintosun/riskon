@@ -78,6 +78,11 @@ const clientEnvSchema = z.object({
 
   // Environment
   NEXT_PUBLIC_ENVIRONMENT: z.enum(["development", "production", "test"]).optional(),
+
+  // Observability
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().optional(),
+  NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),
 });
 
 /**
@@ -114,6 +119,12 @@ const serverEnvSchema = z.object({
   MERCURY_URL: urlSchema.optional(),
   MERCURY_JWT: z.string().optional(),
   COINGECKO_API_KEY: z.string().optional(),
+
+  // Observability
+  SENTRY_DSN: z.string().optional(),
+  PLAUSIBLE_DOMAIN: z.string().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.string().optional(),
+  SLOW_API_THRESHOLD_MS: numberEnvSchema.optional().default("1000"),
 
   // Feature Flags
   FEATURE_PASSKEY_WALLET: booleanEnvSchema.optional().default("true"),
