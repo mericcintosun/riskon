@@ -1,0 +1,25 @@
+{
+  "navigation": {
+    "appName": "RiskOn",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "auth": "Auth",
+    "risk": "Risk",
+    "language": "Language"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "View your portfolio and current system status.",
+    "summary": "Risk analytics are up to date."
+  },
+  "auth": {
+    "title": "Authentication",
+    "subtitle": "Secure your account with passkey sign-in.",
+    "action": "Continue"
+  },
+  "risk": {
+    "title": "Risk",
+    "subtitle": "Track risk indicators and alerts.",
+    "status": "Current risk status"
+  }
+}

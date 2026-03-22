@@ -1,0 +1,25 @@
+{
+  "navigation": {
+    "appName": "RiskOn",
+    "home": "Ana Sayfa",
+    "dashboard": "Panel",
+    "auth": "Kimlik Doğrulama",
+    "risk": "Risk",
+    "language": "Dil"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "subtitle": "Portföyünüzü ve güncel sistem durumunu görüntüleyin.",
+    "summary": "Risk analizleri güncel."
+  },
+  "auth": {
+    "title": "Kimlik Doğrulama",
+    "subtitle": "Passkey ile hesabınızı güvenli şekilde koruyun.",
+    "action": "Devam Et"
+  },
+  "risk": {
+    "title": "Risk",
+    "subtitle": "Risk göstergelerini ve uyarıları takip edin.",
+    "status": "Mevcut risk durumu"
+  }
+}

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./src/i18n/routing";
 
 const CSRF_COOKIE_NAME = "riskon-csrf-token";
 const CSRF_HEADER_NAME = "x-csrf-token";
+const handleI18nRouting = createMiddleware(routing);
 
 function isStateChangingMethod(method: string): boolean {
   return ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase());
@@ -19,7 +22,7 @@ function isSameOriginRequest(request: NextRequest): boolean {
 
 export function middleware(request: NextRequest) {
   if (!request.nextUrl.pathname.startsWith("/api")) {
-    return NextResponse.next();
+    return handleI18nRouting(request);
   }
 
   const csrfCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value;
@@ -59,5 +62,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*"],
+  matcher: ["/((?!_next|_vercel|.*\\..*).*)", "/api/:path*"],
 };
