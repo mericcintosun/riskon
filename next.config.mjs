@@ -21,6 +21,12 @@ const nextConfig = {
     }
     return config;
   },
+  // next-intl optimization
+  optimizeFonts: false,
+  experimental: {
+    optimizePackageImports: ['next-intl'],
+  },
 };
 
 export default nextConfig;
+

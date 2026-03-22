@@ -1,0 +1,64 @@
+{
+  "navigation": {
+    "home": "Ana Sayfa",
+    "dashboard": "Pano",
+    "riskAnalysis": "Risk Analizi",
+    "portfolio": "Portföy",
+    "settings": "Ayarlar",
+    "profile": "Profil",
+    "logout": "Çıkış Yap"
+  },
+  "dashboard": {
+    "title": "Pano",
+    "welcome": "Risk Analitiğine Hoşgeldiniz",
+    "overview": "Portföy Özeti",
+    "totalAssets": "Toplam Varlıklar",
+    "riskScore": "Risk Puanı",
+    "portfolio": "Portföy",
+    "assets": "Varlıklar",
+    "noData": "Veri mevcut değil"
+  },
+  "auth": {
+    "login": "Giriş",
+    "signup": "Kaydol",
+    "email": "E-posta",
+    "password": "Şifre",
+    "confirmPassword": "Şifreyi Doğrula",
+    "login_title": "Tekrar Hoşgeldiniz",
+    "signup_title": "Hesap Oluştur",
+    "forgotPassword": "Şifremi Unuttum?",
+    "rememberMe": "Beni Hatırla",
+    "signIn": "Giriş Yap",
+    "createAccount": "Hesap Oluştur",
+    "alreadyHaveAccount": "Zaten bir hesabınız var mı?",
+    "noAccount": "Hesabınız yok mu?"
+  },
+  "risk": {
+    "title": "Risk Analizi",
+    "riskScore": "Risk Puanı",
+    "riskLevel": "Risk Seviyesi",
+    "high": "Yüksek",
+    "medium": "Orta",
+    "low": "Düşük",
+    "assets": "Varlıklar",
+    "exposure": "Maruz Kalma",
+    "volatility": "Oynaklık",
+    "marketRisk": "Pazar Riski",
+    "analysis": "Risk Analizi",
+    "metrics": "Risk Metrikleri",
+    "assessment": "Risk Değerlendirmesi"
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "close": "Kapat",
+    "back": "Geri",
+    "next": "İleri",
+    "previous": "Önceki"
+  }
+}
