@@ -1,0 +1,25 @@
+{
+  "navigation": {
+    "appName": "RiskOn",
+    "home": "Startseite",
+    "dashboard": "Dashboard",
+    "auth": "Authentifizierung",
+    "risk": "Risiko",
+    "language": "Sprache"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Überprüfen Sie Ihr Portfolio und den aktuellen Systemstatus.",
+    "summary": "Die Risikoanalyse ist aktuell."
+  },
+  "auth": {
+    "title": "Authentifizierung",
+    "subtitle": "Sichern Sie Ihr Konto mit Passkey-Anmeldung.",
+    "action": "Fortfahren"
+  },
+  "risk": {
+    "title": "Risiko",
+    "subtitle": "Verfolgen Sie Risikoindikatoren und Warnungen.",
+    "status": "Aktueller Risikostatus"
+  }
+}
