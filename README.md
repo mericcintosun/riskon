@@ -330,3 +330,18 @@ npm test -- --coverage
 ## Disclaimer
 
 The `riskon` credit score is an AI-generated prediction based on past on-chain activity and is provided for informational purposes only. It is not financial, investment, or credit advice. The score does not guarantee any specific outcomes, and all financial activities involve risk. Users should always conduct their own research and due diligence before engaging in any transactions.
+
+## Architecture Overview
+Brief explanation of the app flow:
+- frontend collects user wallet and on-chain data
+- browser-based AI calculates a risk score
+- the score is committed to Soroban/Stellar
+
+## Key Modules
+- UI layer
+- scoring / AI logic
+- blockchain interaction layer
+- authentication / passkey flow
+
+## API / Integration Notes
+Document the main external integrations and what each one is used for.

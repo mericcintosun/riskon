@@ -715,3 +715,30 @@ All contributions are made under the same MIT License as the Riskon project.
 Carlos Israel Jiménez Jiménez
 Stellar Journey to Mastery - Open Source Track
 Date: February 27, 2026
+
+# Contributing to Riskon
+
+Thanks for contributing to Riskon.
+
+## Before You Start
+- Fork the repository
+- Create a feature branch from `main`
+- Keep pull requests small and focused
+- Reference the related issue when possible
+
+## Development
+- Install dependencies
+- Configure environment variables
+- Run the local development server
+- Run tests before opening a PR
+
+## Pull Request Guidelines
+- Write a clear PR title and description
+- Explain what you changed and why
+- Include screenshots for UI changes when relevant
+- Link the related issue using `Closes #issue-number`
+
+## Documentation Expectations
+- Add comments for non-obvious logic
+- Document public APIs and important flows
+- Update README / DEVELOPMENT docs when behavior changes
