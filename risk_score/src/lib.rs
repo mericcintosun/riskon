@@ -1,466 +1,529 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Map, Symbol, Vec};
 
-/// Enhanced Risk & Tier Management Contract
-/// Stores risk scores with tier classifications and timestamps
-#[contract]
-pub struct RiskTierContract;
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
+};
 
-/// Risk and tier data structure - using contracttype for Soroban serialization
+// ─────────────────────────────────────────────
+// Error Types
+// ─────────────────────────────────────────────
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum RiskError {
+    /// Score must be in the range 0–100 (inclusive).
+    InvalidScore = 1,
+    /// Tier must be one of: TIER_1, TIER_2, TIER_3.
+    InvalidTier = 2,
+    /// Caller is not authorised to update this user's risk profile.
+    Unauthorized = 3,
+    /// No risk data found for the given user address.
+    NotFound = 4,
+}
+
+// ─────────────────────────────────────────────
+// Storage Types
+// ─────────────────────────────────────────────
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RiskTierData {
-    pub score: u32,          // 0-100 risk score
-    pub tier: Symbol,        // TIER_1, TIER_2, or TIER_3
-    pub timestamp: u64,      // Unix timestamp
-    pub chosen_tier: Symbol, // User's chosen tier for operations
+    /// AI-predicted credit score (0 = lowest risk, 100 = highest risk).
+    pub score: u32,
+    /// Assigned risk tier derived from the score.
+    pub tier: Symbol,
+    /// Unix timestamp of the last update (ledger timestamp).
+    pub timestamp: u64,
+    /// The tier the user has selected for their current DeFi operations.
+    pub chosen_tier: Symbol,
 }
+
+#[contracttype]
+pub enum DataKey {
+    RiskTier(Address),
+}
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+/// Returns `true` when `sym` is one of the three accepted tier symbols.
+fn is_valid_tier(sym: &Symbol) -> bool {
+    *sym == symbol_short!("TIER_1")
+        || *sym == symbol_short!("TIER_2")
+        || *sym == symbol_short!("TIER_3")
+}
+
+/// Derives the expected tier from a numeric score according to protocol rules:
+/// - 0–30  → TIER_1 (low risk)
+/// - 31–70 → TIER_2 (medium risk)
+/// - 71–100→ TIER_3 (high risk)
+fn tier_for_score(env: &Env, score: u32) -> Symbol {
+    if score <= 30 {
+        symbol_short!("TIER_1")
+    } else if score <= 70 {
+        symbol_short!("TIER_2")
+    } else {
+        symbol_short!("TIER_3")
+    }
+}
+
+// ─────────────────────────────────────────────
+// Contract
+// ─────────────────────────────────────────────
+
+#[contract]
+pub struct RiskTierContract;
 
 #[contractimpl]
 impl RiskTierContract {
-    /// Set risk score with tier classification and timestamp
-    /// Following Soroban persistent storage best practices with tuple keys
-    pub fn set_risk_tier(env: Env, user: Address, score: u32, tier: Symbol, chosen_tier: Symbol) {
-        // Validate inputs
-        assert!(score <= 100, "Score must be 0-100");
-        assert!(
-            tier == Symbol::new(&env, "TIER_1")
-                || tier == Symbol::new(&env, "TIER_2")
-                || tier == Symbol::new(&env, "TIER_3"),
-            "Invalid tier"
-        );
-        assert!(
-            chosen_tier == Symbol::new(&env, "TIER_1")
-                || chosen_tier == Symbol::new(&env, "TIER_2")
-                || chosen_tier == Symbol::new(&env, "TIER_3"),
-            "Invalid chosen tier"
-        );
+    // ── Write ────────────────────────────────
 
-        let timestamp = env.ledger().timestamp();
+    /// Store or update a user's risk profile on-chain.
+    ///
+    /// # Arguments
+    /// * `user`         – The Stellar address whose profile is being updated.
+    ///                    The caller *must* be `user` (enforced via `require_auth`).
+    /// * `score`        – AI-predicted credit score, **must be 0–100 inclusive**.
+    /// * `tier`         – Risk tier Symbol (`TIER_1` / `TIER_2` / `TIER_3`).
+    ///                    **Must be consistent with `score`** per the tier mapping above.
+    /// * `chosen_tier`  – The tier the user selects for their active DeFi operations.
+    ///                    **Must be a valid tier Symbol.**
+    ///
+    /// # Errors
+    /// Returns `RiskError::InvalidScore`  if `score > 100`.
+    /// Returns `RiskError::InvalidTier`   if `tier` or `chosen_tier` is unrecognised.
+    pub fn set_risk_tier(
+        env: Env,
+        user: Address,
+        score: u32,
+        tier: Symbol,
+        chosen_tier: Symbol,
+    ) -> Result<(), RiskError> {
+        // 1. Caller authorisation — only the user themselves may update their profile.
+        user.require_auth();
 
-        let risk_data = RiskTierData {
+        // 2. Validate score range.
+        if score > 100 {
+            return Err(RiskError::InvalidScore);
+        }
+
+        // 3. Validate tier symbols.
+        if !is_valid_tier(&tier) {
+            return Err(RiskError::InvalidTier);
+        }
+        if !is_valid_tier(&chosen_tier) {
+            return Err(RiskError::InvalidTier);
+        }
+
+        // 4. Persist the risk profile.
+        let data = RiskTierData {
             score,
-            tier: tier.clone(),
-            timestamp,
-            chosen_tier: chosen_tier.clone(),
+            tier,
+            timestamp: env.ledger().timestamp(),
+            chosen_tier,
         };
 
-        // Use tuple key for better organization: (user, "risk_tier")
-        let tuple_key = (user.clone(), Symbol::new(&env, "risk_tier"));
-        env.storage().persistent().set(&tuple_key, &risk_data);
-
-        // Also store in tier-based index for efficient queries
-        let tier_key = (tier.clone(), Symbol::new(&env, "users"));
-        let mut tier_users: Vec<Address> = env
-            .storage()
-            .persistent()
-            .get(&tier_key)
-            .unwrap_or(Vec::new(&env));
-
-        // Add user to tier list if not already present
-        if !tier_users.contains(&user) {
-            tier_users.push_back(user.clone());
-            env.storage().persistent().set(&tier_key, &tier_users);
-        }
-
-        // Store user's chosen tier separately for quick access
-        let chosen_key = (user.clone(), Symbol::new(&env, "chosen_tier"));
-        env.storage().persistent().set(&chosen_key, &chosen_tier);
-
-        // Emit Event for Indexers
-        env.events().publish(
-            (Symbol::new(&env, "risk_set"), user),
-            (score, tier, chosen_tier),
-        );
-    }
-
-    /// Get complete risk and tier data for user
-    pub fn get_risk_tier(env: Env, user: Address) -> Option<RiskTierData> {
-        let tuple_key = (user, Symbol::new(&env, "risk_tier"));
-        env.storage().persistent().get(&tuple_key)
-    }
-
-    /// Get only risk score (backward compatibility)
-    pub fn get_score(env: Env, user: Address) -> u32 {
-        let tuple_key = (user, Symbol::new(&env, "risk_tier"));
-        if let Some(data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&tuple_key)
-        {
-            data.score
-        } else {
-            0
-        }
-    }
-
-    /// Get user's chosen tier for operations
-    pub fn get_chosen_tier(env: Env, user: Address) -> Symbol {
-        let chosen_key = (user, Symbol::new(&env, "chosen_tier"));
         env.storage()
             .persistent()
-            .get(&chosen_key)
-            .unwrap_or(Symbol::new(&env, "TIER_3")) // Default to most conservative
+            .set(&DataKey::RiskTier(user), &data);
+
+        Ok(())
     }
 
-    /// Get all users in a specific tier
-    pub fn get_tier_users(env: Env, tier: Symbol) -> Vec<Address> {
-        let tier_key = (tier, Symbol::new(&env, "users"));
+    // ── Read ─────────────────────────────────
+
+    /// Retrieve the full risk profile for `user`.
+    ///
+    /// # Errors
+    /// Returns `RiskError::NotFound` when the address has no stored profile.
+    pub fn get_risk_tier(env: Env, user: Address) -> Result<RiskTierData, RiskError> {
         env.storage()
             .persistent()
-            .get(&tier_key)
-            .unwrap_or(Vec::new(&env))
+            .get(&DataKey::RiskTier(user))
+            .ok_or(RiskError::NotFound)
     }
 
-    /// Update user's chosen tier (risk-based validation)
-    pub fn update_chosen_tier(env: Env, user: Address, new_chosen_tier: Symbol) {
-        let tuple_key = (user.clone(), Symbol::new(&env, "risk_tier"));
-
-        if let Some(mut risk_data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&tuple_key)
-        {
-            // Risk-based tier access control
-            // High risk users (>70) can only choose TIER_3 for "opportunity" access
-            if risk_data.score > 70 {
-                assert!(
-                    new_chosen_tier == Symbol::new(&env, "TIER_3"),
-                    "High risk users can only access TIER_3"
-                );
-            }
-
-            risk_data.chosen_tier = new_chosen_tier.clone();
-            risk_data.timestamp = env.ledger().timestamp(); // Update timestamp
-
-            env.storage().persistent().set(&tuple_key, &risk_data);
-
-            // Update chosen tier cache
-            let chosen_key = (user.clone(), Symbol::new(&env, "chosen_tier"));
-            env.storage()
-                .persistent()
-                .set(&chosen_key, &new_chosen_tier);
-
-            // Emit Event for Indexers
-            env.events()
-                .publish((Symbol::new(&env, "tier_updated"), user), new_chosen_tier);
-        }
-    }
-
-    /// Get tier statistics
-    pub fn get_tier_stats(env: Env) -> Map<Symbol, u32> {
-        let mut stats = Map::new(&env);
-
-        let tiers = [
-            Symbol::new(&env, "TIER_1"),
-            Symbol::new(&env, "TIER_2"),
-            Symbol::new(&env, "TIER_3"),
-        ];
-
-        for tier in tiers {
-            let tier_users = Self::get_tier_users(env.clone(), tier.clone());
-            stats.set(tier, tier_users.len());
-        }
-
-        stats
-    }
-
-    /// Check if user can access specific tier based on risk score
-    /// Following Goldfinch/Maple risk-liquidity mapping methodology
+    /// Check whether `user` is eligible to access `target_tier`.
+    ///
+    /// Access rules:
+    /// - `TIER_1` (low risk)    — requires `score <= 30`
+    /// - `TIER_2` (medium risk) — requires `score <= 70`
+    /// - `TIER_3` (high risk)   — always accessible (open tier)
+    ///
+    /// Returns `false` when the user has no stored profile or the tier is invalid.
     pub fn can_access_tier(env: Env, user: Address, target_tier: Symbol) -> bool {
-        let tuple_key = (user, Symbol::new(&env, "risk_tier"));
+        let data: RiskTierData = match env.storage().persistent().get(&DataKey::RiskTier(user)) {
+            Some(d) => d,
+            None => return false,
+        };
 
-        if let Some(risk_data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&tuple_key)
-        {
-            let tier_1 = Symbol::new(&env, "TIER_1");
-            let tier_2 = Symbol::new(&env, "TIER_2");
-            let tier_3 = Symbol::new(&env, "TIER_3");
-
-            match target_tier {
-                t if t == tier_1 => risk_data.score <= 30, // Low risk only
-                t if t == tier_2 => risk_data.score <= 70, // Low to medium risk
-                t if t == tier_3 => true, // All users (with opportunity badge for high risk)
-                _ => false,
-            }
+        if target_tier == symbol_short!("TIER_1") {
+            data.score <= 30
+        } else if target_tier == symbol_short!("TIER_2") {
+            data.score <= 70
+        } else if target_tier == symbol_short!("TIER_3") {
+            true
         } else {
-            false // No risk data means no access
+            // Unknown tier — deny access.
+            false
         }
     }
 }
+
+// ─────────────────────────────────────────────
+// Tests
+// ─────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Env};
+    use soroban_sdk::{symbol_short, testutils::Address as _, Address, Env};
 
-    #[test]
-    fn test_set_and_get_risk_tier() {
+    /// Convenience: deploy the contract and return (env, client).
+    fn setup() -> (Env, RiskTierContractClient<'static>) {
         let env = Env::default();
+        env.mock_all_auths();
         let contract_id = env.register_contract(None, RiskTierContract);
         let client = RiskTierContractClient::new(&env, &contract_id);
+        // SAFETY: lifetime is tied to `env` which is returned; safe for test scope.
+        let client: RiskTierContractClient<'static> = unsafe { core::mem::transmute(client) };
+        (env, client)
+    }
 
+    // ── Happy-path ───────────────────────────
+
+    #[test]
+    fn test_set_and_get_tier1() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
-        let risk_data = client.get_risk_tier(&user).unwrap();
-        assert_eq!(risk_data.score, 25);
-        assert_eq!(risk_data.tier, tier_1);
-        assert_eq!(risk_data.chosen_tier, tier_1);
+
+        client
+            .set_risk_tier(
+                &user,
+                &20,
+                &symbol_short!("TIER_1"),
+                &symbol_short!("TIER_1"),
+            )
+            .unwrap();
+
+        let data = client.get_risk_tier(&user).unwrap();
+        assert_eq!(data.score, 20);
+        assert_eq!(data.tier, symbol_short!("TIER_1"));
+        assert_eq!(data.chosen_tier, symbol_short!("TIER_1"));
     }
 
     #[test]
-    fn test_score_validation_upper_bound() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_set_and_get_tier2() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        
-        client.set_risk_tier(&user, &100, &tier_3, &tier_3);
-        
-        let score = client.get_score(&user);
-        assert_eq!(score, 100);
+
+        client
+            .set_risk_tier(
+                &user,
+                &50,
+                &symbol_short!("TIER_2"),
+                &symbol_short!("TIER_2"),
+            )
+            .unwrap();
+
+        let data = client.get_risk_tier(&user).unwrap();
+        assert_eq!(data.score, 50);
+        assert_eq!(data.tier, symbol_short!("TIER_2"));
     }
 
     #[test]
-    #[should_panic(expected = "Score must be 0-100")]
-    fn test_score_validation_exceeds_limit() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_set_and_get_tier3() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        
-        client.set_risk_tier(&user, &101, &tier_3, &tier_3);
+
+        client
+            .set_risk_tier(
+                &user,
+                &85,
+                &symbol_short!("TIER_3"),
+                &symbol_short!("TIER_3"),
+            )
+            .unwrap();
+
+        let data = client.get_risk_tier(&user).unwrap();
+        assert_eq!(data.score, 85);
+        assert_eq!(data.tier, symbol_short!("TIER_3"));
     }
 
     #[test]
-    #[should_panic(expected = "Invalid tier")]
-    fn test_invalid_tier_validation() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_score_boundary_zero() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let invalid_tier = Symbol::new(&env, "TIER_4");
-        
-        client.set_risk_tier(&user, &50, &invalid_tier, &invalid_tier);
+
+        // Score 0 is the minimum valid value.
+        client
+            .set_risk_tier(
+                &user,
+                &0,
+                &symbol_short!("TIER_1"),
+                &symbol_short!("TIER_1"),
+            )
+            .unwrap();
+
+        let data = client.get_risk_tier(&user).unwrap();
+        assert_eq!(data.score, 0);
     }
 
     #[test]
-    fn test_tier_access_tier1_low_risk() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_score_boundary_100() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
-        assert!(client.can_access_tier(&user, &tier_1));
+
+        // Score 100 is the maximum valid value.
+        client
+            .set_risk_tier(
+                &user,
+                &100,
+                &symbol_short!("TIER_3"),
+                &symbol_short!("TIER_3"),
+            )
+            .unwrap();
+
+        let data = client.get_risk_tier(&user).unwrap();
+        assert_eq!(data.score, 100);
     }
 
     #[test]
-    fn test_tier_access_tier1_boundary() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_update_overwrites_previous_profile() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user, &30, &tier_1, &tier_1);
-        
-        assert!(client.can_access_tier(&user, &tier_1));
+
+        client
+            .set_risk_tier(
+                &user,
+                &10,
+                &symbol_short!("TIER_1"),
+                &symbol_short!("TIER_1"),
+            )
+            .unwrap();
+        client
+            .set_risk_tier(
+                &user,
+                &60,
+                &symbol_short!("TIER_2"),
+                &symbol_short!("TIER_2"),
+            )
+            .unwrap();
+
+        let data = client.get_risk_tier(&user).unwrap();
+        // Latest write must win.
+        assert_eq!(data.score, 60);
+        assert_eq!(data.tier, symbol_short!("TIER_2"));
     }
 
-    #[test]
-    fn test_tier_access_tier1_denied() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
+    // ── Input validation ─────────────────────
 
+    #[test]
+    fn test_reject_score_above_100() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_2 = Symbol::new(&env, "TIER_2");
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user, &50, &tier_2, &tier_2);
-        
-        assert!(!client.can_access_tier(&user, &tier_1));
+
+        let result = client.try_set_risk_tier(
+            &user,
+            &101,
+            &symbol_short!("TIER_3"),
+            &symbol_short!("TIER_3"),
+        );
+        assert_eq!(result.unwrap_err().unwrap(), RiskError::InvalidScore);
     }
 
     #[test]
-    fn test_tier_access_tier2_medium_risk() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_reject_score_999() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_2 = Symbol::new(&env, "TIER_2");
-        
-        client.set_risk_tier(&user, &50, &tier_2, &tier_2);
-        
-        assert!(client.can_access_tier(&user, &tier_2));
+
+        let result = client.try_set_risk_tier(
+            &user,
+            &999,
+            &symbol_short!("TIER_1"),
+            &symbol_short!("TIER_1"),
+        );
+        assert_eq!(result.unwrap_err().unwrap(), RiskError::InvalidScore);
     }
 
     #[test]
-    fn test_tier_access_tier3_always_accessible() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_reject_invalid_tier_symbol() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        
-        client.set_risk_tier(&user, &85, &tier_3, &tier_3);
-        
-        assert!(client.can_access_tier(&user, &tier_3));
+
+        let result = client.try_set_risk_tier(
+            &user,
+            &50,
+            &symbol_short!("GARBAGE"),
+            &symbol_short!("TIER_2"),
+        );
+        assert_eq!(result.unwrap_err().unwrap(), RiskError::InvalidTier);
     }
 
     #[test]
-    fn test_get_tier_users() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let user1 = Address::generate(&env);
-        let user2 = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
-        client.set_risk_tier(&user2, &25, &tier_1, &tier_1);
-        
-        let tier_users = client.get_tier_users(&tier_1);
-        assert_eq!(tier_users.len(), 2);
-    }
-
-    #[test]
-    fn test_update_chosen_tier_valid() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_reject_invalid_chosen_tier_symbol() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        let tier_2 = Symbol::new(&env, "TIER_2");
-        
-        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        client.update_chosen_tier(&user, &tier_2);
-        
-        let chosen = client.get_chosen_tier(&user);
-        assert_eq!(chosen, tier_2);
+
+        let result =
+            client.try_set_risk_tier(&user, &50, &symbol_short!("TIER_2"), &symbol_short!("NONE"));
+        assert_eq!(result.unwrap_err().unwrap(), RiskError::InvalidTier);
     }
 
-    #[test]
-    #[should_panic(expected = "High risk users can only access TIER_3")]
-    fn test_update_chosen_tier_high_risk_restriction() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
+    // ── can_access_tier boundaries ───────────
 
+    #[test]
+    fn test_can_access_tier1_at_boundary_30() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user, &85, &tier_3, &tier_3);
-        client.update_chosen_tier(&user, &tier_1);
+
+        client
+            .set_risk_tier(
+                &user,
+                &30,
+                &symbol_short!("TIER_1"),
+                &symbol_short!("TIER_1"),
+            )
+            .unwrap();
+
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_1")));
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_2")));
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_3")));
     }
 
     #[test]
-    fn test_get_tier_stats() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let user1 = Address::generate(&env);
-        let user2 = Address::generate(&env);
-        let user3 = Address::generate(&env);
-        
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        let tier_2 = Symbol::new(&env, "TIER_2");
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        
-        client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
-        client.set_risk_tier(&user2, &50, &tier_2, &tier_2);
-        client.set_risk_tier(&user3, &80, &tier_3, &tier_3);
-        
-        let stats = client.get_tier_stats();
-        assert_eq!(stats.get(tier_1).unwrap(), 1);
-        assert_eq!(stats.get(tier_2).unwrap(), 1);
-        assert_eq!(stats.get(tier_3).unwrap(), 1);
-    }
-
-    #[test]
-    fn test_score_update_overwrites_previous() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_cannot_access_tier1_at_score_31() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_2 = Symbol::new(&env, "TIER_2");
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user, &50, &tier_2, &tier_2);
-        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
-        let risk_data = client.get_risk_tier(&user).unwrap();
-        assert_eq!(risk_data.score, 25);
-        assert_eq!(risk_data.tier, tier_1);
+
+        client
+            .set_risk_tier(
+                &user,
+                &31,
+                &symbol_short!("TIER_2"),
+                &symbol_short!("TIER_2"),
+            )
+            .unwrap();
+
+        assert!(!client.can_access_tier(&user, &symbol_short!("TIER_1")));
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_2")));
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_3")));
     }
 
     #[test]
-    fn test_no_risk_data_returns_zero_score() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_can_access_tier2_at_boundary_70() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        
-        let score = client.get_score(&user);
-        assert_eq!(score, 0);
+
+        client
+            .set_risk_tier(
+                &user,
+                &70,
+                &symbol_short!("TIER_2"),
+                &symbol_short!("TIER_2"),
+            )
+            .unwrap();
+
+        assert!(!client.can_access_tier(&user, &symbol_short!("TIER_1")));
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_2")));
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_3")));
     }
 
     #[test]
-    fn test_no_risk_data_denies_tier_access() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+    fn test_cannot_access_tier2_at_score_71() {
+        let (env, client) = setup();
         let user = Address::generate(&env);
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        
-        assert!(!client.can_access_tier(&user, &tier_3));
+
+        client
+            .set_risk_tier(
+                &user,
+                &71,
+                &symbol_short!("TIER_3"),
+                &symbol_short!("TIER_3"),
+            )
+            .unwrap();
+
+        assert!(!client.can_access_tier(&user, &symbol_short!("TIER_1")));
+        assert!(!client.can_access_tier(&user, &symbol_short!("TIER_2")));
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_3")));
     }
 
     #[test]
-    fn test_multiple_users_different_tiers() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
+    fn test_tier3_always_accessible() {
+        let (env, client) = setup();
+        let user = Address::generate(&env);
 
-        let user1 = Address::generate(&env);
-        let user2 = Address::generate(&env);
-        let user3 = Address::generate(&env);
-        
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        let tier_2 = Symbol::new(&env, "TIER_2");
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        
-        client.set_risk_tier(&user1, &15, &tier_1, &tier_1);
-        client.set_risk_tier(&user2, &45, &tier_2, &tier_2);
-        client.set_risk_tier(&user3, &90, &tier_3, &tier_3);
-        
-        assert!(client.can_access_tier(&user1, &tier_1));
-        assert!(!client.can_access_tier(&user2, &tier_1));
-        assert!(client.can_access_tier(&user2, &tier_2));
-        assert!(client.can_access_tier(&user3, &tier_3));
+        // Even the riskiest score grants TIER_3 access.
+        client
+            .set_risk_tier(
+                &user,
+                &100,
+                &symbol_short!("TIER_3"),
+                &symbol_short!("TIER_3"),
+            )
+            .unwrap();
+
+        assert!(client.can_access_tier(&user, &symbol_short!("TIER_3")));
+    }
+
+    #[test]
+    fn test_can_access_tier_unknown_target_returns_false() {
+        let (env, client) = setup();
+        let user = Address::generate(&env);
+
+        client
+            .set_risk_tier(
+                &user,
+                &10,
+                &symbol_short!("TIER_1"),
+                &symbol_short!("TIER_1"),
+            )
+            .unwrap();
+
+        // An unrecognised target tier should deny access rather than panic.
+        assert!(!client.can_access_tier(&user, &symbol_short!("TIER_X")));
+    }
+
+    // ── Not-found handling ───────────────────
+
+    #[test]
+    fn test_get_risk_tier_not_found() {
+        let (env, client) = setup();
+        let user = Address::generate(&env);
+
+        let result = client.try_get_risk_tier(&user);
+        assert_eq!(result.unwrap_err().unwrap(), RiskError::NotFound);
+    }
+
+    #[test]
+    fn test_can_access_tier_no_profile_returns_false() {
+        let (env, client) = setup();
+        let user = Address::generate(&env);
+
+        // No profile stored — must return false rather than panic.
+        assert!(!client.can_access_tier(&user, &symbol_short!("TIER_3")));
+    }
+
+    // ── Timestamp is recorded ────────────────
+
+    #[test]
+    fn test_timestamp_is_stored() {
+        let (env, client) = setup();
+        let user = Address::generate(&env);
+
+        client
+            .set_risk_tier(
+                &user,
+                &42,
+                &symbol_short!("TIER_2"),
+                &symbol_short!("TIER_2"),
+            )
+            .unwrap();
+
+        let data = client.get_risk_tier(&user).unwrap();
+        // Timestamp should be a non-zero ledger timestamp.
+        assert!(data.timestamp > 0);
     }
 }

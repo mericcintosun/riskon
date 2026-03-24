@@ -1,0 +1,148 @@
+name: Soroban Contract CI
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Triggers
+# ──────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "risk_score/**"
+      - ".github/workflows/contract-ci.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "risk_score/**"
+      - ".github/workflows/contract-ci.yml"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Concurrency – cancel in-flight runs on the same branch/PR
+# ──────────────────────────────────────────────────────────────────────────────
+concurrency:
+  group: contract-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 1. Formatting ────────────────────────────────────────────────────────────
+  fmt:
+    name: Rustfmt check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: risk_score
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable + rustfmt)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  # ── 2. Linting ───────────────────────────────────────────────────────────────
+  clippy:
+    name: Clippy lint
+    runs-on: ubuntu-latest
+    needs: fmt
+    defaults:
+      run:
+        working-directory: risk_score
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable + clippy + wasm target)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+
+      - name: Cache cargo registry & build artefacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            risk_score/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('risk_score/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Clippy (deny warnings)
+        run: cargo clippy --all-targets --features testutils -- -D warnings
+
+  # ── 3. Unit tests ────────────────────────────────────────────────────────────
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: clippy
+    defaults:
+      run:
+        working-directory: risk_score
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo registry & build artefacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            risk_score/target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('risk_score/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run unit tests
+        # `testutils` feature enables Soroban mock helpers (mock_all_auths, Address::generate …)
+        run: cargo test --features testutils -- --nocapture
+
+  # ── 4. Wasm build (release) ──────────────────────────────────────────────────
+  build-wasm:
+    name: Release Wasm build
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: risk_score
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable + wasm target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo registry & build artefacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            risk_score/target
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('risk_score/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build release Wasm
+        run: >
+          cargo build
+          --target wasm32-unknown-unknown
+          --release
+
+      - name: Upload Wasm artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: risktiercontract-wasm
+          path: risk_score/target/wasm32-unknown-unknown/release/risktiercontract.wasm
+          retention-days: 7

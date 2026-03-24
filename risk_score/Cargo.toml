@@ -1,24 +1,25 @@
 [package]
-name = "risk_score"
-version = "0.1.0"
-edition = "2021"
+name        = "risktiercontract"
+version     = "0.2.0"
+edition     = "2021"
+description = "On-chain credit scoring contract for the Riskon protocol (Stellar / Soroban)"
+license     = "MIT"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# Enable this feature when running `cargo test` so the Soroban test utilities
+# (Address::generate, mock_all_auths, etc.) are available.
+testutils = ["soroban-sdk/testutils"]
 
 [dependencies]
-soroban-sdk = "22.0.8"
+soroban-sdk = { version = "21.0.0" }
+
+[dev-dependencies]
+soroban-sdk = { version = "21.0.0", features = ["testutils"] }
 
 [profile.release]
-opt-level = "z"
-overflow-checks = true
-debug = 0
-strip = "symbols"
-debug-assertions = false
-panic = "abort"
-codegen-units = 1
-lto = true
-
-[profile.release-with-logs]
-inherits = "release"
-debug-assertions = true
+opt-level     = "z"    # minimise Wasm binary size
+overflow-checks = true  # keep safety checks even in release
+debug         = false
