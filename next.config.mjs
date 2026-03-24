@@ -66,6 +66,30 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          // Prevents browsers from sending the Referer header to cross-origin requests
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+          // Restricts access to browser features/APIs
+          {
+            key: "Permissions-Policy",
+            value: [
+              "camera=()",
+              "microphone=()",
+              "geolocation=()",
+              "browsing-topics=()",
+              "interest-cohort=()",
+              "payment=(self)",
+              "usb=()",
+              "bluetooth=()",
+            ].join(", "),
+          },
+          // Legacy XSS protection for older browsers
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
         ],
       },
     ];
