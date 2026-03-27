@@ -26,11 +26,11 @@ export default function WalletPage() {
 
   const supportedWallets = [
     {
-      id: "albedo",
-      name: "Albedo",
-      description: "Web-based Stellar wallet with advanced security features",
-      icon: <Star className="w-8 h-8" />,
-      color: "from-blue-500 to-cyan-500",
+      id: "freighter",
+      name: "Freighter",
+      description: "Official Stellar browser extension wallet by SDF",
+      icon: <Rocket className="w-8 h-8" />,
+      color: "from-violet-500 to-purple-500",
     },
     {
       id: "xbull",
@@ -40,11 +40,11 @@ export default function WalletPage() {
       color: "from-emerald-500 to-green-500",
     },
     {
-      id: "freighter",
-      name: "Freighter",
-      description: "Browser extension wallet for easy Stellar access",
-      icon: <Rocket className="w-8 h-8" />,
-      color: "from-violet-500 to-purple-500",
+      id: "lobstr",
+      name: "LOBSTR",
+      description: "Simple and secure Stellar wallet for everyone",
+      icon: <Star className="w-8 h-8" />,
+      color: "from-blue-500 to-cyan-500",
     },
     {
       id: "passkey",

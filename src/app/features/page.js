@@ -94,7 +94,7 @@ export default function FeaturesPage() {
       title: "User Experience",
       specs: [
         { label: "Interface", value: "Progressive Web App" },
-        { label: "Wallets", value: "Albedo, xBull, Freighter" },
+        { label: "Wallets", value: "Freighter, xBull, LOBSTR" },
         { label: "Mobile", value: "Native app experience" },
         { label: "Accessibility", value: "WCAG 2.1 AA" },
       ],

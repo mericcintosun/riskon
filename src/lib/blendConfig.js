@@ -10,13 +10,13 @@ export const BLEND_NETWORK = {
   opts: { allowHttp: false }
 };
 
-// Asset configurations with updated testnet addresses (from official Blend repository)
+// Asset configurations — from blend-utils testnet.contracts.json (verified live)
 export const BLEND_ASSETS = {
   // Native Stellar Lumens (XLM)
   XLM: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
   
   // Stablecoins
-  USDC: "CAQCFVLOBK5GIULPNZRGATTTJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU",
+  USDC: "CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU",
   
   // Blend Native Token
   BLND: "CB22KRA3YZVCNCQI64JQ5WE7UY2VAV7WFLK6A2JN3HEX56T2EDAFO7QF",
@@ -26,35 +26,31 @@ export const BLEND_ASSETS = {
   wBTC: "CAP5AMC2OHNVREO66DFIN6DHJMPOBAJ2KCDDIMFBR7WWJH5RZBFM3UEI"
 };
 
-// Official Blend V2 Protocol Contract Addresses (Latest from blend-capital/blend-utils)
+// Blend V2 Protocol Contract Addresses — from blend-utils testnet.contracts.json (live on testnet)
 export const BLEND_CONTRACTS = {
-  // V2 Core Contracts (Latest and Active) - From testnet.contracts.json
-  POOL_FACTORY_V2: "CBWXKLXMFGQPL4HJ7ZU352SWEPOCC7XKHSACXW5P4766BX6C5EUUEOI6",
-  BACKSTOP_V2: "CDAHGLVE6AZMXEGC22MV4GHU33REUJ5I5EJDIDHORQAVXVF64EIIK7QM",
-  MAIN_POOL_V2: "CAMKTT6LIXNOKZJVFI64EBEQE25UYAQZBTHDIQ4LEDJLTCM6YVME6IIY", // TestnetV2
+  // V1 Core Contracts
+  MAIN_POOL_V1: "CCLBPEYS3XFK65MYYXSBMOGKFHWOCNDLHZJLVBLNR75JBCQPQAP4P2UDY",
+  POOL_FACTORY_V1: "CBWH54OKUK6GQF5HKJT2PBCMHVFLRUNBQKVNCRGE4EVXTH5ZBSQEKN6Z",
+  BACKSTOP_V1: "CAO3AGAMGLQ4KEMYQLQZJXV4AX2B3OKPV5M4MAEQWQIYGNWDVQMPZQTV",
+  // V2 Core Contracts — verified live after testnet reset
+  POOL_FACTORY_V2: "CDV6RX4CGPCOKGTBFS52V3LMWQGZN3LCQTXF5RVPOOCG4XVMHXQ4NTF6",
+  BACKSTOP_V2: "CBDVWXT433PRVTUNM56C3JREF3HIZHRBA64NB2C3B2UNCKIS65ZYCLZA",
+  MAIN_POOL_V2: "CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF", // TestnetV2
   
   // Emissions and Oracle
-  EMITTER: "CBKGB24EGKHUS3755GU6IC5YFNDAGCRCGYAONM3HKES2223TIHKQ4QBZ",
-  ORACLE_MOCK: "CBJSXNC2PL5LRMGWBOJVCWZFRNFPQXX4JWCUPSGEVZELZDNSEOM7Q6IQ",
+  EMITTER: "CC3WJVJINN4E3LPMNTWKK7LQZLYDQMZHZA7EZGXATPHHBPKNZRIO3KZ6",
+  ORACLE_MOCK: "CAZOKR2Y5E2OSWSIBRVZMJ47RUTQPIGVWSAQ2UISGAVC46XKPGDG5PKI",
   
   // BLND:USDC Liquidity Pool
-  COMET_FACTORY: "CCJP2SLZ5U6CAYBKP3K64WAVALZGNEKHGMDQHX5TZYC6P26LNXQJIVMM",
-  COMET: "CAUNY2U7AC7M2UQKN7JSCYQ7JV7A3BHEJWPV6PLURVF7YGNUA6GCGSAQ",
-  
-  // V1 Contracts (Legacy, but still available)
-  POOL_FACTORY_V1: "CDEVVU3G2CFH6LJQG6LLSCSIU2BNRWDSJMDA44OA64XFV4YNWG7T22IU",
-  BACKSTOP_V1: "CC73RQZ5ATLIGFA3F37SD3G2D2KOM3GSN5S547LKDTSHNURKV2YBMCFT",
-  MAIN_POOL_V1: "CCHZKMVGSP3N4YEHD4EFHA6UKND5NDVP4COTAFENAFMPRNTEC2U2ST5F"
+  COMET_FACTORY: "CDX2TKELFKHP2MWISDCXWWZ73CL7F57GHYRJAWJWNOTLNJNNM7XLT4JY",
+  COMET: "CA5UTUUPHYL5K22UBRUVC37EARZUGYOSGK3IKIXG2JLCC5ZZLI4BDWDM",
 };
 
-// Active Blend Pools - Live pools only
+// Active Blend Pools — both V1 and V2 pools on testnet
 export const ACTIVE_POOLS = {
   "Blend V2 Main Pool": BLEND_CONTRACTS.MAIN_POOL_V2,
-  // Add more active pools as they become available
-  "Blend V1 Main Pool": BLEND_CONTRACTS.MAIN_POOL_V1, // Keep V1 as backup
+  "Blend V1 Main Pool": BLEND_CONTRACTS.MAIN_POOL_V1,
 };
-
-// Demo pools removed - production ready
 
 // Pool metadata and descriptions
 export const POOL_METADATA = {
@@ -69,13 +65,13 @@ export const POOL_METADATA = {
   },
   [BLEND_CONTRACTS.MAIN_POOL_V1]: {
     name: "Blend V1 Main Pool",
-    description: "Blend V1 multi-asset lending pool - backup option",
-    assets: ["XLM", "USDC", "BLND", "wETH", "wBTC"],
+    description: "Original Blend V1 lending pool supporting XLM and USDC",
+    assets: ["XLM", "USDC"],
     version: "v1",
     isActive: true,
-    riskLevel: "Moderate",
-    totalAssets: 5
-  }
+    riskLevel: "Low",
+    totalAssets: 2
+  },
 };
 
 // Default transaction amounts (in the smallest unit - e.g., stroops for XLM)
@@ -106,6 +102,35 @@ export const RISK_RECOMMENDATIONS = {
   }
 };
 
+// Riskon Oracle – tier-specific Blend parameters
+// Mirrors RISKON_BLEND_PARAMS in riskonBlendOracle.js for use inside contracts/config
+export const TIER_BLEND_CONFIG = {
+  TIER_1: {
+    label: "Low Risk",
+    maxLTVBps: 8500,        // 85% LTV
+    collateralFactorBps: 9000,
+    rateAdjustmentBps: -50, // −0.50 % discount
+    maxBorrowUSD: 50000,
+    allowedOperations: ["supply", "borrow", "withdraw", "repay"],
+  },
+  TIER_2: {
+    label: "Medium Risk",
+    maxLTVBps: 7000,        // 70% LTV
+    collateralFactorBps: 7500,
+    rateAdjustmentBps: 0,   // Standard rate
+    maxBorrowUSD: 20000,
+    allowedOperations: ["supply", "borrow", "withdraw", "repay"],
+  },
+  TIER_3: {
+    label: "High Risk",
+    maxLTVBps: 5000,        // 50% LTV
+    collateralFactorBps: 5500,
+    rateAdjustmentBps: 250, // +2.50 % premium
+    maxBorrowUSD: 5000,
+    allowedOperations: ["supply", "withdraw", "repay"], // borrow gated
+  },
+};
+
 // Get current configuration based on active pools
 export function getCurrentBlendConfig() {
   return {
@@ -115,7 +140,8 @@ export function getCurrentBlendConfig() {
     ACTIVE_POOLS,
     POOL_METADATA,
     DEFAULT_AMOUNTS,
-    RISK_RECOMMENDATIONS
+    RISK_RECOMMENDATIONS,
+    TIER_BLEND_CONFIG,
   };
 }
 

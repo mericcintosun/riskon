@@ -292,14 +292,16 @@ function fallbackRiskCalculation(metrics) {
 export function getDataQualityScore(metrics) {
   let qualityScore = 0;
 
-  if (metrics.totalPayments > 10) qualityScore += 25;
-  if (metrics.uniqueCounterparties > 3) qualityScore += 25;
+  if (metrics.totalPayments > 5) qualityScore += 25;
+  if (metrics.uniqueCounterparties > 1) qualityScore += 25;
   if (metrics.assetDiversity > 1) qualityScore += 25;
   if (metrics.totalPayments > 0) qualityScore += 25;
 
   return {
     score: qualityScore,
-    isGood: qualityScore >= 75,
+    isGood: qualityScore >= 50,
     needsMoreData: qualityScore < 50,
+    txCount: metrics.totalPayments,
+    counterpartyCount: metrics.uniqueCounterparties,
   };
 }

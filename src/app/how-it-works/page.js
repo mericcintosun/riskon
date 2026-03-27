@@ -27,7 +27,7 @@ export default function HowItWorksPage() {
         step: "01",
         title: "Connect Your Wallet",
         description:
-          "Connect your Stellar wallet using Albedo, xBull, or Freighter to get started.",
+          "Connect your Stellar wallet using Freighter, xBull, or LOBSTR to get started.",
         details:
           "Secure connection with industry-standard protocols. Support for all major Stellar wallets including hardware wallets.",
         icon: <LinkIcon className="w-8 h-8" />,
@@ -159,7 +159,7 @@ export default function HowItWorksPage() {
         title: "User Experience",
         specs: [
           { label: "Interface", value: "Progressive Web App" },
-          { label: "Wallets", value: "Albedo, xBull, Freighter" },
+          { label: "Wallets", value: "Freighter, xBull, LOBSTR" },
           { label: "Mobile", value: "Native app experience" },
           { label: "Accessibility", value: "WCAG 2.1 AA" },
         ],
@@ -478,8 +478,8 @@ export default function HowItWorksPage() {
                   Which wallets are supported?
                 </h3>
                 <p className="text-slate-300 text-sm">
-                  We support all major Stellar wallets including Albedo, xBull,
-                  Freighter, and hardware wallets.
+                  We support all major Stellar wallets including Freighter, xBull,
+                  LOBSTR, and hardware wallets.
                 </p>
               </div>
               <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">

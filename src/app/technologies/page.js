@@ -78,7 +78,7 @@ export default function TechnologiesPage() {
         {
           name: "Stellar Wallets Kit",
           description:
-            "Integrates with major Stellar wallets like Freighter, Albedo, and xBull.",
+            "Integrates with major Stellar wallets like Freighter, xBull, and LOBSTR.",
         },
       ],
       icon: <Lock className="w-8 h-8" />,

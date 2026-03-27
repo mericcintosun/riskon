@@ -2,7 +2,8 @@
 
 /**
  * Enhanced Blend Protocol Integration with Multiple Fallback Mechanisms
- * Uses custom Stellar utilities to avoid SDK conflicts
+ * Uses custom Stellar utilities to avoid SDK conflicts.
+ * Integrates with the Riskon Oracle bridge for credit-gated operations.
  */
 
 import { stellarIntegration } from "./stellarUtils.js";
@@ -10,7 +11,13 @@ import {
   getCurrentBlendConfig,
   formatAmount,
   isActivePool,
+  BLEND_NETWORK,
+  BLEND_ASSETS,
 } from "./blendConfig.js";
+import {
+  getBlendParamsForUser,
+  validateBlendOperation as riskonValidate,
+} from "./riskonBlendOracle.js";
 
 // Initialize integration on module load
 let integrationReady = false;
@@ -79,56 +86,92 @@ export async function loadPoolData(poolId) {
 }
 
 /**
- * Enhanced user position loading
+ * Load real user position from the Blend pool via the Blend SDK.
+ * Falls back to an empty position if the pool contract is not available
+ * (e.g. after a testnet reset) or if the user has no position yet.
  */
 export async function loadUserPosition(poolId, userAddress) {
+  // Always return at least an empty-position shell so the UI cards render.
+  const emptyResult = {
+    poolUser: { positions: new Map(), emissions: [] },
+    positionEstimate: null,
+    positions: new Map(),
+    emissions: [],
+    isActive: true,
+  };
+
+  if (!userAddress) return emptyResult;
+
   try {
-    const config = getCurrentBlendConfig();
+    const { PoolV2, PoolV1, PoolUser, PoolOracle, PositionsEstimate } =
+      await import("@blend-capital/blend-sdk");
 
-    if (isActivePool(poolId)) {
-      const poolData = await loadPoolData(poolId);
+    const PoolClass = PoolV2 ?? PoolV1;
 
-      if (poolData.isPending || poolData.error) {
-        return {
-          poolUser: null,
-          positionEstimate: null,
-          positions: new Map(),
-          emissions: [],
-          isActive: true,
-          isPending: true,
-          error: poolData.error || "Pool not ready",
-        };
-      }
+    // 1. Load the pool (reserves, config, oracle address)
+    let pool;
+    try {
+      pool = await PoolClass.load(BLEND_NETWORK, poolId);
+    } catch (poolErr) {
+      console.warn(
+        "⚠️ Pool contract not found on testnet (may have been reset):",
+        poolErr.message
+      );
+      return emptyResult;
+    }
 
-      if (poolData.loadingMethod === "enhanced_compatibility") {
-        // Return compatible position data
-        return createCompatibilityPosition();
-      }
+    // 2. Load the user's position from the pool contract
+    let poolUser;
+    try {
+      poolUser = await PoolUser.load(BLEND_NETWORK, poolId, pool, userAddress);
+    } catch (userErr) {
+      // No position on-chain yet (new user) — return empty
+      console.info("ℹ️ No on-chain position found for user:", userErr.message);
+      return emptyResult;
+    }
 
-      if (poolData.loadingMethod === "enhanced_real") {
-        // For real pools, we'd fetch actual position data
-        // For now, return mock data until full SDK integration
-        return createCompatibilityPosition();
+    // 3. Build a positions map keyed by asset address (what formatPositionData expects)
+    const positionsMap = new Map();
+    for (const [assetAddress, reserve] of pool.reserves.entries()) {
+      const supplyAmt =
+        poolUser.getCollateralFloat(reserve) +
+        poolUser.getSupplyFloat(reserve);
+      const liabAmt = poolUser.getLiabilitiesFloat(reserve);
+      if (supplyAmt > 0 || liabAmt > 0) {
+        positionsMap.set(assetAddress, {
+          supply: supplyAmt,
+          liabilities: liabAmt,
+        });
       }
     }
 
-    // Return empty position for unknown pools
+    // 4. Optionally build USD-value estimates via the pool oracle
+    let positionEstimate = null;
+    try {
+      const oracleId = pool.config?.oracle;
+      if (oracleId) {
+        const assets = Array.from(pool.reserves.keys());
+        const poolOracle = await PoolOracle.load(BLEND_NETWORK, oracleId, assets);
+        positionEstimate = PositionsEstimate.build(
+          pool,
+          poolOracle,
+          poolUser.positions
+        );
+      }
+    } catch (oracleErr) {
+      console.warn("⚠️ Oracle unavailable, skipping value estimates:", oracleErr.message);
+    }
+
     return {
-      poolUser: null,
-      positionEstimate: null,
-      positions: new Map(),
+      poolUser: { positions: positionsMap, emissions: [] },
+      positionEstimate,
+      positions: positionsMap,
       emissions: [],
-      error: "Unknown pool type",
+      isActive: true,
     };
   } catch (error) {
-    console.error("❌ Error in enhanced loadUserPosition:", error);
-    return {
-      poolUser: null,
-      positionEstimate: null,
-      positions: new Map(),
-      emissions: [],
-      error: error.message,
-    };
+    console.error("❌ Error in loadUserPosition:", error);
+    return emptyResult;
   }
 }
 
@@ -191,10 +234,13 @@ export async function executeEnhancedOperation(
         operationData.type,
         operationData.amount,
         operationData.asset,
-        kit
+        kit,
+        userAddress
       );
 
-      return result.txHash;
+      // executeOperation returns a string hash for real transactions,
+      // or an object { txHash: '...' } for simulated ones.
+      return typeof result === "string" ? result : result.txHash || result;
     }
 
     // Fallback to simulation
@@ -223,11 +269,24 @@ export async function getAvailablePools() {
         );
 
         for (const pool of poolResults) {
+          // Skip pools that are unavailable / not found on testnet
+          if (
+            pool.status !== "FULLY_OPERATIONAL" &&
+            pool.status !== "NETWORK_READY" &&
+            pool.status !== "CONTRACT_EXISTS"
+          ) {
+            continue;
+          }
+
+          // Use POOL_METADATA assets if available, otherwise fall back to defaults
+          const metadata = config.POOL_METADATA?.[pool.id];
+          const poolAssets = metadata?.assets ?? ["XLM", "USDC", "BLND", "WETH", "WBTC"];
+
           const poolInfo = {
             id: pool.id,
             name: pool.name || `Enhanced Pool (${pool.status})`,
             description: pool.description,
-            assets: ["XLM", "USDC", "BLND", "WETH", "WBTC"],
+            assets: poolAssets,
             isActive: true,
             isDemo: false,
             isPending: !pool.canOperate,
@@ -262,14 +321,6 @@ export async function getAvailablePools() {
               borrow: "Demo: 6.8%",
             };
             poolInfo.name += " (Contract Mode)";
-          } else {
-            poolInfo.totalSupplied = "Enhanced Demo";
-            poolInfo.totalBorrowed = "Enhanced Demo";
-            poolInfo.apr = {
-              supply: "Demo: 3.5%",
-              borrow: "Demo: 6.0%",
-            };
-            poolInfo.name += " (Enhanced Demo)";
           }
 
           activePools.push(poolInfo);
@@ -401,26 +452,47 @@ function createMockEstimate() {
   };
 }
 
+// Rough USD spot prices for testnet assets (used when oracle is unavailable)
+export const ROUGH_USD_PRICES = {
+  XLM:  0.11,
+  USDC: 1.0,
+  BLND: 0.05,
+  wETH: 3200,
+  wBTC: 65000,
+};
+
+// Reverse-lookup: contract address → ticker (e.g. "XLM", "USDC")
+const ADDRESS_TO_TICKER = Object.fromEntries(
+  Object.entries(BLEND_ASSETS || {}).map(([ticker, addr]) => [addr, ticker])
+);
+
+function roughUSD(assetAddress, amount) {
+  const ticker = ADDRESS_TO_TICKER[assetAddress] ?? "USDC";
+  return (ROUGH_USD_PRICES[ticker] ?? 1) * (Number(amount) || 0);
+}
+
+/** Convert USD amount to token units for a given asset address. */
+export function usdToTokens(assetAddress, usdAmount) {
+  const ticker = ADDRESS_TO_TICKER[assetAddress] ?? "USDC";
+  const price = ROUGH_USD_PRICES[ticker] ?? 1;
+  return price > 0 ? usdAmount / price : 0;
+}
+
+/** Get the rough USD price for an asset ticker (e.g. "XLM"). */
+export function getAssetUSDPrice(ticker) {
+  return ROUGH_USD_PRICES[ticker] ?? 1;
+}
+
 /**
- * Calculate health factor with enhanced logic
+ * Calculate health factor with enhanced logic.
+ * Works even without the oracle (falls back to rough USD prices).
  */
 export function calculateHealthFactor(positionEstimate) {
   try {
-    if (
-      !positionEstimate ||
-      !positionEstimate.totalEffectiveCollateral ||
-      !positionEstimate.totalEffectiveLiabilities
-    ) {
-      return null;
-    }
-
-    const collateral = Number(positionEstimate.totalEffectiveCollateral);
-    const liabilities = Number(positionEstimate.totalEffectiveLiabilities);
-
-    if (liabilities === 0) {
-      return Infinity;
-    }
-
+    if (!positionEstimate) return null;
+    const collateral = Number(positionEstimate.totalEffectiveCollateral ?? 0);
+    const liabilities = Number(positionEstimate.totalEffectiveLiabilities ?? 0);
+    if (liabilities === 0) return collateral > 0 ? Infinity : null;
     return collateral / liabilities;
   } catch (error) {
     console.error("❌ Error calculating health factor:", error);
@@ -428,10 +500,45 @@ export function calculateHealthFactor(positionEstimate) {
   }
 }
 
+/** @internal Compute health factor directly from the raw positions map. */
+function computeRoughHealthFactor(positionsMap, cFactorDefault = 0.75) {
+  let collateralUSD = 0;
+  let liabilitiesUSD = 0;
+  for (const [addr, pos] of positionsMap.entries()) {
+    collateralUSD += roughUSD(addr, pos.supply || 0) * cFactorDefault;
+    liabilitiesUSD += roughUSD(addr, pos.liabilities || 0);
+  }
+  if (liabilitiesUSD === 0) return collateralUSD > 0 ? Infinity : null;
+  return collateralUSD / liabilitiesUSD;
+}
+
+/** @internal Compute total supplied USD from positions map (rough prices). */
+function computeRoughSuppliedUSD(positionsMap) {
+  let total = 0;
+  for (const [addr, pos] of positionsMap.entries()) {
+    total += roughUSD(addr, pos.supply || 0);
+  }
+  return total;
+}
+
+/** @internal Compute total borrowed USD from positions map (rough prices). */
+function computeRoughBorrowedUSD(positionsMap) {
+  let total = 0;
+  for (const [addr, pos] of positionsMap.entries()) {
+    total += roughUSD(addr, pos.liabilities || 0);
+  }
+  return total;
+}
+
 /**
- * Enhanced position data formatting
+ * Enhanced position data formatting.
+ * Handles both real SDK floats (from PoolUser.getCollateralFloat etc.)
+ * and legacy stroop-based bigint mock data.
+ *
+ * @param {object} userPosition  – result of loadUserPosition()
+ * @param {object|null} blendParams – result of loadRiskonBlendParams() (credit score params)
  */
-export function formatPositionData(userPosition) {
+export function formatPositionData(userPosition, blendParams = null) {
   try {
     const { poolUser, positionEstimate } = userPosition;
 
@@ -441,6 +548,8 @@ export function formatPositionData(userPosition) {
         borrows: [],
         totalSupplied: "0",
         totalBorrowed: "0",
+        suppliedUSD: 0,
+        borrowedUSD: 0,
         healthFactor: null,
         borrowLimit: "0",
       };
@@ -449,45 +558,78 @@ export function formatPositionData(userPosition) {
     const supplies = [];
     const borrows = [];
 
-    // Process positions with enhanced logic
-    for (const [assetAddress, position] of poolUser.positions) {
-      const supplyAmount = formatAmount(position.supply || 0);
-      const borrowAmount = formatAmount(position.liabilities || 0);
+    // position.supply / .liabilities are already floating-point from the SDK
+    // (e.g. 10.0 XLM). Format to 7 decimal places for display.
+    const fmt = (v) => Number(v).toFixed(7);
 
-      if (Number(supplyAmount) > 0) {
+    for (const [assetAddress, position] of poolUser.positions) {
+      const supplyAmt = Number(position.supply || 0);
+      const liabAmt = Number(position.liabilities || 0);
+
+      if (supplyAmt > 0) {
         supplies.push({
           asset: assetAddress,
-          amount: supplyAmount,
-          value: positionEstimate
-            ? formatAmount(positionEstimate.totalEffectiveCollateral || 0)
-            : "0",
+          amount: fmt(supplyAmt),
+          usd: roughUSD(assetAddress, supplyAmt),
         });
       }
 
-      if (Number(borrowAmount) > 0) {
+      if (liabAmt > 0) {
         borrows.push({
           asset: assetAddress,
-          amount: borrowAmount,
-          value: positionEstimate
-            ? formatAmount(positionEstimate.totalEffectiveLiabilities || 0)
-            : "0",
+          amount: fmt(liabAmt),
+          usd: roughUSD(assetAddress, liabAmt),
         });
       }
     }
 
+    // ── USD totals ─────────────────────────────────────────────────────────
+    const suppliedUSD = positionEstimate?.totalSupplied
+      ?? positionEstimate?.totalEffectiveCollateral
+      ?? computeRoughSuppliedUSD(poolUser.positions);
+
+    const borrowedUSD = positionEstimate?.totalBorrowed
+      ?? positionEstimate?.totalEffectiveLiabilities
+      ?? computeRoughBorrowedUSD(poolUser.positions);
+
+    const totalSupplied = suppliedUSD.toFixed(4);
+    const totalBorrowed = borrowedUSD.toFixed(4);
+
+    // ── Health factor ───────────────────────────────────────────────────────
+    // Prefer oracle-computed values; fall back to rough calculation.
+    let healthFactor = calculateHealthFactor(positionEstimate);
+    if (healthFactor === null) {
+      healthFactor = computeRoughHealthFactor(
+        poolUser.positions,
+        blendParams?.collateralFactor ?? 0.75
+      );
+    }
+
+    // ── Credit-score-adjusted borrow limit ─────────────────────────────────
+    // Position-based capacity: totalSupplied * maxLTV - alreadyBorrowed
+    // Tier cap: blendParams.maxBorrowUSD
+    // Effective = min(position-based, tier cap)
+    let borrowLimitUSD;
+    if (positionEstimate?.borrowCap !== undefined) {
+      borrowLimitUSD = positionEstimate.borrowCap;
+    } else {
+      const maxLTV = blendParams?.maxLTV ?? 0.75;
+      const positionBased = Math.max(0, suppliedUSD * maxLTV - borrowedUSD);
+      const tierCap = blendParams?.maxBorrowUSD ?? Infinity;
+      borrowLimitUSD = Math.min(positionBased, tierCap);
+    }
+    const borrowLimit = borrowLimitUSD.toFixed(4);
+
     return {
       supplies,
       borrows,
-      totalSupplied: positionEstimate
-        ? formatAmount(positionEstimate.totalEffectiveCollateral || 0)
-        : "0",
-      totalBorrowed: positionEstimate
-        ? formatAmount(positionEstimate.totalEffectiveLiabilities || 0)
-        : "0",
-      healthFactor: calculateHealthFactor(positionEstimate),
-      borrowLimit: positionEstimate
-        ? formatAmount(positionEstimate.borrowLimit || 0)
-        : "0",
+      totalSupplied,
+      totalBorrowed,
+      suppliedUSD,
+      borrowedUSD,
+      healthFactor,
+      borrowLimit,      // USD string (for display)
+      borrowLimitUSD,   // raw USD number (for validation)
       enhanced: true,
     };
   } catch (error) {
@@ -497,6 +639,8 @@ export function formatPositionData(userPosition) {
       borrows: [],
       totalSupplied: "0",
       totalBorrowed: "0",
+      suppliedUSD: 0,
+      borrowedUSD: 0,
       healthFactor: null,
       borrowLimit: "0",
       enhanced: false,
@@ -535,3 +679,41 @@ export const createRepayOperation = (
 ) => createBlendOperation(poolId, userAddress, "repay", assetAddress, amount);
 
 export const executeBlendOperation = executeEnhancedOperation;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Riskon Oracle helpers (re-exported for convenience)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Load Riskon-based Blend parameters for a user.
+ * Wraps getBlendParamsForUser from the oracle module.
+ *
+ * @param {string|null} userAddress
+ * @param {number|null} localScore  – TF.js model score (fallback)
+ */
+export async function loadRiskonBlendParams(userAddress, localScore = null) {
+  try {
+    return await getBlendParamsForUser(userAddress, localScore);
+  } catch (err) {
+    console.error("❌ Failed to load Riskon Blend params:", err);
+    return null;
+  }
+}
+
+/**
+ * Pre-flight Riskon oracle check for a Blend operation.
+ * Returns the same shape as validateBlendOperation from the oracle module.
+ *
+ * @param {string} operationType
+ * @param {string} asset
+ * @param {string|number} amount
+ * @param {Object|null} blendParams  – from loadRiskonBlendParams()
+ */
+export function checkRiskonOperationAccess(
+  operationType,
+  asset,
+  amount,
+  blendParams
+) {
+  return riskonValidate(operationType, asset, amount, blendParams);
+}

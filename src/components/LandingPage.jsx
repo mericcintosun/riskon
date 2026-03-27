@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import AutomatedRiskAnalyzer from "./AutomatedRiskAnalyzer.jsx";
 import UserRiskProfile from "./UserRiskProfile.jsx";
 import BlendDashboard from "./BlendDashboard.jsx";
-import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
 import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
 import useAnalyzeRisk from "../hooks/useAnalyzeRisk.js";
 import { useWallet } from "../contexts/WalletContext.js";
@@ -90,7 +89,6 @@ const LandingPage = () => {
           className="grid md:grid-cols-1 gap-8 mb-12"
         >
           <BlendDashboard />
-          <BlendHistoryPerformance />
         </motion.div>
 
         <motion.div variants={itemVariants}>
@@ -166,7 +164,7 @@ const LandingPage = () => {
                 </div>
                 <h3 className="text-subheading mb-4">Connect Wallet</h3>
                 <p className="text-body">
-                  Connect your Stellar wallet using Albedo, xBull, or Freighter
+                  Connect your Stellar wallet using Freighter, xBull, or LOBSTR
                 </p>
               </div>
 

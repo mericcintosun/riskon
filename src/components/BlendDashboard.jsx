@@ -7,19 +7,44 @@ import {
   formatPositionData,
   createBlendOperation,
   executeEnhancedOperation,
+  loadRiskonBlendParams,
+  checkRiskonOperationAccess,
+  usdToTokens,
+  getAssetUSDPrice,
 } from "../lib/blendUtils.js";
 import {
   getCurrentBlendConfig,
   parseAmount,
   formatAmount,
+  BLEND_ASSETS,
 } from "../lib/blendConfig.js";
+import {
+  RISKON_BLEND_PARAMS,
+  formatRateAdjustment,
+} from "../lib/riskonBlendOracle.js";
+
+// Reverse-lookup: contract address → ticker symbol
+const ASSET_ADDRESS_TO_NAME = Object.fromEntries(
+  Object.entries(BLEND_ASSETS || {}).map(([name, addr]) => [addr, name])
+);
+const assetName = (addr) => ASSET_ADDRESS_TO_NAME[addr] ?? `${addr.slice(0, 6)}…`;
+
+// Empty position default — used to initialise state so My Position cards always render
+const EMPTY_POSITION = {
+  supplies: [],
+  borrows: [],
+  totalSupplied: "0",
+  totalBorrowed: "0",
+  healthFactor: null,
+  borrowLimit: "0",
+};
 
 export default function BlendDashboard({ kit, walletAddress, riskScore }) {
   // State management
   const [activeTab, setActiveTab] = useState("pools");
   const [availablePools, setAvailablePools] = useState([]);
   const [selectedPool, setSelectedPool] = useState(null);
-  const [userPosition, setUserPosition] = useState(null);
+  const [userPosition, setUserPosition] = useState(EMPTY_POSITION);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
@@ -29,6 +54,11 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
   const [borrowAmount, setBorrowAmount] = useState("");
   const [selectedAsset, setSelectedAsset] = useState("");
   const [operationType, setOperationType] = useState("supply"); // supply, borrow, withdraw, repay
+
+  // Riskon Oracle state
+  const [blendParams, setBlendParams] = useState(null);
+  const [oracleLoading, setOracleLoading] = useState(false);
+  const [oracleWarnings, setOracleWarnings] = useState([]);
 
   const config = getCurrentBlendConfig();
 
@@ -43,6 +73,36 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       loadUserPositionData();
     }
   }, [selectedPool, walletAddress]);
+
+  // Load Riskon oracle parameters when wallet or score changes.
+  // Also re-format the position with the updated params so borrow limit reflects
+  // the credit score immediately.
+  useEffect(() => {
+    const loadOracle = async () => {
+      setOracleLoading(true);
+      try {
+        const params = await loadRiskonBlendParams(walletAddress, riskScore);
+        setBlendParams(params);
+        // Re-derive borrow limit from the current position with new credit params
+        setUserPosition((prev) => {
+          if (!prev || prev === EMPTY_POSITION) return prev;
+          // Re-run just the borrow limit logic without a full reload
+          const suppliedUSD = prev.suppliedUSD ?? 0;
+          const borrowedUSD = prev.borrowedUSD ?? 0;
+          const maxLTV = params?.maxLTV ?? 0.75;
+          const positionBased = Math.max(0, suppliedUSD * maxLTV - borrowedUSD);
+          const tierCap = params?.maxBorrowUSD ?? Infinity;
+          const borrowLimitUSD = Math.min(positionBased, tierCap);
+          return { ...prev, borrowLimitUSD, borrowLimit: borrowLimitUSD.toFixed(4) };
+        });
+      } catch (err) {
+        console.warn("Oracle load failed:", err);
+      } finally {
+        setOracleLoading(false);
+      }
+    };
+    loadOracle();
+  }, [walletAddress, riskScore]);
 
   const loadAvailablePools = async () => {
     try {
@@ -85,18 +145,11 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
     try {
       setIsLoading(true);
       const position = await loadUserPosition(selectedPool.id, walletAddress);
-      setUserPosition(formatPositionData(position));
+      setUserPosition(formatPositionData(position, blendParams));
     } catch (error) {
       console.error("Error loading user position:", error);
       // Don't show error for new users who haven't used the pool yet
-      setUserPosition({
-        supplies: [],
-        borrows: [],
-        totalSupplied: "0",
-        totalBorrowed: "0",
-        healthFactor: null,
-        borrowLimit: "0",
-      });
+      setUserPosition(EMPTY_POSITION);
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +161,65 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       setMessageType("error");
       return;
     }
+
+    // ── Riskon Oracle pre-flight check ──────────────────────────────────────
+    const amount =
+      operationType === "supply" || operationType === "withdraw"
+        ? supplyAmount
+        : borrowAmount;
+    const oracleCheck = checkRiskonOperationAccess(
+      operationType,
+      selectedAsset,
+      amount,
+      blendParams
+    );
+    setOracleWarnings(oracleCheck.warnings);
+    if (!oracleCheck.allowed) {
+      setMessage(
+        `🔮 Riskon Oracle blocked: ${oracleCheck.errors[0]}`
+      );
+      setMessageType("error");
+      return;
+    }
+
+    // ── Repay limit pre-flight check ────────────────────────────────────────
+    if (operationType === "repay") {
+      const repayAmt = parseFloat(borrowAmount) || 0;
+      const assetAddress = config.ASSETS[selectedAsset];
+      const borrowEntry = userPosition?.borrows?.find((b) => b.asset === assetAddress);
+      const borrowedAmt = borrowEntry ? parseFloat(borrowEntry.amount) : 0;
+
+      if (repayAmt > 0 && repayAmt > borrowedAmt) {
+        setMessage(
+          `⚠️ Repay amount exceeds your debt! You owe ${borrowedAmt.toLocaleString(undefined, { maximumFractionDigits: 7 })} ${selectedAsset} but tried to repay ${repayAmt.toLocaleString(undefined, { maximumFractionDigits: 7 })} ${selectedAsset}.`
+        );
+        setMessageType("error");
+        return;
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ── Borrow limit pre-flight check ────────────────────────────────────────
+    if (operationType === "borrow") {
+      const requestedAmt = parseFloat(borrowAmount) || 0;
+      const assetPrice = getAssetUSDPrice(selectedAsset);
+      const requestedUSD = requestedAmt * assetPrice;
+      const availableUSD = userPosition?.borrowLimitUSD ?? 0;
+
+      if (requestedAmt > 0 && requestedUSD > availableUSD) {
+        const availableTokens = assetPrice > 0 ? availableUSD / assetPrice : 0;
+        setMessage(
+          `⚠️ Borrow limit exceeded! You requested ${requestedAmt.toLocaleString(undefined, { maximumFractionDigits: 7 })} ${selectedAsset}` +
+          ` (~$${requestedUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}) but your available limit is only` +
+          ` ${availableTokens.toLocaleString(undefined, { maximumFractionDigits: 7 })} ${selectedAsset}` +
+          ` (~$${availableUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}).` +
+          ` Improve your credit score or supply more collateral to raise your limit.`
+        );
+        setMessageType("error");
+        return;
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Enhanced pool status handling
     if (selectedPool.isActive) {
@@ -181,7 +293,14 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         amount
       );
 
-      setMessage("Transaction being sent to blockchain...");
+      // Supply and repay require a two-step flow on Blend V2:
+      // 1) approve token allowance, 2) submitWithAllowance
+      const needsApproval = operationType === "supply" || operationType === "repay";
+      setMessage(
+        needsApproval
+          ? "🔐 Step 1 of 2: Your wallet will ask you to approve token spending. Then Step 2 will submit the pool operation."
+          : "Transaction being sent to blockchain..."
+      );
 
       // Execute enhanced operation
       const result = await executeEnhancedOperation(
@@ -190,24 +309,31 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         operationData
       );
 
-      // Check if we got a transaction hash (real operation)
-      if (result && typeof result === "string" && result.length === 64) {
+      // Check if we got a real transaction hash (64 hex chars) or a demo result
+      if (result && typeof result === "string" && /^[0-9a-f]{64}$/i.test(result)) {
         setMessage(
           `✅ Transaction successful! Transaction Hash: ${result.substring(
             0,
             8
           )}...${result.substring(56)}`
         );
+        setMessageType("success");
 
         // Add link to Stellar Explorer
         setTimeout(() => {
           setMessage(`✅ Transaction successful! 
           Hash: ${result.substring(0, 8)}...${result.substring(56)}
           🔗 View on Stellar Explorer: https://stellar.expert/explorer/testnet/tx/${result}`);
+          setMessageType("success");
         }, 2000);
       } else {
-        // Simulation result
-        setMessage("✅ Transaction successful! Blockchain integration completed");
+        // Demo / simulation result — contracts not live on testnet
+        setMessage(
+          "🎮 Demo transaction completed. " +
+            "The Blend pool contracts are not currently deployed on testnet. " +
+            "Your operation was simulated locally — no on-chain state was changed."
+        );
+        setMessageType("warning");
       }
 
       // Clear forms on success
@@ -472,7 +598,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
           🏊 Lending Pools
         </button>
         <button
-          onClick={() => setActiveTab("position")}
+          onClick={() => { setActiveTab("position"); if (walletAddress && selectedPool && !selectedPool.isPending) loadUserPositionData(); }}
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === "position"
               ? "border-b-2 border-blue-500 text-blue-600"
@@ -480,6 +606,16 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
           }`}
         >
           📊 My Position
+        </button>
+        <button
+          onClick={() => setActiveTab("oracle")}
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === "oracle"
+              ? "border-b-2 border-purple-500 text-purple-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          🔮 Credit Oracle
         </button>
       </div>
 
@@ -518,6 +654,102 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
               <li key={`rec-${index}`}>{rec}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* ── Riskon Oracle Warnings Banner ───────────────────────────────── */}
+      {oracleWarnings.length > 0 && (
+        <div className="mb-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+          <p className="text-sm font-semibold text-yellow-800 mb-1">⚠️ Riskon Oracle Warnings</p>
+          {oracleWarnings.map((w, i) => (
+            <p key={i} className="text-xs text-yellow-700">{w}</p>
+          ))}
+        </div>
+      )}
+
+      {/* ── Operation Form (shown when a pool is selected) ────────────────── */}
+      {activeTab === "pools" && selectedPool && !selectedPool.isPending && (
+        <div className="mb-6 border border-gray-200 rounded-xl p-5 bg-gray-50">
+          <h3 className="text-base font-semibold text-gray-800 mb-4">⚡ Execute Operation</h3>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* Operation type */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Operation</label>
+              <select
+                value={operationType}
+                onChange={(e) => setOperationType(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+              >
+                <option value="supply">Supply / Lend</option>
+                <option value="borrow"
+                  disabled={blendParams && !blendParams.allowedAssets.includes(selectedAsset)}
+                >Borrow</option>
+                <option value="withdraw">Withdraw</option>
+                <option value="repay">Repay</option>
+              </select>
+            </div>
+            {/* Asset selector */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Asset</label>
+              <select
+                value={selectedAsset}
+                onChange={(e) => setSelectedAsset(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+              >
+                <option value="">Select asset…</option>
+                {(selectedPool.assets || []).map((a) => (
+                  <option
+                    key={a}
+                    value={a}
+                    disabled={operationType === "borrow" && blendParams && !blendParams.allowedAssets.includes(a)}
+                  >
+                    {a}{operationType === "borrow" && blendParams && !blendParams.allowedAssets.includes(a) ? " (tier locked)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Amount input */}
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              {operationType === "supply" || operationType === "withdraw" ? "Supply Amount" : "Borrow Amount"}
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              placeholder="0.00"
+              value={operationType === "supply" || operationType === "withdraw" ? supplyAmount : borrowAmount}
+              onChange={(e) =>
+                operationType === "supply" || operationType === "withdraw"
+                  ? setSupplyAmount(e.target.value)
+                  : setBorrowAmount(e.target.value)
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+            />
+          </div>
+
+          {/* Riskon-adjusted rate hint for borrow */}
+          {operationType === "borrow" && blendParams && (
+            <div className={`text-xs rounded-lg px-3 py-2 mb-4 ${
+              blendParams.rateAdjustmentBps < 0
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : blendParams.rateAdjustmentBps > 0
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : "bg-blue-50 text-blue-700 border border-blue-200"
+            }`}>
+              🔮 Riskon Oracle · {blendParams.badge} · Rate: <strong>{formatRateAdjustment(blendParams.rateAdjustmentBps)}</strong> · LTV: <strong>{(blendParams.maxLTV * 100).toFixed(0)}%</strong>
+            </div>
+          )}
+
+          <button
+            onClick={handleBlendOperation}
+            disabled={isLoading || !selectedAsset}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? "Processing…" : `${operationType.charAt(0).toUpperCase() + operationType.slice(1)} ${selectedAsset || ""}`}
+          </button>
         </div>
       )}
 
@@ -657,21 +889,33 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                 {userPosition.supplies.length > 0 ? (
                   <div className="space-y-2">
                     {userPosition.supplies.map((supply, index) => (
-                      <div key={index} className="flex justify-between">
+                      <div key={index} className="flex justify-between items-end">
                         <span className="text-green-700">
-                          {supply.asset.slice(0, 8)}...
+                          {assetName(supply.asset)}
                         </span>
-                        <span className="font-medium text-green-800">
-                          {supply.amount}
-                        </span>
+                        <div className="text-right">
+                          <span className="font-medium text-green-800">
+                            {parseFloat(supply.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                          </span>
+                          {supply.usd > 0 && (
+                            <div className="text-xs text-green-500">
+                              ≈ ${supply.usd.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
-                    <div className="border-t border-green-200 pt-2 mt-2">
-                      <div className="flex justify-between font-medium">
-                        <span className="text-green-700">Total Supplied:</span>
-                        <span className="text-green-800">
-                          {userPosition.totalSupplied}
+                    <div className="border-t border-green-200 pt-2 mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-green-600">
+                        <span>Total tokens:</span>
+                        <span className="font-medium">
+                          {userPosition.supplies.reduce((s, p) => s + parseFloat(p.amount), 0)
+                            .toLocaleString(undefined, { maximumFractionDigits: 7 })}
                         </span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-green-800">
+                        <span>USD Value:</span>
+                        <span>${parseFloat(userPosition.totalSupplied || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                       </div>
                     </div>
                   </div>
@@ -688,21 +932,33 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                 {userPosition.borrows.length > 0 ? (
                   <div className="space-y-2">
                     {userPosition.borrows.map((borrow, index) => (
-                      <div key={index} className="flex justify-between">
+                      <div key={index} className="flex justify-between items-end">
                         <span className="text-red-700">
-                          {borrow.asset.slice(0, 8)}...
+                          {assetName(borrow.asset)}
                         </span>
-                        <span className="font-medium text-red-800">
-                          {borrow.amount}
-                        </span>
+                        <div className="text-right">
+                          <span className="font-medium text-red-800">
+                            {parseFloat(borrow.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                          </span>
+                          {borrow.usd > 0 && (
+                            <div className="text-xs text-red-400">
+                              ≈ ${borrow.usd.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
-                    <div className="border-t border-red-200 pt-2 mt-2">
-                      <div className="flex justify-between font-medium">
-                        <span className="text-red-700">Total Borrowed:</span>
-                        <span className="text-red-800">
-                          {userPosition.totalBorrowed}
+                    <div className="border-t border-red-200 pt-2 mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-red-600">
+                        <span>Total tokens:</span>
+                        <span className="font-medium">
+                          {userPosition.borrows.reduce((s, p) => s + parseFloat(p.amount), 0)
+                            .toLocaleString(undefined, { maximumFractionDigits: 7 })}
                         </span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-red-800">
+                        <span>USD Value:</span>
+                        <span>${parseFloat(userPosition.totalBorrowed || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                       </div>
                     </div>
                   </div>
@@ -726,9 +982,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                         : "text-red-600"
                     }`}
                   >
-                    {userPosition.healthFactor === Infinity
-                      ? "∞"
-                      : userPosition.healthFactor.toFixed(2)}
+                    {Math.min(userPosition.healthFactor === Infinity ? 5 : userPosition.healthFactor, 5).toFixed(2)}
                   </div>
                 ) : (
                   <p className="text-blue-600">Cannot calculate</p>
@@ -743,17 +997,253 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
                 <h4 className="font-medium text-purple-800 mb-3">
                   🎯 Borrow Limit
                 </h4>
-                <div className="text-2xl font-bold text-purple-600">
-                  {userPosition.borrowLimit}
-                </div>
-                <p className="text-xs text-purple-600 mt-1">
-                  Maximum borrowable amount
+                {(() => {
+                  const limitUSD = parseFloat(userPosition.borrowLimit || 0);
+                  const limitXLM = getAssetUSDPrice("XLM") > 0
+                    ? limitUSD / getAssetUSDPrice("XLM")
+                    : 0;
+                  const selectedTicker = selectedAsset || "XLM";
+                  const limitInSelected = getAssetUSDPrice(selectedTicker) > 0
+                    ? limitUSD / getAssetUSDPrice(selectedTicker)
+                    : limitXLM;
+                  return (
+                    <>
+                      <div className="text-2xl font-bold text-purple-600">
+                        {limitInSelected.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                        <span className="text-sm font-normal ml-1">{selectedTicker}</span>
+                      </div>
+                      <div className="text-sm text-purple-500 mt-0.5">
+                        ≈ ${limitUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
+                      </div>
+                    </>
+                  );
+                })()}
+                <p className="text-xs text-purple-500 mt-1">
+                  Available to borrow
                 </p>
+                {blendParams && (
+                  <div className="mt-2 pt-2 border-t border-purple-200 space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-purple-500">Credit Tier</span>
+                      <span className="font-medium text-purple-700">{blendParams.badge}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-purple-500">Max LTV</span>
+                      <span className="font-medium text-purple-700">{(blendParams.maxLTV * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-purple-500">Tier Cap</span>
+                      <span className="font-medium text-purple-700">${blendParams.maxBorrowUSD.toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-600">Position information not found</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Credit Oracle Tab ──────────────────────────────────────────────── */}
+      {activeTab === "oracle" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">
+              🔮 Riskon Credit Oracle
+            </h3>
+            <button
+              onClick={async () => {
+                setOracleLoading(true);
+                try {
+                  const params = await loadRiskonBlendParams(walletAddress, riskScore);
+                  setBlendParams(params);
+                } finally {
+                  setOracleLoading(false);
+                }
+              }}
+              disabled={oracleLoading}
+              className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 disabled:opacity-50 transition-colors"
+            >
+              {oracleLoading ? "Refreshing…" : "🔄 Refresh"}
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-600">
+            The Riskon oracle bridges your on-chain credit score to Blend's lending
+            pools. It determines your maximum LTV, interest-rate adjustment, allowed
+            borrow assets, and per-transaction borrow cap. Blend pools can call{" "}
+            <code className="bg-gray-100 px-1 rounded text-xs">get_blend_params(user)</code>{" "}
+            on the RiskTierContract to enforce these limits at the smart-contract level.
+          </p>
+
+          {oracleLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto" />
+              <p className="mt-2 text-gray-500 text-sm">Querying Riskon oracle…</p>
+            </div>
+          ) : blendParams ? (
+            <>
+              {/* Current credit summary */}
+              <div
+                className={`rounded-xl p-5 border-2 ${
+                  blendParams.tier === "TIER_1"
+                    ? "bg-green-50 border-green-300"
+                    : blendParams.tier === "TIER_2"
+                    ? "bg-yellow-50 border-yellow-300"
+                    : "bg-red-50 border-red-300"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xl font-bold">{blendParams.badge}</span>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      blendParams.dataSource === "on-chain"
+                        ? "bg-green-200 text-green-800"
+                        : blendParams.dataSource === "local-model"
+                        ? "bg-blue-200 text-blue-800"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {blendParams.dataSource === "on-chain"
+                      ? "✓ On-chain verified"
+                      : blendParams.dataSource === "local-model"
+                      ? "🤖 Local model"
+                      : "⚠ Default (no score)"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500 text-xs">Riskon Score</p>
+                    <p className="font-bold text-2xl text-gray-900">{blendParams.score}<span className="text-sm font-normal text-gray-500">/100</span></p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs">Credit Tier</p>
+                    <p className="font-bold text-2xl text-gray-900">{blendParams.tier.replace("_", " ")}</p>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-xs text-gray-600">{blendParams.description}</p>
+
+                {blendParams.lastUpdated && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Last updated: {blendParams.lastUpdated.toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              {/* Blend parameters grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Max LTV</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {(blendParams.maxLTV * 100).toFixed(0)}%
+                  </p>
+                  <p className="text-xs text-gray-400">{blendParams.maxLTVBps} bps</p>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Collateral Factor</p>
+                  <p className="text-2xl font-bold text-indigo-600">
+                    {(blendParams.collateralFactor * 100).toFixed(0)}%
+                  </p>
+                  <p className="text-xs text-gray-400">{blendParams.collateralFactorBps} bps</p>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Rate Adjustment</p>
+                  <p
+                    className={`text-lg font-bold ${
+                      blendParams.rateAdjustmentBps < 0
+                        ? "text-green-600"
+                        : blendParams.rateAdjustmentBps > 0
+                        ? "text-red-600"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    {formatRateAdjustment(blendParams.rateAdjustmentBps)}
+                  </p>
+                  <p className="text-xs text-gray-400">{blendParams.rateAdjustmentBps > 0 ? "+" : ""}{blendParams.rateAdjustmentBps} bps</p>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Borrow Cap</p>
+                  <p className="text-xl font-bold text-purple-600">
+                    ${blendParams.maxBorrowUSD.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-400">USD equivalent</p>
+                </div>
+              </div>
+
+              {/* Allowed assets */}
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">✅ Eligible Borrow Assets</h4>
+                <div className="flex flex-wrap gap-2">
+                  {["XLM", "USDC", "BLND", "wETH", "wBTC"].map((asset) => {
+                    const allowed = blendParams.allowedAssets.includes(asset);
+                    return (
+                      <span
+                        key={asset}
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          allowed
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-400 line-through"
+                        }`}
+                      >
+                        {asset}
+                        {allowed ? " ✓" : " ✗"}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Pool access */}
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">🏊 Pool Access</h4>
+                <div className="space-y-2">
+                  {[
+                    { id: "TIER_1", label: "TIER_1 Pools (Low Risk, best terms)", flag: blendParams.canAccessTier1 },
+                    { id: "TIER_2", label: "TIER_2 Pools (Medium Risk)", flag: blendParams.canAccessTier2 },
+                    { id: "TIER_3", label: "TIER_3 Pools (Open to all)", flag: blendParams.canAccessTier3 },
+                  ].map(({ id, label, flag }) => (
+                    <div key={id} className="flex items-center gap-2 text-sm">
+                      <span className={flag ? "text-green-600" : "text-red-500"}>
+                        {flag ? "✓" : "✗"}
+                      </span>
+                      <span className={flag ? "text-gray-700" : "text-gray-400"}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* How to improve */}
+              {blendParams.tier !== "TIER_1" && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-purple-800 mb-2">
+                    📈 Improve Your Credit Tier
+                  </h4>
+                  <ul className="text-xs text-purple-700 space-y-1 list-disc list-inside">
+                    <li>Repay Blend loans on time to reduce liquidation risk</li>
+                    <li>Maintain a healthy collateral ratio (above 1.5×)</li>
+                    <li>Interact with diverse protocols to show ecosystem engagement</li>
+                    <li>Re-generate your Riskon score after positive on-chain activity</li>
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-4xl mb-3">🔮</p>
+              <p className="font-medium">No oracle data</p>
+              <p className="text-sm mt-1">
+                {walletAddress
+                  ? "Connect your wallet and generate a Riskon score first."
+                  : "Connect your wallet to load credit parameters."}
+              </p>
             </div>
           )}
         </div>

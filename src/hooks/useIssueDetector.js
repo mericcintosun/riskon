@@ -152,7 +152,7 @@ export function useIssueDetector() {
       }, 2000);
 
       // Check 8: Wallet availability
-      if (!window.stellar && !window.albedo && !window.freighter) {
+      if (!window.stellar && !window.xBull && !window.freighter) {
         detectedIssues.push(
           "No Stellar wallets detected - users may need to install wallet extensions"
         );

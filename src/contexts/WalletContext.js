@@ -5,7 +5,7 @@ import {
   StellarWalletsKit,
   WalletNetwork,
   allowAllModules,
-  ALBEDO_ID,
+  FREIGHTER_ID,
 } from "@creit.tech/stellar-wallets-kit";
 import {
   createPasskeyWallet,
@@ -29,9 +29,11 @@ export function WalletProvider({ children }) {
   useEffect(() => {
     const initKit = async () => {
       try {
+        // Use the previously connected wallet ID if available, otherwise fall back to FREIGHTER_ID
+        const savedWalletId = localStorage.getItem("walletId") || FREIGHTER_ID;
         const kitInstance = new StellarWalletsKit({
           network: WalletNetwork.TESTNET,
-          selectedWalletId: ALBEDO_ID,
+          selectedWalletId: savedWalletId,
           modules: allowAllModules(),
         });
         setKit(kitInstance);
@@ -47,6 +49,16 @@ export function WalletProvider({ children }) {
         if (savedWallet && savedAddress) {
           setConnectedWallet(savedWallet);
           setWalletAddress(savedAddress);
+
+          // Restore the selected wallet in the kit so operations use the right wallet
+          const savedWalletId = localStorage.getItem("walletId");
+          if (savedWalletId && savedWalletId !== "passkey") {
+            try {
+              kitInstance.setWallet(savedWalletId);
+            } catch (e) {
+              // ignore if wallet module not found
+            }
+          }
         }
 
         setInitError(null);
@@ -57,6 +69,7 @@ export function WalletProvider({ children }) {
         // Clear any corrupted localStorage data
         localStorage.removeItem("connectedWallet");
         localStorage.removeItem("walletAddress");
+        localStorage.removeItem("walletId");
       }
     };
 
@@ -86,6 +99,7 @@ export function WalletProvider({ children }) {
         // Save to localStorage
         localStorage.setItem("connectedWallet", walletName);
         localStorage.setItem("walletAddress", address);
+        localStorage.setItem("walletId", walletId);
 
         return { success: true, walletName, address };
       } else {
@@ -104,6 +118,7 @@ export function WalletProvider({ children }) {
                   // Save to localStorage
                   localStorage.setItem("connectedWallet", option.name);
                   localStorage.setItem("walletAddress", address);
+                  localStorage.setItem("walletId", option.id);
 
                   resolve({ success: true, walletName: option.name, address });
                 } catch (error) {
@@ -211,6 +226,7 @@ export function WalletProvider({ children }) {
       // Clear localStorage
       localStorage.removeItem("connectedWallet");
       localStorage.removeItem("walletAddress");
+      localStorage.removeItem("walletId");
 
       return { success: true };
     } catch (error) {
@@ -267,6 +283,7 @@ export function WalletProvider({ children }) {
       // Clear corrupted data
       localStorage.removeItem("connectedWallet");
       localStorage.removeItem("walletAddress");
+      localStorage.removeItem("walletId");
       setConnectedWallet(null);
       setWalletAddress("");
       return false;
@@ -277,11 +294,13 @@ export function WalletProvider({ children }) {
 
   const getWalletName = (walletId) => {
     const walletMap = {
-      albedo: "Albedo",
       xbull: "xBull",
       freighter: "Freighter",
+      lobstr: "LOBSTR",
+      rabet: "Rabet",
+      hana: "Hana",
     };
-    return walletMap[walletId] || "Unknown";
+    return walletMap[walletId] || walletId || "Unknown";
   };
 
   // Validate connection state on mount and periodically
@@ -306,6 +325,7 @@ export function WalletProvider({ children }) {
   const value = {
     kit,
     connectedWallet,
+    walletName: connectedWallet,
     walletAddress,
     isLoading,
     initError,

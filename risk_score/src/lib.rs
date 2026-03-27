@@ -16,6 +16,32 @@ pub struct RiskTierData {
     pub chosen_tier: Symbol, // User's chosen tier for operations
 }
 
+/// Blend Protocol oracle parameters derived from a user's Riskon credit score.
+///
+/// Any Blend pool can call `get_blend_params(user)` on this contract to obtain
+/// risk-adjusted lending parameters before executing a borrow or supply
+/// operation, enabling credit-gated DeFi without requiring the user to share
+/// any raw on-chain data beyond the final score.
+///
+/// Fields (all rates in basis points, 1 bps = 0.01 %):
+///   max_ltv_bps          – Maximum Loan-to-Value ceiling (8500 = 85 %)
+///   collateral_factor_bps– Efficiency of deposited collateral (9000 = 90 %)
+///   rate_adjustment_bps  – Borrow rate delta vs base rate (signed i32;
+///                          negative = discount, positive = premium)
+///   max_borrow_usd_cents – Per-tx borrow cap in USD cents (50000_00 = $50 k)
+///   tier                 – TIER_1 / TIER_2 / TIER_3
+///   score                – Raw 0-100 Riskon score
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BlendParams {
+    pub max_ltv_bps: u32,
+    pub collateral_factor_bps: u32,
+    pub rate_adjustment_bps: i32,
+    pub max_borrow_usd_cents: u64,
+    pub tier: Symbol,
+    pub score: u32,
+}
+
 #[contractimpl]
 impl RiskTierContract {
     /// Set risk score with tier classification and timestamp
@@ -177,6 +203,69 @@ impl RiskTierContract {
             }
         } else {
             false // No risk data means no access
+        }
+    }
+
+    /// Return Blend Protocol oracle parameters for a user.
+    ///
+    /// Blend pools call this function to obtain credit-adjusted lending
+    /// parameters without touching raw wallet data:
+    ///
+    ///   TIER_1 (score 0-30)  → 85% LTV, 90% CF, −50 bps discount
+    ///   TIER_2 (score 31-70) → 70% LTV, 75% CF, ±0 bps (standard)
+    ///   TIER_3 (score 71-100)→ 50% LTV, 55% CF, +250 bps premium
+    ///
+    /// If the user has no Riskon score yet, the most conservative TIER_3
+    /// parameters are returned so the call never panics.
+    pub fn get_blend_params(env: Env, user: Address) -> BlendParams {
+        let tuple_key = (user, Symbol::new(&env, "risk_tier"));
+
+        if let Some(data) = env
+            .storage()
+            .persistent()
+            .get::<_, RiskTierData>(&tuple_key)
+        {
+            let tier_1 = Symbol::new(&env, "TIER_1");
+            let tier_2 = Symbol::new(&env, "TIER_2");
+
+            if data.tier == tier_1 {
+                BlendParams {
+                    max_ltv_bps: 8500,           // 85 %
+                    collateral_factor_bps: 9000,  // 90 %
+                    rate_adjustment_bps: -50,     // −0.50 % discount
+                    max_borrow_usd_cents: 5_000_000, // $50 000
+                    tier: data.tier,
+                    score: data.score,
+                }
+            } else if data.tier == tier_2 {
+                BlendParams {
+                    max_ltv_bps: 7000,           // 70 %
+                    collateral_factor_bps: 7500,  // 75 %
+                    rate_adjustment_bps: 0,       // Standard rate
+                    max_borrow_usd_cents: 2_000_000, // $20 000
+                    tier: data.tier,
+                    score: data.score,
+                }
+            } else {
+                BlendParams {
+                    max_ltv_bps: 5000,           // 50 %
+                    collateral_factor_bps: 5500,  // 55 %
+                    rate_adjustment_bps: 250,     // +2.50 % premium
+                    max_borrow_usd_cents: 500_000, // $5 000
+                    tier: data.tier,
+                    score: data.score,
+                }
+            }
+        } else {
+            // No Riskon score → most conservative defaults
+            BlendParams {
+                max_ltv_bps: 5000,
+                collateral_factor_bps: 5500,
+                rate_adjustment_bps: 250,
+                max_borrow_usd_cents: 500_000,
+                tier: Symbol::new(&env, "TIER_3"),
+                score: 100,
+            }
         }
     }
 }
