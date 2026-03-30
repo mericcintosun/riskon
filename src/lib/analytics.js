@@ -37,3 +37,9 @@ export function trackRiskScoreLookup(address) {
 export function trackRiskTierChanged(oldTier, newTier) {
   track('risk_tier_changed', { old_tier: String(oldTier), new_tier: String(newTier) });
 }
+
+// ── PWA Events ─────────────────────────────────────────────
+
+export function trackAppInstalled() {
+  track('app_installed');
+}

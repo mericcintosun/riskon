@@ -47,7 +47,7 @@ export const CACHE_BEHAVIOR = {
   ENABLE_INDEXEDDB_FALLBACK: true,
   
   // Enable service worker caching
-  ENABLE_SERVICE_WORKER: false, // Default to disabled, user can enable
+  ENABLE_SERVICE_WORKER: true, // Enabled by default for PWA support
   
   // Cache invalidation settings
   INVALIDATION: {
