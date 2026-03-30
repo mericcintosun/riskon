@@ -13,6 +13,7 @@ import {
   parseAmount,
   formatAmount,
 } from "../lib/blendConfig.js";
+import { trackTransactionSubmitted, trackTransactionSuccess, trackTransactionFailed } from "../lib/analytics";
 
 export default function BlendDashboard({ kit, walletAddress, riskScore }) {
   // State management
@@ -172,6 +173,8 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         throw new Error("Please enter a valid amount");
       }
 
+      trackTransactionSubmitted(operationType, amount, selectedAsset);
+
       // Use enhanced operation creation
       operationData = await createBlendOperation(
         selectedPool.id,
@@ -199,6 +202,8 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
           )}...${result.substring(56)}`
         );
 
+        trackTransactionSuccess(operationType, amount, selectedAsset, result);
+
         // Add link to Stellar Explorer
         setTimeout(() => {
           setMessage(`✅ Transaction successful! 
@@ -208,6 +213,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       } else {
         // Simulation result
         setMessage("✅ Transaction successful! Blockchain integration completed");
+        trackTransactionSuccess(operationType, amount, selectedAsset, "simulation");
       }
 
       // Clear forms on success
@@ -220,6 +226,7 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
       }, 2000);
     } catch (error) {
       console.error("DeFi transaction error:", error);
+      trackTransactionFailed(operationType, error.message);
       setMessage(`❌ Transaction error: ${error.message}`);
       setMessageType("error");
     } finally {

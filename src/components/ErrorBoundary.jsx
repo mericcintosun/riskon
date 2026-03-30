@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import * as Sentry from "@sentry/nextjs";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -32,12 +33,11 @@ class ErrorBoundary extends React.Component {
   }
 
   logErrorToService(error, errorInfo) {
-    // In production, this would send to Sentry, LogRocket, etc.
-    if (process.env.NODE_ENV === 'production') {
-      // Integration point for error tracking services
-      // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
-      console.log('Error logged to monitoring service:', error.message);
-    }
+    Sentry.captureException(error, {
+      contexts: {
+        react: { componentStack: errorInfo?.componentStack },
+      },
+    });
   }
 
   resetErrorBoundary = () => {

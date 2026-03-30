@@ -19,6 +19,7 @@ import {
   removeSafeLocalStorageItem,
   setSafeLocalStorageItem,
 } from "../lib/secureStorage";
+import { trackWalletConnected, trackWalletDisconnected, trackWalletError } from "../lib/analytics";
 import { sanitizeString, validateStellarAddress } from "../lib/validation";
 
 const WalletContext = createContext();
@@ -101,6 +102,7 @@ export function WalletProvider({ children }) {
         setSafeLocalStorageItem("connectedWallet", sanitizedWalletName);
         setSafeLocalStorageItem("walletAddress", validatedAddress.sanitized);
 
+        trackWalletConnected(sanitizedWalletName);
         return {
           success: true,
           walletName: sanitizedWalletName,
@@ -134,6 +136,7 @@ export function WalletProvider({ children }) {
                     validatedAddress.sanitized
                   );
 
+                  trackWalletConnected(sanitizedWalletName);
                   resolve({
                     success: true,
                     walletName: sanitizedWalletName,
@@ -230,6 +233,7 @@ export function WalletProvider({ children }) {
         );
       }
 
+      trackWalletError(enhancedError.message);
       throw enhancedError;
     } finally {
       setIsLoading(false);
@@ -240,6 +244,7 @@ export function WalletProvider({ children }) {
     try {
       setWalletAddress("");
       setConnectedWallet(null);
+      trackWalletDisconnected(connectedWallet || "unknown");
 
       // Clear localStorage
       removeSafeLocalStorageItem("connectedWallet");
@@ -282,6 +287,7 @@ export function WalletProvider({ children }) {
         setSafeLocalStorageItem("connectedWallet", "Passkey");
         setSafeLocalStorageItem("walletAddress", validatedAddress.sanitized);
         setSafeLocalStorageItem("passkeyKeyId", sanitizeString(result.keyId || ""));
+        trackWalletConnected("Passkey");
       }
 
       return result;

@@ -14,6 +14,7 @@ import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
 import { useIssueDetector } from "../hooks/useIssueDetector";
 import { getTier, maxBorrow } from "../lib/borrowCalc";
+import { trackRiskScoreLookup, trackRiskTierChanged } from "../lib/analytics";
 
 export default function RiskScoringApp() {
   // Use global wallet context
@@ -367,6 +368,7 @@ export default function RiskScoringApp() {
 
     try {
       setIsLoading(true);
+      trackRiskScoreLookup(walletAddress);
 
       const loadingToast = toast.loading(
         "💾 Saving risk score to blockchain..."
@@ -382,6 +384,10 @@ export default function RiskScoringApp() {
 
       toast.dismiss(loadingToast);
       setTransactionHash(hash);
+
+      // Track risk tier change
+      const tier = riskScore <= 30 ? 1 : riskScore <= 70 ? 2 : 3;
+      trackRiskTierChanged("unknown", tier);
 
       // Show success message based on storage method
       if (
