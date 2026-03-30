@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -11,7 +13,7 @@ const contentSecurityPolicy = `
   style-src 'self' 'unsafe-inline' https:;
   img-src 'self' data: blob: https:;
   font-src 'self' data: https:;
-  connect-src 'self' https://horizon-testnet.stellar.org https://soroban-testnet.stellar.org https://*.stellar.org https:;
+  connect-src 'self' https://horizon-testnet.stellar.org https://soroban-testnet.stellar.org https://*.stellar.org https://*.sentry.io https:;
   worker-src 'self' blob:;
   frame-src 'self';
   upgrade-insecure-requests;
@@ -72,4 +74,9 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  disableLogger: true,
+});

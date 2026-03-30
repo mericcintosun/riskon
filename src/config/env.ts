@@ -78,6 +78,9 @@ const clientEnvSchema = z.object({
 
   // Environment
   NEXT_PUBLIC_ENVIRONMENT: z.enum(["development", "production", "test"]).optional(),
+
+  // Observability
+  NEXT_PUBLIC_SENTRY_DSN: urlSchema.optional(),
 });
 
 /**
