@@ -12,7 +12,7 @@ export const useCacheTestUtils = () => {
     const loadTestUtils = async () => {
       if (typeof window !== 'undefined') {
         try {
-          const testUtils = await import('../utils/manualCacheTests.js');
+          const testUtils = await import('../utils/manualCacheTests');
           console.log('🧪 Cache test utilities loaded! Use cacheTestUtils in console.');
         } catch (error) {
           console.warn('Failed to load cache test utilities:', error);

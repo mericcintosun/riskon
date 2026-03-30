@@ -105,7 +105,7 @@ export const PERFORMANCE_THRESHOLDS = {
  * Get cache TTL for specific data type
  */
 export function getCacheTTL(dataType: keyof typeof CACHE_TTL): number {
-  return CACHE_TTL[dataType];
+  return CACHE_TTL[dataType] as number;
 }
 
 /**

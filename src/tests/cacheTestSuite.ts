@@ -64,7 +64,7 @@ export class CacheTestSuite {
       await setCache(testKey, testData, { ttl: shortTTL });
       
       // Step 2: Retrieve immediately → should return data
-      const immediateRetrieve = await getCache(testKey);
+      const immediateRetrieve: any = await getCache(testKey);
       if (!immediateRetrieve || immediateRetrieve.message !== testData.message) {
         throw new Error('Immediate cache retrieval failed');
       }
@@ -288,7 +288,7 @@ export class CacheTestSuite {
       }
       
       // Step 3: Retrieve from IndexedDB
-      const retrievedData = await getCache(testKey);
+      const retrievedData: any = await getCache(testKey);
       
       if (!retrievedData) {
         throw new Error('Failed to retrieve large dataset from IndexedDB');

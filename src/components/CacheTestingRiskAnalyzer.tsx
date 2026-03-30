@@ -35,7 +35,7 @@ export const CacheTestingRiskAnalyzer: React.FC<{ walletAddress?: string }> = ({
       console.log('📡 Collecting transaction data...');
       const startTime = Date.now();
       
-      const data = await collectTransactionData(walletAddress);
+      const data: any = await collectTransactionData(walletAddress);
       const horizonTime = Date.now() - startTime;
       
       setCacheHits(prev => [...prev, 
