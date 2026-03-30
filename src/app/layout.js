@@ -2,6 +2,9 @@ import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import OfflineBanner from "../components/OfflineBanner";
+import InstallPrompt from "../components/InstallPrompt";
+import ServiceWorkerRegistrar from "../components/ServiceWorkerRegistrar";
 import { WalletProvider } from "../contexts/WalletContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -58,6 +61,9 @@ export default function RootLayout({ children }) {
         </ErrorBoundary>
         <Analytics />
         <SpeedInsights />
+        <OfflineBanner />
+        <InstallPrompt />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );
