@@ -14,6 +14,7 @@ import {
   formatAmount,
 } from "../lib/blendConfig.js";
 import { trackTransactionSubmitted, trackTransactionSuccess, trackTransactionFailed } from "../lib/analytics";
+import { triggerNotification } from "../lib/pushNotifications";
 
 export default function BlendDashboard({ kit, walletAddress, riskScore }) {
   // State management
@@ -203,6 +204,10 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
         );
 
         trackTransactionSuccess(operationType, amount, selectedAsset, result);
+        triggerNotification(walletAddress, "tx_update", {
+          message: `${operationType} of ${amount} ${selectedAsset} completed successfully`,
+          url: "/wallet",
+        });
 
         // Add link to Stellar Explorer
         setTimeout(() => {
@@ -227,6 +232,10 @@ export default function BlendDashboard({ kit, walletAddress, riskScore }) {
     } catch (error) {
       console.error("DeFi transaction error:", error);
       trackTransactionFailed(operationType, error.message);
+      triggerNotification(walletAddress, "tx_update", {
+        message: `${operationType} failed: ${error.message}`,
+        url: "/wallet",
+      });
       setMessage(`❌ Transaction error: ${error.message}`);
       setMessageType("error");
     } finally {

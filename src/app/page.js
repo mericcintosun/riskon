@@ -15,6 +15,7 @@ import { useToast } from "../contexts/ToastContext";
 import { useIssueDetector } from "../hooks/useIssueDetector";
 import { getTier, maxBorrow } from "../lib/borrowCalc";
 import { trackRiskScoreLookup, trackRiskTierChanged } from "../lib/analytics";
+import { triggerNotification } from "../lib/pushNotifications";
 
 export default function RiskScoringApp() {
   // Use global wallet context
@@ -388,6 +389,10 @@ export default function RiskScoringApp() {
       // Track risk tier change
       const tier = riskScore <= 30 ? 1 : riskScore <= 70 ? 2 : 3;
       trackRiskTierChanged("unknown", tier);
+      triggerNotification(walletAddress, "risk_alert", {
+        message: `Your risk tier changed to Tier ${tier}`,
+        url: "/",
+      });
 
       // Show success message based on storage method
       if (

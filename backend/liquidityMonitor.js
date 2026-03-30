@@ -251,6 +251,11 @@ const express = require("express");
 const app = express();
 
 app.use(express.json());
+const cors = require("cors");
+const { createPushRouter } = require("./pushRoutes");
+
+app.use(cors());
+app.use("/push", createPushRouter(redisClient));
 
 // Health check endpoint
 app.get("/", (req, res) => {
