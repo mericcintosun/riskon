@@ -202,26 +202,30 @@ export class RiskTierContractClient {
 
   /**
    * Set risk score with tier classification.
-   * Maps to Rust: `set_risk_tier(user, score, tier, chosen_tier)`
+   * Maps to Rust: `set_risk_tier(caller, user, score, tier, chosen_tier)`
    *
-   * @param userAddress - Stellar G... or C... address
-   * @param score       - Risk score 0-100
-   * @param tier        - Calculated tier (TIER_1 | TIER_2 | TIER_3)
-   * @param chosenTier  - User's chosen tier
+   * @param callerAddress - Stellar address of the caller (admin or user)
+   * @param userAddress   - Stellar G... or C... address of the target user
+   * @param score         - Risk score 0-100
+   * @param tier          - Calculated tier (TIER_1 | TIER_2 | TIER_3)
+   * @param chosenTier    - User's chosen tier
    * @returns Transaction hash
    */
   async setRiskTier(
+    callerAddress: string,
     userAddress: string,
     score: number,
     tier: TierLevel,
     chosenTier: TierLevel
   ): Promise<string> {
+    const callerAddr = validateAddress(callerAddress, "Caller address");
     const addr = validateAddress(userAddress, "User address");
     const safeScore = validateScore(score);
     const safeTier = validateTierInput(tier, "Tier");
     const safeChosen = validateTierInput(chosenTier, "Chosen tier");
 
-    const xdr = await this.buildWriteTransaction(addr, "set_risk_tier", [
+    const xdr = await this.buildWriteTransaction(callerAddr, "set_risk_tier", [
+      Address.fromString(callerAddr).toScVal(),
       Address.fromString(addr).toScVal(),
       nativeToScVal(safeScore, { type: "u32" }),
       nativeToScVal(safeTier, { type: "symbol" }),
@@ -660,6 +664,7 @@ export function useRiskTierContract() {
   const [error, setError] = useState<string | null>(null);
 
   const setRiskTier = async (
+    callerAddress: string,
     userAddress: string,
     score: number,
     tier: TierLevel,
@@ -669,6 +674,7 @@ export function useRiskTierContract() {
       setLoading(true);
       setError(null);
       return await riskTierClient.setRiskTier(
+        callerAddress,
         userAddress,
         score,
         tier,

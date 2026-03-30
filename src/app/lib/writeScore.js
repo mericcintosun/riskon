@@ -97,12 +97,14 @@ export async function writeScoreToBlockchain({
     // Debug ScVal conversion
 
     // Create the contract call operation with proper ScVal conversion
-    // Using the actual contract method: set_risk_tier(user, score, tier, chosen_tier)
+    // Using the actual contract method: set_risk_tier(caller, user, score, tier, chosen_tier)
+    // The caller is the user themselves (self-service auth)
     let operation;
     try {
       operation = contract.call(
         "set_risk_tier",
-        Address.fromString(address).toScVal(),
+        Address.fromString(address).toScVal(), // caller
+        Address.fromString(address).toScVal(), // user (same as caller for self-service)
         nativeToScVal(Math.round(score), { type: "u32" }),
         nativeToScVal(tier, { type: "symbol" }),
         nativeToScVal(validateTier(chosenTierName), { type: "symbol" })
