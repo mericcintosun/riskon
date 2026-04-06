@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn test_set_and_get_risk_tier() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -252,7 +252,7 @@ mod tests {
     #[test]
     fn test_score_validation_upper_bound() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -268,7 +268,7 @@ mod tests {
     #[should_panic(expected = "Score must be 0-100")]
     fn test_score_validation_exceeds_limit() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -281,7 +281,7 @@ mod tests {
     #[should_panic(expected = "Invalid tier")]
     fn test_invalid_tier_validation() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -293,7 +293,7 @@ mod tests {
     #[test]
     fn test_tier_access_tier1_low_risk() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -307,7 +307,7 @@ mod tests {
     #[test]
     fn test_tier_access_tier1_boundary() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -321,7 +321,7 @@ mod tests {
     #[test]
     fn test_tier_access_tier1_denied() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn test_tier_access_tier2_medium_risk() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -350,7 +350,7 @@ mod tests {
     #[test]
     fn test_tier_access_tier3_always_accessible() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn test_get_tier_users() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user1 = Address::generate(&env);
@@ -381,7 +381,7 @@ mod tests {
     #[test]
     fn test_update_chosen_tier_valid() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -399,7 +399,7 @@ mod tests {
     #[should_panic(expected = "High risk users can only access TIER_3")]
     fn test_update_chosen_tier_high_risk_restriction() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -413,7 +413,7 @@ mod tests {
     #[test]
     fn test_get_tier_stats() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user1 = Address::generate(&env);
@@ -437,7 +437,7 @@ mod tests {
     #[test]
     fn test_score_update_overwrites_previous() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -455,7 +455,7 @@ mod tests {
     #[test]
     fn test_no_risk_data_returns_zero_score() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -467,7 +467,7 @@ mod tests {
     #[test]
     fn test_no_risk_data_denies_tier_access() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user = Address::generate(&env);
@@ -479,7 +479,7 @@ mod tests {
     #[test]
     fn test_multiple_users_different_tiers() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let user1 = Address::generate(&env);
@@ -506,7 +506,7 @@ mod tests {
     fn test_admin_can_set_any_user_tier() {
         let env = Env::default();
         env.mock_all_auths();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -525,7 +525,7 @@ mod tests {
     fn test_user_can_set_own_tier() {
         let env = Env::default();
         env.mock_all_auths();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -546,7 +546,7 @@ mod tests {
     fn test_unauthorized_caller_panics() {
         let env = Env::default();
         // No mock_all_auths — auth will fail
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -565,7 +565,7 @@ mod tests {
     fn test_initialize_panics_if_called_twice() {
         let env = Env::default();
         env.mock_all_auths();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -578,7 +578,7 @@ mod tests {
     fn test_get_admin_returns_stored_admin() {
         let env = Env::default();
         env.mock_all_auths();
-        let contract_id = env.register_contract(None, RiskTierContract);
+        let contract_id = env.register(RiskTierContract, ());
         let client = RiskTierContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
