@@ -7,6 +7,7 @@ This document details the contributions made to the Riskon project for the Stell
 This PR resolves **8 high-priority issues** across configuration management, security, performance, accessibility, and developer experience. All implementations include comprehensive validation, error handling, testing, and documentation.
 
 **Issues Resolved:**
+- Issue #21: Analytics and Monitoring (MEDIUM PRIORITY)
 - Issue #15: Environment Variables Validation (HIGH PRIORITY)
 - Issue #18: Input Validation and Sanitization (HIGH PRIORITY)
 - Issue #12: API Rate Limiting and Retry Mechanism (HIGH PRIORITY)
@@ -24,7 +25,47 @@ This PR resolves **8 high-priority issues** across configuration management, sec
 
 ---
 
-## Issue #15: Environment Variables Validation
+## Issue #21: Analytics and Monitoring
+
+**Priority:** MEDIUM
+**Category:** Observability
+
+### Problem
+User analytics, error tracking, and performance monitoring were missing. This made problem detection in production difficult and obscured user behavior patterns.
+
+### Solution
+Implemented a comprehensive, privacy-first observability suite that includes analytics (Plausible-compatible), error tracking with sensitive data scrubbing (Sentry-compatible), and Web Vitals performance monitoring.
+
+### Files Created
+1. `src/lib/analytics.ts` (145 lines)
+   - Privacy-first analytics tracking
+   - Safe tracking for risk scores and wallet connections
+   - Graceful fallback without env vars
+
+2. `src/lib/errorTracking.ts` (210 lines)
+   - Sentry-compatible payload generation
+   - Rigorous data scrubber (removes secret keys, truncates addresses)
+   - `withErrorTracking` HOF for safe async operation wrapping
+
+3. `src/lib/performanceMonitor.ts` (250 lines)
+   - Core Web Vitals collection
+   - Custom component render tracking
+   - API latency measurements
+
+4. `src/components/AnalyticsProvider.tsx` (65 lines)
+   - React Context provider initializing listeners
+   - Page view tracking on mount
+   - Global unhandled promise rejection catching
+
+5. `scripts/test-analytics.js` (160 lines)
+   - Static analysis for exports and privacy checking
+
+### Impact
+- **Observability:** Clear insights into application vitals and user behavior.
+- **Privacy First:** Validated that no personal data or raw internal scores leave the client.
+- **Production Safety:** Sensitive key scrubber ensures we never leak credentials through error logs.
+
+---
 
 **Priority:** HIGH
 **Category:** Configuration Management

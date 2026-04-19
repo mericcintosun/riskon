@@ -25,3 +25,14 @@ global.IntersectionObserver = class IntersectionObserver {
   }
   unobserve() {}
 };
+
+// Mock Response for jsdom environment
+if (typeof global.Response === 'undefined') {
+  global.Response = class Response {
+    constructor(body = null, init = {}) {
+      this.body = body;
+      this.status = init.status || 200;
+      this.ok = this.status >= 200 && this.status < 300;
+    }
+  };
+}
