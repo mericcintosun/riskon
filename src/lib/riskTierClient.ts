@@ -222,7 +222,8 @@ export class RiskTierContractClient {
     const safeChosen = validateTierInput(chosenTier, "Chosen tier");
 
     const xdr = await this.buildWriteTransaction(addr, "set_risk_tier", [
-      Address.fromString(addr).toScVal(),
+      Address.fromString(addr).toScVal(), // caller
+      Address.fromString(addr).toScVal(), // user
       nativeToScVal(safeScore, { type: "u32" }),
       nativeToScVal(safeTier, { type: "symbol" }),
       nativeToScVal(safeChosen, { type: "symbol" }),
@@ -264,7 +265,8 @@ export class RiskTierContractClient {
       addr,
       "update_chosen_tier",
       [
-        Address.fromString(addr).toScVal(),
+        Address.fromString(addr).toScVal(), // caller
+        Address.fromString(addr).toScVal(), // user
         nativeToScVal(safeTier, { type: "symbol" }),
       ]
     );

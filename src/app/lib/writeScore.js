@@ -102,7 +102,8 @@ export async function writeScoreToBlockchain({
     try {
       operation = contract.call(
         "set_risk_tier",
-        Address.fromString(address).toScVal(),
+        Address.fromString(address).toScVal(), // caller
+        Address.fromString(address).toScVal(), // user
         nativeToScVal(Math.round(score), { type: "u32" }),
         nativeToScVal(tier, { type: "symbol" }),
         nativeToScVal(validateTier(chosenTierName), { type: "symbol" })
