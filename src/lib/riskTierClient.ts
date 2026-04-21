@@ -25,6 +25,7 @@ import { passkeyWallet } from "./passkeyIntegration";
 import { getCache, setCache, invalidateCache } from "./cacheManager";
 import { dispatchCacheEvent } from "../hooks/useCacheInvalidation";
 import { CACHE_KEYS } from "../types/cache";
+import { loggers } from "./logger";
 
 const horizonServer = new Server("https://horizon-testnet.stellar.org");
 
@@ -237,11 +238,22 @@ export class RiskTierContractClient {
       // Dispatch cache invalidation event
       dispatchCacheEvent.riskTierUpdated(userAddress, tier);
 
-      console.log("✅ Risk tier updated and cache invalidated");
+      loggers.riskTier.info("Risk tier updated and cache invalidated", {
+        userAddress,
+        score: safeScore,
+        tier: safeTier,
+        chosenTier: safeChosen,
+        transactionHash: hash,
+      });
 
       return hash;
     } catch (error) {
-      console.error("❌ Failed to set risk tier:", error);
+      loggers.riskTier.error("Failed to set risk tier", error as Error, {
+        userAddress,
+        score: safeScore,
+        tier: safeTier,
+        chosenTier: safeChosen,
+      });
       throw error;
     }
   }
@@ -285,11 +297,11 @@ export class RiskTierContractClient {
       const cachedData = await getCache<RiskTierData>(cacheKey);
       
       if (cachedData) {
-        console.log("🚀 Using cached risk tier data");
+        loggers.cache.debug("Using cached risk tier data", { userAddress });
         return cachedData;
       }
 
-      console.log("📡 Fetching fresh risk tier data from contract...");
+      loggers.riskTier.debug("Fetching fresh risk tier data from contract", { userAddress });
 
       const addr = validateAddress(userAddress, "User address");
       const retval = await this.simulateReadCall("get_risk_tier", [
