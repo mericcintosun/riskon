@@ -3,6 +3,10 @@ use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Map, Symbo
 
 /// Enhanced Risk & Tier Management Contract
 /// Stores risk scores with tier classifications and timestamps
+/// 
+const DAY_IN_LEDGERS: u32 = 17280;
+const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
+const LIFETIME_THRESHOLD: u32 = 15 * DAY_IN_LEDGERS;
 #[contract]
 pub struct RiskTierContract;
 
@@ -48,20 +52,35 @@ impl RiskTierContract {
         // Use tuple key for better organization: (user, "risk_tier")
         let tuple_key = (user.clone(), Symbol::new(&env, "risk_tier"));
         env.storage().persistent().set(&tuple_key, &risk_data);
+        env.storage().persistent().extend_ttl(&tuple_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
 
-        // Also store in tier-based index for efficient queries
-        let tier_key = (tier.clone(), Symbol::new(&env, "users"));
-        let mut tier_users: Vec<Address> = env
+        
+    
+        let user_membership_key = (tier.clone(), Symbol::new(&env, "is_member"), user.clone());
+        let is_already_member: bool = env
             .storage()
             .persistent()
-            .get(&tier_key)
-            .unwrap_or(Vec::new(&env));
+            .get(&user_membership_key)
+            .unwrap_or(false);
 
-        // Add user to tier list if not already present
-        if !tier_users.contains(&user) {
-            tier_users.push_back(user.clone());
-            env.storage().persistent().set(&tier_key, &tier_users);
+        
+        if !is_already_member {
+            
+            env.storage().persistent().set(&user_membership_key, &true);
+            env.storage().persistent().extend_ttl(&user_membership_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
+
+            
+            let stats_key = (tier.clone(), Symbol::new(&env, "count"));
+            let current_count: u32 = env
+                .storage()
+                .persistent()
+                .get(&stats_key)
+                .unwrap_or(0);
+                
+            env.storage().persistent().set(&stats_key, &(current_count + 1));
+            env.storage().persistent().extend_ttl(&stats_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
         }
+        // --------------------------
 
         // Store user's chosen tier separately for quick access
         let chosen_key = (user.clone(), Symbol::new(&env, "chosen_tier"));
@@ -77,17 +96,18 @@ impl RiskTierContract {
     /// Get complete risk and tier data for user
     pub fn get_risk_tier(env: Env, user: Address) -> Option<RiskTierData> {
         let tuple_key = (user, Symbol::new(&env, "risk_tier"));
+       
+        if env.storage().persistent().has(&tuple_key) {
+            env.storage().persistent().extend_ttl(&tuple_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
+        }
         env.storage().persistent().get(&tuple_key)
     }
-
     /// Get only risk score (backward compatibility)
-    pub fn get_score(env: Env, user: Address) -> u32 {
+   pub fn get_score(env: Env, user: Address) -> u32 {
         let tuple_key = (user, Symbol::new(&env, "risk_tier"));
-        if let Some(data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&tuple_key)
-        {
+       
+        if let Some(data) = env.storage().persistent().get::<_, RiskTierData>(&tuple_key) {
+            env.storage().persistent().extend_ttl(&tuple_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
             data.score
         } else {
             0
@@ -95,25 +115,24 @@ impl RiskTierContract {
     }
 
     /// Get user's chosen tier for operations
-    pub fn get_chosen_tier(env: Env, user: Address) -> Symbol {
+  pub fn get_chosen_tier(env: Env, user: Address) -> Symbol {
         let chosen_key = (user, Symbol::new(&env, "chosen_tier"));
+        if env.storage().persistent().has(&chosen_key) {
+             env.storage().persistent().extend_ttl(&chosen_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
+        }
         env.storage()
             .persistent()
             .get(&chosen_key)
-            .unwrap_or(Symbol::new(&env, "TIER_3")) // Default to most conservative
+            .unwrap_or(Symbol::new(&env, "TIER_3"))
     }
 
-    /// Get all users in a specific tier
-    pub fn get_tier_users(env: Env, tier: Symbol) -> Vec<Address> {
-        let tier_key = (tier, Symbol::new(&env, "users"));
-        env.storage()
-            .persistent()
-            .get(&tier_key)
-            .unwrap_or(Vec::new(&env))
-    }
+    
 
-    /// Update user's chosen tier (risk-based validation)
-    pub fn update_chosen_tier(env: Env, user: Address, new_chosen_tier: Symbol) {
+    
+  pub fn update_chosen_tier(env: Env, user: Address, new_chosen_tier: Symbol) {
+       
+        user.require_auth();
+
         let tuple_key = (user.clone(), Symbol::new(&env, "risk_tier"));
 
         if let Some(mut risk_data) = env
@@ -121,8 +140,7 @@ impl RiskTierContract {
             .persistent()
             .get::<_, RiskTierData>(&tuple_key)
         {
-            // Risk-based tier access control
-            // High risk users (>70) can only choose TIER_3 for "opportunity" access
+           
             if risk_data.score > 70 {
                 assert!(
                     new_chosen_tier == Symbol::new(&env, "TIER_3"),
@@ -131,17 +149,18 @@ impl RiskTierContract {
             }
 
             risk_data.chosen_tier = new_chosen_tier.clone();
-            risk_data.timestamp = env.ledger().timestamp(); // Update timestamp
+            risk_data.timestamp = env.ledger().timestamp(); // Atualiza o timestamp
 
             env.storage().persistent().set(&tuple_key, &risk_data);
 
-            // Update chosen tier cache
+            
             let chosen_key = (user.clone(), Symbol::new(&env, "chosen_tier"));
             env.storage()
                 .persistent()
                 .set(&chosen_key, &new_chosen_tier);
+            env.storage().persistent().extend_ttl(&tuple_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
 
-            // Emit Event for Indexers
+        
             env.events()
                 .publish((Symbol::new(&env, "tier_updated"), user), new_chosen_tier);
         }
@@ -158,35 +177,34 @@ impl RiskTierContract {
         ];
 
         for tier in tiers {
-            let tier_users = Self::get_tier_users(env.clone(), tier.clone());
-            stats.set(tier, tier_users.len());
+           let stats_key = (tier.clone(), Symbol::new(&env, "count"));
+    let count: u32 = env.storage().persistent().get(&stats_key).unwrap_or(0);
+    stats.set(tier, count);
         }
 
         stats
-    }
+        }
 
     /// Check if user can access specific tier based on risk score
     /// Following Goldfinch/Maple risk-liquidity mapping methodology
-    pub fn can_access_tier(env: Env, user: Address, target_tier: Symbol) -> bool {
+  pub fn can_access_tier(env: Env, user: Address, target_tier: Symbol) -> bool {
         let tuple_key = (user, Symbol::new(&env, "risk_tier"));
 
-        if let Some(risk_data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&tuple_key)
-        {
+        if let Some(risk_data) = env.storage().persistent().get::<_, RiskTierData>(&tuple_key) {
+            // Explicação: Renova a vida do score do usuário sempre que o acesso a um tier for validado.
+            env.storage().persistent().extend_ttl(&tuple_key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
             let tier_1 = Symbol::new(&env, "TIER_1");
             let tier_2 = Symbol::new(&env, "TIER_2");
             let tier_3 = Symbol::new(&env, "TIER_3");
 
             match target_tier {
-                t if t == tier_1 => risk_data.score <= 30, // Low risk only
-                t if t == tier_2 => risk_data.score <= 70, // Low to medium risk
-                t if t == tier_3 => true, // All users (with opportunity badge for high risk)
+                t if t == tier_1 => risk_data.score <= 30,
+                t if t == tier_2 => risk_data.score <= 70,
+                t if t == tier_3 => true,
                 _ => false,
             }
         } else {
-            false // No risk data means no access
+            false
         }
     }
 }
@@ -194,7 +212,7 @@ impl RiskTierContract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Env};
+   use soroban_sdk::{testutils::Address as _, Address, Env, Symbol};
 
     #[test]
     fn test_set_and_get_risk_tier() {
@@ -325,26 +343,13 @@ mod tests {
         assert!(client.can_access_tier(&user, &tier_3));
     }
 
-    #[test]
-    fn test_get_tier_users() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
+    
 
-        let user1 = Address::generate(&env);
-        let user2 = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
-        client.set_risk_tier(&user2, &25, &tier_1, &tier_1);
-        
-        let tier_users = client.get_tier_users(&tier_1);
-        assert_eq!(tier_users.len(), 2);
-    }
 
     #[test]
     fn test_update_chosen_tier_valid() {
         let env = Env::default();
+        env.mock_all_auths();
         let contract_id = env.register_contract(None, RiskTierContract);
         let client = RiskTierContractClient::new(&env, &contract_id);
 
@@ -363,6 +368,7 @@ mod tests {
     #[should_panic(expected = "High risk users can only access TIER_3")]
     fn test_update_chosen_tier_high_risk_restriction() {
         let env = Env::default();
+        env.mock_all_auths();
         let contract_id = env.register_contract(None, RiskTierContract);
         let client = RiskTierContractClient::new(&env, &contract_id);
 
