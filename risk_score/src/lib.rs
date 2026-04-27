@@ -1,11 +1,6 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Map, Symbol, Vec};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use soroban_sdk::{Address, Env, Symbol};
-
 /// Enhanced Risk & Tier Management Contract
 /// Stores risk scores with tier classifications and timestamps
 #[contract]
@@ -37,7 +32,7 @@ impl RiskTierContract {
         
         // Emit initialization event
         env.events().publish(
-            (Symbol::new(&env, "initialized"),),
+            Symbol::new(&env, "initialized"),
             admin,
         );
     }
@@ -188,7 +183,7 @@ impl RiskTierContract {
 
             // Emit Event for Indexers
             env.events()
-                .publish((Symbol::new(&env, "tier_updated"), user), (new_chosen_tier,));
+                .publish((Symbol::new(&env, "tier_updated"), user), new_chosen_tier);
         }
     }
 
@@ -615,5 +610,4 @@ mod tests {
         assert!(client.can_access_tier(&user2, &tier_2));
         assert!(client.can_access_tier(&user3, &tier_3));
     }
-}
 }
