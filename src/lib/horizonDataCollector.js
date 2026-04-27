@@ -76,7 +76,11 @@ export async function collectTransactionData(walletAddress) {
 }
 
 /**
- * Fetch payment operations from Horizon
+ * Fetch payment operations from Horizon API
+ * @param {string} walletAddress - The Stellar wallet address to fetch payments for
+ * @param {Date} startDate - Start date for the payment history range
+ * @param {Date} endDate - End date for the payment history range
+ * @returns {Promise<Array<Object>>} Array of payment operations with amount, asset info, and timestamps
  */
 async function fetchPayments(walletAddress, startDate, endDate) {
   let payments = [];
@@ -142,7 +146,11 @@ async function fetchPayments(walletAddress, startDate, endDate) {
 }
 
 /**
- * Fetch transaction operations from Horizon
+ * Fetch transaction operations from Horizon API
+ * @param {string} walletAddress - The Stellar wallet address to fetch transactions for
+ * @param {Date} startDate - Start date for the transaction history range
+ * @param {Date} endDate - End date for the transaction history range
+ * @returns {Promise<Array<Object>>} Array of transaction operations with fee, operation count, and success status
  */
 async function fetchTransactions(walletAddress, startDate, endDate) {
   let transactions = [];
@@ -205,7 +213,11 @@ async function fetchTransactions(walletAddress, startDate, endDate) {
 }
 
 /**
- * Calculate the 4 key risk metrics
+ * Calculate the 4 key risk metrics from payment and transaction data
+ * @param {Array<Object>} payments - Array of payment operations
+ * @param {Array<Object>} transactions - Array of transaction operations
+ * @param {string} walletAddress - The wallet address being analyzed
+ * @returns {Object} Risk metrics including totalVolume, uniqueCounterparties, assetDiversity, and nightDayRatio
  */
 function calculateRiskMetrics(payments, transactions, walletAddress) {
   // 1. Total Volume (in XLM)
@@ -266,7 +278,9 @@ function calculateRiskMetrics(payments, transactions, walletAddress) {
 }
 
 /**
- * Check if data collection is recent enough (within 1 hour)
+ * Check if cached data is recent enough (within 1 hour)
+ * @param {number} timestamp - Unix timestamp of when the data was collected
+ * @returns {boolean} True if data is fresh (less than 1 hour old), false otherwise
  */
 export function isDataFresh(timestamp) {
   const hourAgo = Date.now() - 60 * 60 * 1000;
@@ -275,6 +289,8 @@ export function isDataFresh(timestamp) {
 
 /**
  * Get cached analysis data if available and fresh
+ * @param {string} walletAddress - The wallet address to retrieve cached analysis for
+ * @returns {Object|null} Cached analysis data or null if not available/expired
  */
 export function getCachedAnalysis(walletAddress) {
   try {
@@ -292,7 +308,9 @@ export function getCachedAnalysis(walletAddress) {
 }
 
 /**
- * Cache analysis data
+ * Cache analysis data in localStorage
+ * @param {string} walletAddress - The wallet address to cache analysis for
+ * @param {Object} analysisData - The analysis data to cache
  */
 export function cacheAnalysis(walletAddress, analysisData) {
   try {

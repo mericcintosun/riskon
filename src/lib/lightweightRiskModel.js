@@ -36,9 +36,9 @@ const NORMALIZATION = {
 };
 
 /**
- * Calculate risk score from transaction metrics
- * @param {Object} metrics - Transaction metrics from Horizon
- * @returns {Object} Risk analysis result
+ * Calculate risk score from transaction metrics using ML model
+ * @param {Object} metrics - Transaction metrics from Horizon API
+ * @returns {Object} Complete risk analysis result with score, tier, confidence, and recommendations
  */
 export function calculateRiskScore(metrics) {
   try {
@@ -84,7 +84,9 @@ export function calculateRiskScore(metrics) {
 }
 
 /**
- * Normalize features to 0-1 range for ML model
+ * Normalize features to 0-1 range for ML model processing
+ * @param {Object} metrics - Raw transaction metrics
+ * @returns {Object} Normalized features with values between 0-1
  */
 function normalizeFeatures(metrics) {
   const normalized = {};
@@ -105,7 +107,9 @@ function normalizeFeatures(metrics) {
 }
 
 /**
- * Calculate logistic regression score
+ * Calculate logistic regression score using pre-trained weights
+ * @param {Object} features - Normalized feature values
+ * @returns {number} Probability score between 0-1
  */
 function calculateLogisticRegression(features) {
   // Linear combination of features
@@ -130,7 +134,9 @@ function calculateLogisticRegression(features) {
 }
 
 /**
- * Calculate tier based on risk score
+ * Calculate risk tier based on risk score
+ * @param {number} riskScore - Risk score between 0-100
+ * @returns {string} Risk tier: 'TIER_1', 'TIER_2', or 'TIER_3'
  */
 function calculateTier(riskScore) {
   if (riskScore <= 30) return "TIER_1"; // Low risk - Premium access
@@ -140,6 +146,8 @@ function calculateTier(riskScore) {
 
 /**
  * Calculate model confidence based on feature consistency
+ * @param {Object} features - Normalized feature values
+ * @returns {number} Confidence percentage between 60-95
  */
 function calculateConfidence(features) {
   // Calculate how "typical" this feature combination is
@@ -159,7 +167,10 @@ function calculateConfidence(features) {
 }
 
 /**
- * Calculate feature importance for explainability
+ * Calculate feature importance for model explainability
+ * @param {Object} features - Normalized feature values
+ * @param {Object} rawMetrics - Original raw metrics
+ * @returns {Object} Feature importance data with weights and impacts
  */
 function calculateFeatureImportance(features, rawMetrics) {
   const importance = {};
@@ -181,7 +192,10 @@ function calculateFeatureImportance(features, rawMetrics) {
 }
 
 /**
- * Generate human-readable explanation
+ * Generate human-readable explanation of risk score
+ * @param {number} riskScore - Calculated risk score
+ * @param {Object} featureImportance - Feature importance analysis
+ * @returns {Array<string>} Array of explanation strings
  */
 function generateExplanation(riskScore, featureImportance) {
   const tier = calculateTier(riskScore);
@@ -231,7 +245,9 @@ function generateExplanation(riskScore, featureImportance) {
 }
 
 /**
- * Generate improvement recommendations
+ * Generate personalized improvement recommendations
+ * @param {Object} featureImportance - Feature importance analysis
+ * @returns {Array<string>} Array of recommendation strings
  */
 function generateRecommendations(featureImportance) {
   const recommendations = [];
@@ -261,7 +277,9 @@ function generateRecommendations(featureImportance) {
 }
 
 /**
- * Fallback rule-based calculation if ML fails
+ * Fallback rule-based calculation if ML model fails
+ * @param {Object} metrics - Raw transaction metrics
+ * @returns {Object} Basic risk analysis result
  */
 function fallbackRiskCalculation(metrics) {
   let score = 50; // Start with medium risk
@@ -287,7 +305,9 @@ function fallbackRiskCalculation(metrics) {
 }
 
 /**
- * Check if we can improve score prediction with more data
+ * Evaluate data quality for reliable score prediction
+ * @param {Object} metrics - Raw transaction metrics
+ * @returns {Object} Data quality assessment with score and recommendations
  */
 export function getDataQualityScore(metrics) {
   let qualityScore = 0;
