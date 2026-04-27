@@ -5,6 +5,9 @@ import { ToastProvider } from "../contexts/ToastContext";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Footer from "../components/Footer";
 import RiskDataInitializer from "../components/RiskDataInitializer";
+import PWAInstallPrompt from "../components/PWAInstallPrompt";
+import OfflineDetector from "../components/OfflineDetector";
+import { pwaUtils } from "../lib/pwaUtils";
 
 const inter = Inter({ subsets: ["latin"] });
 const montserrat = Montserrat({ 
@@ -40,17 +43,25 @@ export const viewport = {
 };
 
 export default function RootLayout({ children }) {
+  // Initialize PWA features
+  if (typeof window !== 'undefined') {
+    pwaUtils.registerServiceWorker().catch(console.error);
+  }
+
   return (
     <html lang="en" className={`${inter.className} ${montserrat.variable}`}>
       <body className="bg-black min-h-screen text-white antialiased flex flex-col">
         <ErrorBoundary>
           <ToastProvider>
             <WalletProvider>
-              <RiskDataInitializer />
-              <div className="flex-1">
-                {children}
-              </div>
-              <Footer />
+              <OfflineDetector>
+                <RiskDataInitializer />
+                <div className="flex-1">
+                  {children}
+                </div>
+                <Footer />
+              </OfflineDetector>
+              <PWAInstallPrompt />
             </WalletProvider>
           </ToastProvider>
         </ErrorBoundary>
