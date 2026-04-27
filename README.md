@@ -188,7 +188,13 @@ This creates a positive feedback loop: responsible on-chain behavior leads to a 
 
 ## Getting Started
 
-### Prerequisites
+### Quick Start for Users
+
+**Want to try riskon right now?** Visit [riskon.vercel.app](https://riskon.vercel.app) and get your credit score in 5 minutes!
+
+📖 **For detailed user guidance**, see our [User Guide](./USER_GUIDE.md).
+
+### Prerequisites for Developers
 
 - Rust ≥ 1.78 + `wasm32-unknown-unknown` target
 - Soroban CLI ≥ 24.0.0
@@ -207,10 +213,18 @@ cargo build --target wasm32-unknown-unknown --release
 soroban test               # Run unit tests
 
 # Run the frontend application
-cd frontend # or your frontend directory
 pnpm install
 pnpm dev                   # Starts on http://localhost:3000
 ```
+
+### For Developers: API Integration
+
+🔌 **Need to integrate riskon into your protocol?** Check our [API Documentation](./API_DOCUMENTATION.md) for:
+- Smart contract interface details
+- JavaScript/TypeScript SDK
+- React components
+- REST API endpoints
+- Integration examples
 
 ### Deploy to Stellar Testnet
 
@@ -268,6 +282,27 @@ npm test -- --coverage
 4. **Integration Tests**: Contract-frontend interaction, Horizon data collection
 
 **📖 Full Testing Documentation**: See [TESTING.md](./TESTING.md) for detailed testing guide.
+
+---
+
+## Troubleshooting & Support
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| **Passkey authentication fails** | Ensure biometric support is enabled in your browser and device settings |
+| **Score calculation is slow** | Try Manual Input mode or check your internet connection |
+| **Transaction fails** | Ensure you have at least 0.01 XLM for network fees |
+| **Score seems incorrect** | Try AI-Enhanced mode for more comprehensive analysis |
+
+### Get Help
+
+- **📖 User Guide**: [USER_GUIDE.md](./USER_GUIDE.md) - Step-by-step instructions
+- **🔌 API Documentation**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) - Integration guides
+- **💬 Community**: [GitHub Discussions](https://github.com/riskon-labs/riskon/discussions)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/riskon-labs/riskon/issues)
+- **📧 Support**: support@riskon.dev
 
 ---
 
