@@ -1,14 +1,33 @@
 {
   "name": "Riskon - Stellar DeFi Risk Management",
   "short_name": "Riskon",
-  "description": "Advanced risk scoring and liquidity pool management for Stellar DeFi",
-  "start_url": "/",
+  "description": "Advanced risk scoring and liquidity pool management for Stellar DeFi with offline support",
+  "start_url": "/?source=pwa",
   "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
   "background_color": "#0f172a",
   "theme_color": "#6366f1",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "business"],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Riskon desktop dashboard"
+    },
+    {
+      "src": "/screenshots/mobile-1.png", 
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Riskon mobile view"
+    }
+  ],
   "icons": [
     {
       "src": "/icon-16.png",
@@ -38,8 +57,6 @@
       "type": "image/png"
     }
   ],
-  "categories": ["finance", "productivity", "business"],
-  "screenshots": [],
   "shortcuts": [
     {
       "name": "Risk Assessment",

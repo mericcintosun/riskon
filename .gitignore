@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Rust build artifacts
+risk_score/target/
+risk_score/*.exe
+risk_score/*.rlib
+risk_score/Cargo.lock
+
+# Soroban artifacts
+*.wasm
+*.swap
