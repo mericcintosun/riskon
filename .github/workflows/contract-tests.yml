@@ -22,7 +22,7 @@ jobs:
         targets: wasm32-unknown-unknown
         
     - name: Cache cargo dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -74,7 +74,7 @@ jobs:
         cargo tarpaulin --out Xml --output-dir target/coverage/
         
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./risk_score/target/coverage/cobertura.xml
         flags: unittests

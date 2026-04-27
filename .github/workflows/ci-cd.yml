@@ -379,14 +379,11 @@ jobs:
           tar -czf riskon-contracts-${{ github.event.release.tag_name }}.tar.gz *.wasm
           
       - name: Upload release assets
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./release-assets/riskon-contracts-${{ github.event.release.tag_name }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release-assets/riskon-contracts-${{ github.event.release.tag_name }}.tar.gz
-          asset_name: riskon-contracts-${{ github.event.release.tag_name }}.tar.gz
-          asset_content_type: application/gzip
           
       - name: Deploy to production
         uses: amondnet/vercel-action@v25
