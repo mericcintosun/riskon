@@ -7,6 +7,7 @@ import Footer from "../components/Footer";
 import RiskDataInitializer from "../components/RiskDataInitializer";
 import PWAInstallPrompt from "../components/PWAInstallPrompt";
 import OfflineDetector from "../components/OfflineDetector";
+import AnalyticsProvider from "../components/AnalyticsProvider";
 import { pwaUtils } from "../lib/pwaUtils";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -52,18 +53,20 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${inter.className} ${montserrat.variable}`}>
       <body className="bg-black min-h-screen text-white antialiased flex flex-col">
         <ErrorBoundary>
-          <ToastProvider>
-            <WalletProvider>
-              <OfflineDetector>
-                <RiskDataInitializer />
-                <div className="flex-1">
-                  {children}
-                </div>
-                <Footer />
-              </OfflineDetector>
-              <PWAInstallPrompt />
-            </WalletProvider>
-          </ToastProvider>
+          <AnalyticsProvider>
+            <ToastProvider>
+              <WalletProvider>
+                <OfflineDetector>
+                  <RiskDataInitializer />
+                  <div className="flex-1">
+                    {children}
+                  </div>
+                  <Footer />
+                </OfflineDetector>
+                <PWAInstallPrompt />
+              </WalletProvider>
+            </ToastProvider>
+          </AnalyticsProvider>
         </ErrorBoundary>
       </body>
     </html>

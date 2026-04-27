@@ -7,12 +7,12 @@ const contentSecurityPolicy = `
   form-action 'self';
   frame-ancestors 'none';
   object-src 'none';
-  script-src 'self' 'unsafe-inline' ${isProduction ? "" : "'unsafe-eval'"} https://www.googletagmanager.com https://vercel.live;
+  script-src 'self' 'unsafe-inline' ${isProduction ? "" : "'unsafe-eval'"} https://www.googletagmanager.com https://vercel.live https://plausible.io https://browser.sentry-cdn.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
   img-src 'self' data: blob: https: https://vercel.com;
   font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' https://horizon-testnet.stellar.org https://soroban-testnet.stellar.org https://*.stellar.org https://api.vercel.com https://vitals.vercel-insights.com;
+  connect-src 'self' https://horizon-testnet.stellar.org https://soroban-testnet.stellar.org https://*.stellar.org https://api.vercel.com https://vitals.vercel-insights.com https://*.sentry.io https://plausible.io;
   worker-src 'self' blob:;
   frame-src 'self';
   child-src 'none';
