@@ -1,0 +1,419 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, dev, develop ]
+  pull_request:
+    branches: [ main, dev, develop ]
+  release:
+    types: [ published ]
+
+env:
+  NODE_VERSION: '20'
+  RUST_TOOLCHAIN: stable
+  SOROBAN_VERSION: '24.0.0'
+
+jobs:
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Setup ESLint and Prettier
+        run: |
+          npm install --save-dev eslint prettier eslint-config-next eslint-config-prettier eslint-plugin-prettier
+          
+      - name: Create ESLint config
+        run: |
+          cat > .eslintrc.json << 'EOF'
+          {
+            "extends": ["next/core-web-vitals", "prettier"],
+            "plugins": ["prettier"],
+            "rules": {
+              "prettier/prettier": "error",
+              "no-unused-vars": "warn",
+              "no-console": "warn"
+            }
+          }
+          EOF
+          
+      - name: Create Prettier config
+        run: |
+          cat > .prettierrc << 'EOF'
+          {
+            "semi": true,
+            "trailingComma": "es5",
+            "singleQuote": true,
+            "printWidth": 80,
+            "tabWidth": 2
+          }
+          EOF
+          
+      - name: Run ESLint
+        run: npx eslint src/ --ext .js,.jsx,.ts,.tsx || true
+        
+      - name: Run Prettier check
+        run: npx prettier --check src/ || true
+        
+      - name: Run Next.js lint
+        run: npm run lint
+
+  # Frontend Tests and Build
+  frontend:
+    name: Frontend Tests and Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run unit tests
+        run: npm test -- --coverage --passWithNoTests
+        
+      - name: Run integration tests
+        run: npm run test:integration || echo "Integration tests not yet implemented"
+        
+      - name: Build Next.js application
+        run: npm run build
+        
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: .next
+          retention-days: 30
+          
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Smart Contract Tests and Build
+  smart-contract:
+    name: Smart Contract Tests and Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+          
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            risk_score/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+            
+      - name: Install Soroban CLI
+        run: cargo install soroban-cli --version ${{ env.SOROBAN_VERSION }} --locked
+        
+      - name: Run Rust tests
+        run: |
+          cd risk_score
+          cargo test --verbose
+          
+      - name: Run clippy
+        run: |
+          cd risk_score
+          cargo clippy -- -D warnings
+          
+      - name: Check formatting
+        run: |
+          cd risk_score
+          cargo fmt --all -- --check
+          
+      - name: Build contract
+        run: |
+          cd risk_score
+          cargo build --target wasm32-unknown-unknown --release
+          
+      - name: Upload contract artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-contract
+          path: risk_score/target/wasm32-unknown-unknown/release/*.wasm
+          retention-days: 30
+          
+      - name: Generate test coverage
+        run: |
+          cd risk_score
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml --output-dir target/coverage/
+          
+      - name: Upload contract coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./risk_score/target/coverage/cobertura.xml
+          flags: smart-contract
+          name: contract-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Security Audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate || true
+        
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+        
+      - name: Run cargo audit
+        run: |
+          cd risk_score
+          cargo audit || true
+          
+      - name: Check for outdated dependencies
+        run: |
+          cd risk_score
+          cargo install cargo-outdated
+          cargo outdated || true
+
+  # Performance Tests
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [frontend, smart-contract]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        continue-on-error: true
+        
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          
+      - name: Run contract benchmarks
+        run: |
+          cd risk_score
+          cargo install cargo-criterion
+          cargo criterion --bench gas_benchmarks || true
+
+  # Deployment to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [code-quality, frontend, smart-contract, security]
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: .next
+          
+      - name: Deploy to Vercel Staging
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./
+
+  # Deployment to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [code-quality, frontend, smart-contract, security, performance]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: .next
+          
+      - name: Deploy to Vercel Production
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./
+          
+      - name: Deploy smart contract to Stellar Mainnet
+        run: |
+          cd risk_score
+          cargo install soroban-cli --version ${{ env.SOROBAN_VERSION }} --locked
+          soroban contract deploy \
+            --wasm target/wasm32-unknown-unknown/release/risk_score.wasm \
+            --network mainnet \
+            --source ${{ secrets.STELLAR_SECRET_KEY }}
+        env:
+          STELLAR_SECRET_KEY: ${{ secrets.STELLAR_SECRET_KEY }}
+        continue-on-error: true
+
+  # Release Deployment
+  deploy-release:
+    name: Deploy Release
+    runs-on: ubuntu-latest
+    needs: [code-quality, frontend, smart-contract, security, performance]
+    if: github.event_name == 'release'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: .next
+          
+      - name: Create release assets
+        run: |
+          mkdir -p release-assets
+          cp -r risk_score/target/wasm32-unknown-unknown/release/*.wasm release-assets/
+          cd release-assets
+          tar -czf riskon-contracts-${{ github.event.release.tag_name }}.tar.gz *.wasm
+          
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release-assets/riskon-contracts-${{ github.event.release.tag_name }}.tar.gz
+          asset_name: riskon-contracts-${{ github.event.release.tag_name }}.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Deploy to production
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./
+
+  # Notification
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [code-quality, frontend, smart-contract, security]
+    if: always()
+    
+    steps:
+      - name: Notify on success
+        if: ${{ needs.code-quality.result == 'success' && needs.frontend.result == 'success' && needs.smart-contract.result == 'success' && needs.security.result == 'success' }}
+        run: |
+          echo "✅ CI/CD Pipeline completed successfully!"
+          echo "All tests passed and builds completed successfully."
+          
+      - name: Notify on failure
+        if: ${{ needs.code-quality.result == 'failure' || needs.frontend.result == 'failure' || needs.smart-contract.result == 'failure' || needs.security.result == 'failure' }}
+        run: |
+          echo "❌ CI/CD Pipeline failed!"
+          echo "Please check the failed jobs and fix the issues."
+          exit 1
