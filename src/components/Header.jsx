@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { Link } from "next-intl/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { useWallet } from "../contexts/WalletContext";
+import LanguageSwitcher from "./LanguageSwitcher";
 
-export default function Header() {
+export default function Header({ activeTab, setActiveTab }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const t = useTranslations();
+  const locale = useLocale();
 
   const {
     walletAddress,
@@ -82,12 +86,12 @@ export default function Header() {
   };
 
   const navigation = [
-    { name: "Home", href: "/" },
-    { name: "Features", href: "/features" },
-    { name: "Technologies", href: "/technologies" },
-    { name: "Pricing", href: "/pricing" },
-    { name: "How It Works", href: "/how-it-works" },
-    { name: "About", href: "/about" },
+    { name: t('navigation.home'), href: "/" },
+    { name: t('navigation.features'), href: "/features" },
+    { name: t('navigation.technologies'), href: "/technologies" },
+    { name: t('navigation.pricing'), href: "/pricing" },
+    { name: t('navigation.howItWorks'), href: "/how-it-works" },
+    { name: t('navigation.about'), href: "/about" },
   ];
 
   return (
@@ -112,7 +116,7 @@ export default function Header() {
                 alt="Riskon Logo" 
                 className="w-12 h-12 object-contain rounded-xl"
               />
-              <span className="text-xl font-bold text-white">Riskon</span>
+              <span className="text-xl font-bold text-white">{t('header.title')}</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -131,6 +135,7 @@ export default function Header() {
 
             {/* Desktop Wallet Section */}
             <div className="hidden lg:flex items-center space-x-4">
+              <LanguageSwitcher />
               {walletAddress ? (
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-full border border-slate-700/50">
@@ -144,7 +149,7 @@ export default function Header() {
                     onClick={handleDisconnectWallet}
                     className="px-4 py-2 text-sm text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-all duration-200 hover:bg-slate-800/50"
                   >
-                    Disconnect
+                    {t('header.disconnectWallet')}
                   </button>
                 </div>
               ) : (
@@ -156,17 +161,19 @@ export default function Header() {
                   {isLoading ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Connecting...</span>
+                      <span>{t('wallet.connecting')}</span>
                     </div>
                   ) : (
-                    "Connect Wallet"
+                    {t('header.connectWallet')}
                   )}
                 </button>
               )}
             </div>
 
             {/* Mobile Menu Button */}
-            <button
+            <div className="lg:hidden flex items-center space-x-2">
+              <LanguageSwitcher />
+              <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700/50 transition-colors duration-200 hover:bg-slate-700/50"
               aria-label="Toggle mobile menu"
@@ -241,7 +248,7 @@ export default function Header() {
                       onClick={handleDisconnectWallet}
                       className="w-full py-3 px-4 text-center text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-all duration-200 hover:bg-slate-800/50"
                     >
-                      Disconnect Wallet
+                      {t('header.disconnectWallet')}
                     </button>
                   </div>
                 ) : (
@@ -253,10 +260,10 @@ export default function Header() {
                     {isLoading ? (
                       <div className="flex items-center justify-center space-x-2">
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Connecting...</span>
+                        <span>{t('wallet.connecting')}</span>
                       </div>
                     ) : (
-                      "Connect Wallet"
+                      {t('header.connectWallet')}
                     )}
                   </button>
                 )}

@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "save": "حفظ",
+    "edit": "تحرير",
+    "delete": "حذف",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "search": "بحث",
+    "filter": "تصفية",
+    "refresh": "تحديث",
+    "connect": "اتصال",
+    "disconnect": "قطع الاتصال"
+  },
+  "navigation": {
+    "home": "الرئيسية",
+    "about": "حول",
+    "features": "الميزات",
+    "howItWorks": "كيف يعمل",
+    "pricing": "الأسعار",
+    "technologies": "التقنيات",
+    "wallet": "المحفظة"
+  },
+  "header": {
+    "title": "ريسكون",
+    "tagline": "تقييم مخاطر البلوك تشين بالذكاء الاصطناعي",
+    "connectWallet": "اتصال المحفظة",
+    "disconnectWallet": "قطع اتصال المحفظة",
+    "language": "اللغة"
+  },
+  "landing": {
+    "heroTitle": "تقييم المخاطر بالذكاء الاصطناعي لـ DeFi في ستيلار",
+    "heroSubtitle": "احسب درجات مخاطر البلوك تشين المخصصة ووصول إلى ميزات DeFi من خلال التكامل مع بروتوكول Blend على شبكة ستيلار.",
+    "getStarted": "ابدأ الآن",
+    "learnMore": "اعرف المزيد",
+    "features": {
+      "title": "ميزات قوية",
+      "riskAnalysis": {
+        "title": "تحليل المخاطر المتقدم",
+        "description": "تقييم المخاطر المدعوم بالذكاء الاصطناعي باستخدام نماذج التعلم الآلي"
+      },
+      "defiIntegration": {
+        "title": "تكامل DeFi",
+        "description": "تكامل سلس مع بروتوكول Blend للإقراض والاقتراض"
+      },
+      "realTime": {
+        "title": "تحديثات فورية",
+        "description": "مراقبة درجة المخاطر والمحفظة المباشرة"
+      },
+      "multiAsset": {
+        "title": "دعم متعدد الأصول",
+        "description": "دعم مختلف أصول ستيلار والرموز"
+      }
+    }
+  },
+  "riskAnalyzer": {
+    "title": "محلل المخاطر",
+    "description": "حلل ملف المخاطر لمحفظتك",
+    "analyzeWallet": "تحليل المحفظة",
+    "analyzing": "جاري التحليل...",
+    "riskScore": "درجة المخاطر",
+    "riskLevel": {
+      "low": "مخاطر منخفضة",
+      "medium": "مخاطر متوسطة", 
+      "high": "مخاطر عالية"
+    },
+    "factors": {
+      "transactionHistory": "سجل المعاملات",
+      "assetDiversity": "تنوع الأصول",
+      "walletAge": "عمر المحفظة",
+      "activityPattern": "نمط النشاط"
+    }
+  },
+  "blendDashboard": {
+    "title": "لوحة تحكم Blend",
+    "overview": "نظرة عامة",
+    "totalSupply": "إجمالي العرض",
+    "totalBorrow": "إجمالي الاقتراض",
+    "netAPY": "صافي العائد السنوي",
+    "healthFactor": "عامل الصحة",
+    "markets": "الأسواق",
+    "supply": "توريد",
+    "borrow": "اقتراض",
+    "collateral": "ضمان",
+    "liquidation": "تصفية"
+  },
+  "userProfile": {
+    "title": "ملف مخاطر المستخدم",
+    "walletAddress": "عنوان المحفظة",
+    "riskTier": "مستوى المخاطر",
+    "maxBorrowAmount": "الحد الأقصى لمبلغ الاقتراض",
+    "recommendations": "التوصيات",
+    "history": "السجل"
+  },
+  "footer": {
+    "copyright": "© 2024 ريسكون. جميع الحقوق محفوظة.",
+    "privacy": "سياسة الخصوصية",
+    "terms": "شروط الخدمة",
+    "contact": "اتصل بنا"
+  },
+  "errors": {
+    "walletConnection": "فشل في الاتصال بالمحفظة",
+    "networkError": "حدث خطأ في الشبكة",
+    "invalidInput": "تم تقديم إدخال غير صالح",
+    "transactionFailed": "فشلت المعاملة",
+    "insufficientFunds": "أموال غير كافية",
+    "unauthorized": "وصول غير مصرح به"
+  },
+  "wallet": {
+    "connecting": "جاري الاتصال بالمحفظة...",
+    "connected": "تم الاتصال بالمحفظة",
+    "disconnected": "تم قطع اتصال المحفظة",
+    "selectWallet": "اختر محفظتك",
+    "noWallet": "لم يتم العثور على محفظة",
+    "installWallet": "يرجى تثبيت محفظة ستيلار"
+  }
+}

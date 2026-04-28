@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import createIntlMiddleware from 'next-intl/middleware';
+import { locales, defaultLocale } from './i18n/config';
 
 const CSRF_COOKIE_NAME = "riskon-csrf-token";
 const CSRF_HEADER_NAME = "x-csrf-token";
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 100;
+
+// Create the internationalization middleware
+const intlMiddleware = createIntlMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'as-needed'
+});
 
 // Simple in-memory rate limiting (in production, use Redis or similar)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -78,9 +87,9 @@ function validateCsrfToken(csrfCookie: string | undefined, csrfHeader: string | 
 }
 
 export function middleware(request: NextRequest) {
-  // Only apply to API routes
+  // Apply internationalization middleware first for non-API routes
   if (!request.nextUrl.pathname.startsWith("/api")) {
-    return NextResponse.next();
+    return intlMiddleware(request);
   }
 
   const clientId = getClientIdentifier(request);

@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "save": "保存",
+    "edit": "編集",
+    "delete": "削除",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "search": "検索",
+    "filter": "フィルター",
+    "refresh": "更新",
+    "connect": "接続",
+    "disconnect": "切断"
+  },
+  "navigation": {
+    "home": "ホーム",
+    "about": "について",
+    "features": "機能",
+    "howItWorks": "仕組み",
+    "pricing": "料金",
+    "technologies": "技術",
+    "wallet": "ウォレット"
+  },
+  "header": {
+    "title": "Riskon",
+    "tagline": "AI駆動のブロックチェーンリスク評価",
+    "connectWallet": "ウォレット接続",
+    "disconnectWallet": "ウォレット切断",
+    "language": "言語"
+  },
+  "landing": {
+    "heroTitle": "Stellar DeFi向けAI駆動リスク評価",
+    "heroSubtitle": "Stellarネットワーク上のBlend Protocol統合により、パーソナライズされたブロックチェーンリスクスコアを計算し、DeFi機能にアクセス。",
+    "getStarted": "開始",
+    "learnMore": "詳細を見る",
+    "features": {
+      "title": "強力な機能",
+      "riskAnalysis": {
+        "title": "高度なリスク分析",
+        "description": "機械学習モデルを使用したAI駆動リスク評価"
+      },
+      "defiIntegration": {
+        "title": "DeFi統合",
+        "description": "貸出と借入のためのBlend Protocolとのシームレスな統合"
+      },
+      "realTime": {
+        "title": "リアルタイム更新",
+        "description": "ライブリスクスコアリングとポートフォリオ監視"
+      },
+      "multiAsset": {
+        "title": "マルチアセット対応",
+        "description": "様々なStellarアセットとトークンのサポート"
+      }
+    }
+  },
+  "riskAnalyzer": {
+    "title": "リスクアナライザー",
+    "description": "ウォレットのリスクプロファイルを分析",
+    "analyzeWallet": "ウォレットを分析",
+    "analyzing": "分析中...",
+    "riskScore": "リスクスコア",
+    "riskLevel": {
+      "low": "低リスク",
+      "medium": "中リスク", 
+      "high": "高リスク"
+    },
+    "factors": {
+      "transactionHistory": "取引履歴",
+      "assetDiversity": "資産多様性",
+      "walletAge": "ウォレット年齢",
+      "activityPattern": "活動パターン"
+    }
+  },
+  "blendDashboard": {
+    "title": "Blendダッシュボード",
+    "overview": "概要",
+    "totalSupply": "総供給量",
+    "totalBorrow": "総借入",
+    "netAPY": "純APY",
+    "healthFactor": "ヘルスファクター",
+    "markets": "市場",
+    "supply": "供給",
+    "borrow": "借入",
+    "collateral": "担保",
+    "liquidation": "清算"
+  },
+  "userProfile": {
+    "title": "ユーザーリスクプロファイル",
+    "walletAddress": "ウォレットアドレス",
+    "riskTier": "リスク階層",
+    "maxBorrowAmount": "最大借入額",
+    "recommendations": "推奨事項",
+    "history": "履歴"
+  },
+  "footer": {
+    "copyright": "© 2024 Riskon。全権利留保。",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "contact": "お問い合わせ"
+  },
+  "errors": {
+    "walletConnection": "ウォレットの接続に失敗しました",
+    "networkError": "ネットワークエラーが発生しました",
+    "invalidInput": "無効な入力が提供されました",
+    "transactionFailed": "トランザクションが失敗しました",
+    "insufficientFunds": "資金が不足しています",
+    "unauthorized": "不正なアクセス"
+  },
+  "wallet": {
+    "connecting": "ウォレットに接続中...",
+    "connected": "ウォレットが接続されました",
+    "disconnected": "ウォレットが切断されました",
+    "selectWallet": "ウォレットを選択してください",
+    "noWallet": "ウォレットが見つかりません",
+    "installWallet": "Stellarウォレットをインストールしてください"
+  }
+}

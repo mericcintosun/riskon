@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   collectTransactionData,
   getCachedAnalysis,
@@ -46,6 +47,7 @@ import { Info, AlertTriangle, FileText, Zap, Settings } from "lucide-react";
  * @returns {JSX.Element} The complete risk analyzer interface
  */
 export default function AutomatedRiskAnalyzer() {
+  const t = useTranslations();
   const { walletAddress, kit } = useWallet();
   const { toast } = useToast();
 

@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "refresh": "Aktualisieren",
+    "connect": "Verbinden",
+    "disconnect": "Trennen"
+  },
+  "navigation": {
+    "home": "Startseite",
+    "about": "Über uns",
+    "features": "Funktionen",
+    "howItWorks": "Wie es Funktioniert",
+    "pricing": "Preise",
+    "technologies": "Technologien",
+    "wallet": "Brieftasche"
+  },
+  "header": {
+    "title": "Riskon",
+    "tagline": "KI-gestützte Blockchain-Risikobewertung",
+    "connectWallet": "Brieftasche Verbinden",
+    "disconnectWallet": "Brieftasche Trennen",
+    "language": "Sprache"
+  },
+  "landing": {
+    "heroTitle": "KI-gestützte Risikobewertung für Stellar DeFi",
+    "heroSubtitle": "Berechnen Sie personalisierte Blockchain-Risikowerte und greifen Sie auf DeFi-Funktionen über die Integration mit Blend Protocol auf dem Stellar-Netzwerk zu.",
+    "getStarted": "Loslegen",
+    "learnMore": "Mehr Erfahren",
+    "features": {
+      "title": "Leistungsstarke Funktionen",
+      "riskAnalysis": {
+        "title": "Erweiterte Risikoanalyse",
+        "description": "KI-gestützte Risikobewertung mit Machine-Learning-Modellen"
+      },
+      "defiIntegration": {
+        "title": "DeFi-Integration",
+        "description": "Nahtlose Integration mit Blend Protocol für Verleih und Kredit"
+      },
+      "realTime": {
+        "title": "Echtzeit-Updates",
+        "description": "Live-Risikobewertung und Portfolio-Überwachung"
+      },
+      "multiAsset": {
+        "title": "Multi-Asset-Unterstützung",
+        "description": "Unterstützung für verschiedene Stellar-Assets und Tokens"
+      }
+    }
+  },
+  "riskAnalyzer": {
+    "title": "Risiko-Analysator",
+    "description": "Analysieren Sie das Risikoprofil Ihrer Brieftasche",
+    "analyzeWallet": "Brieftasche Analysieren",
+    "analyzing": "Analysiere...",
+    "riskScore": "Risikowert",
+    "riskLevel": {
+      "low": "Niedriges Risiko",
+      "medium": "Mittleres Risiko", 
+      "high": "Hohes Risiko"
+    },
+    "factors": {
+      "transactionHistory": "Transaktionshistorie",
+      "assetDiversity": "Asset-Diversität",
+      "walletAge": "Brieftaschenalter",
+      "activityPattern": "Aktivitätsmuster"
+    }
+  },
+  "blendDashboard": {
+    "title": "Blend Dashboard",
+    "overview": "Übersicht",
+    "totalSupply": "Gesamtangebot",
+    "totalBorrow": "Gesamtkredit",
+    "netAPY": "Netto-APY",
+    "healthFactor": "Gesundheitsfaktor",
+    "markets": "Märkte",
+    "supply": "Bereitstellen",
+    "borrow": "Leihen",
+    "collateral": "Sicherheit",
+    "liquidation": "Liquidation"
+  },
+  "userProfile": {
+    "title": "Benutzer-Risikoprofil",
+    "walletAddress": "Brieftaschenadresse",
+    "riskTier": "Risikostufe",
+    "maxBorrowAmount": "Maximaler Kreditbetrag",
+    "recommendations": "Empfehlungen",
+    "history": "Verlauf"
+  },
+  "footer": {
+    "copyright": "© 2024 Riskon. Alle Rechte vorbehalten.",
+    "privacy": "Datenschutzrichtlinie",
+    "terms": "Nutzungsbedingungen",
+    "contact": "Kontaktieren Sie uns"
+  },
+  "errors": {
+    "walletConnection": "Verbindung der Brieftasche fehlgeschlagen",
+    "networkError": "Netzwerkfehler aufgetreten",
+    "invalidInput": "Ungültige Eingabe bereitgestellt",
+    "transactionFailed": "Transaktion fehlgeschlagen",
+    "insufficientFunds": "Unzureichende Mittel",
+    "unauthorized": "Nicht autorisierter Zugriff"
+  },
+  "wallet": {
+    "connecting": "Verbinde mit Brieftasche...",
+    "connected": "Brieftasche verbunden",
+    "disconnected": "Brieftasche getrennt",
+    "selectWallet": "Wählen Sie Ihre Brieftasche",
+    "noWallet": "Keine Brieftasche gefunden",
+    "installWallet": "Bitte installieren Sie eine Stellar-Brieftasche"
+  }
+}
