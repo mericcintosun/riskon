@@ -234,41 +234,7 @@ impl RiskTierContract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{Address, Env, Symbol};
-    use soroban_sdk::testutils::{Address as _};
-
-    #[test]
-    fn test_initialize_and_get_admin() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        
-        // Initialize with admin
-        client.initialize(&admin);
-        
-        // Check admin is set correctly
-        let retrieved_admin = client.get_admin().unwrap();
-        assert_eq!(retrieved_admin, admin);
-    }
-
-    #[test]
-    #[should_panic(expected = "Contract already initialized")]
-    fn test_initialize_only_once() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let admin1 = Address::generate(&env);
-        let admin2 = Address::generate(&env);
-        
-        // Initialize first time
-        client.initialize(&admin1);
-        
-        // Try to initialize again - should panic
-        client.initialize(&admin2);
-    }
+    use soroban_sdk::{testutils::Address as _, Env};
 
     #[test]
     fn test_set_and_get_risk_tier() {
@@ -279,85 +245,12 @@ mod tests {
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         
-        // User can set their own risk tier
-        client.set_risk_tier(&user, &user, &25, &tier_1, &tier_1);
+        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
         
         let risk_data = client.get_risk_tier(&user).unwrap();
         assert_eq!(risk_data.score, 25);
         assert_eq!(risk_data.tier, tier_1);
         assert_eq!(risk_data.chosen_tier, tier_1);
-    }
-
-    #[test]
-    fn test_admin_can_set_any_user_risk_tier() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        let user = Address::generate(&env);
-        let tier_2 = Symbol::new(&env, "TIER_2");
-        
-        // Initialize admin
-        client.initialize(&admin);
-        
-        // Admin can set any user's risk tier
-        client.set_risk_tier(&admin, &user, &50, &tier_2, &tier_2);
-        
-        let risk_data = client.get_risk_tier(&user).unwrap();
-        assert_eq!(risk_data.score, 50);
-        assert_eq!(risk_data.tier, tier_2);
-    }
-
-    #[test]
-    #[should_panic(expected = "Unauthorized: caller must be admin or the user themselves")]
-    fn test_unauthorized_cannot_set_other_user_risk_tier() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let user1 = Address::generate(&env);
-        let user2 = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        // user1 tries to set user2's risk tier - should panic
-        client.set_risk_tier(&user1, &user2, &25, &tier_1, &tier_1);
-    }
-
-    #[test]
-    #[should_panic(expected = "Unauthorized: caller must be admin or the user themselves")]
-    fn test_unauthorized_cannot_set_other_user_risk_tier_with_admin() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        let unauthorized_user = Address::generate(&env);
-        let target_user = Address::generate(&env);
-        let tier_3 = Symbol::new(&env, "TIER_3");
-        
-        // Initialize admin
-        client.initialize(&admin);
-        
-        // Unauthorized user tries to set another user's risk tier - should panic
-        client.set_risk_tier(&unauthorized_user, &target_user, &75, &tier_3, &tier_3);
-    }
-
-    #[test]
-    fn test_user_can_set_own_risk_tier_without_admin() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
-        let user = Address::generate(&env);
-        let tier_1 = Symbol::new(&env, "TIER_1");
-        
-        // No admin initialized, but user can still set their own risk tier
-        client.set_risk_tier(&user, &user, &15, &tier_1, &tier_1);
-        
-        let risk_data = client.get_risk_tier(&user).unwrap();
-        assert_eq!(risk_data.score, 15);
-        assert_eq!(risk_data.tier, tier_1);
     }
 
     #[test]
@@ -369,7 +262,7 @@ mod tests {
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
         
-        client.set_risk_tier(&user, &user, &100, &tier_3, &tier_3);
+        client.set_risk_tier(&user, &100, &tier_3, &tier_3);
         
         let score = client.get_score(&user);
         assert_eq!(score, 100);
@@ -385,7 +278,7 @@ mod tests {
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
         
-        client.set_risk_tier(&user, &user, &101, &tier_3, &tier_3);
+        client.set_risk_tier(&user, &101, &tier_3, &tier_3);
     }
 
     #[test]
@@ -398,7 +291,7 @@ mod tests {
         let user = Address::generate(&env);
         let invalid_tier = Symbol::new(&env, "TIER_4");
         
-        client.set_risk_tier(&user, &user, &50, &invalid_tier, &invalid_tier);
+        client.set_risk_tier(&user, &50, &invalid_tier, &invalid_tier);
     }
 
     #[test]
@@ -410,7 +303,7 @@ mod tests {
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         
-        client.set_risk_tier(&user, &user, &25, &tier_1, &tier_1);
+        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
         
         assert!(client.can_access_tier(&user, &tier_1));
     }
@@ -424,7 +317,7 @@ mod tests {
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         
-        client.set_risk_tier(&user, &user, &30, &tier_1, &tier_1);
+        client.set_risk_tier(&user, &30, &tier_1, &tier_1);
         
         assert!(client.can_access_tier(&user, &tier_1));
     }
@@ -439,7 +332,7 @@ mod tests {
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_1 = Symbol::new(&env, "TIER_1");
         
-        client.set_risk_tier(&user, &user, &50, &tier_2, &tier_2);
+        client.set_risk_tier(&user, &50, &tier_2, &tier_2);
         
         assert!(!client.can_access_tier(&user, &tier_1));
     }
@@ -453,7 +346,7 @@ mod tests {
         let user = Address::generate(&env);
         let tier_2 = Symbol::new(&env, "TIER_2");
         
-        client.set_risk_tier(&user, &user, &50, &tier_2, &tier_2);
+        client.set_risk_tier(&user, &50, &tier_2, &tier_2);
         
         assert!(client.can_access_tier(&user, &tier_2));
     }
@@ -467,7 +360,7 @@ mod tests {
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
         
-        client.set_risk_tier(&user, &user, &85, &tier_3, &tier_3);
+        client.set_risk_tier(&user, &85, &tier_3, &tier_3);
         
         assert!(client.can_access_tier(&user, &tier_3));
     }
@@ -482,8 +375,8 @@ mod tests {
         let user2 = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         
-        client.set_risk_tier(&user1, &user1, &20, &tier_1, &tier_1);
-        client.set_risk_tier(&user2, &user2, &25, &tier_1, &tier_1);
+        client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
+        client.set_risk_tier(&user2, &25, &tier_1, &tier_1);
         
         let tier_users = client.get_tier_users(&tier_1);
         assert_eq!(tier_users.len(), 2);
@@ -499,7 +392,7 @@ mod tests {
         let tier_1 = Symbol::new(&env, "TIER_1");
         let tier_2 = Symbol::new(&env, "TIER_2");
         
-        client.set_risk_tier(&user, &user, &25, &tier_1, &tier_1);
+        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
         client.update_chosen_tier(&user, &tier_2);
         
         let chosen = client.get_chosen_tier(&user);
@@ -517,7 +410,7 @@ mod tests {
         let tier_3 = Symbol::new(&env, "TIER_3");
         let tier_1 = Symbol::new(&env, "TIER_1");
         
-        client.set_risk_tier(&user, &user, &85, &tier_3, &tier_3);
+        client.set_risk_tier(&user, &85, &tier_3, &tier_3);
         client.update_chosen_tier(&user, &tier_1);
     }
 
@@ -535,9 +428,9 @@ mod tests {
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_3 = Symbol::new(&env, "TIER_3");
         
-        client.set_risk_tier(&user1, &user1, &20, &tier_1, &tier_1);
-        client.set_risk_tier(&user2, &user2, &50, &tier_2, &tier_2);
-        client.set_risk_tier(&user3, &user3, &80, &tier_3, &tier_3);
+        client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
+        client.set_risk_tier(&user2, &50, &tier_2, &tier_2);
+        client.set_risk_tier(&user3, &80, &tier_3, &tier_3);
         
         let stats = client.get_tier_stats();
         assert_eq!(stats.get(tier_1).unwrap(), 1);
@@ -555,8 +448,8 @@ mod tests {
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_1 = Symbol::new(&env, "TIER_1");
         
-        client.set_risk_tier(&user, &user, &50, &tier_2, &tier_2);
-        client.set_risk_tier(&user, &user, &25, &tier_1, &tier_1);
+        client.set_risk_tier(&user, &50, &tier_2, &tier_2);
+        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
         
         let risk_data = client.get_risk_tier(&user).unwrap();
         assert_eq!(risk_data.score, 25);
@@ -601,9 +494,9 @@ mod tests {
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_3 = Symbol::new(&env, "TIER_3");
         
-        client.set_risk_tier(&user1, &user1, &15, &tier_1, &tier_1);
-        client.set_risk_tier(&user2, &user2, &45, &tier_2, &tier_2);
-        client.set_risk_tier(&user3, &user3, &90, &tier_3, &tier_3);
+        client.set_risk_tier(&user1, &15, &tier_1, &tier_1);
+        client.set_risk_tier(&user2, &45, &tier_2, &tier_2);
+        client.set_risk_tier(&user3, &90, &tier_3, &tier_3);
         
         assert!(client.can_access_tier(&user1, &tier_1));
         assert!(!client.can_access_tier(&user2, &tier_1));
