@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * PWA Install Prompt Component
  * Handles installation prompts and user guidance for PWA features

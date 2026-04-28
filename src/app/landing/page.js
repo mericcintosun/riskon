@@ -1,6 +1,6 @@
 "use client";
 
-import Header from "../../components/Header.jsx";
+import Header from "../../components/Header.tsx";
 import LandingPage from "../../components/LandingPage.jsx";
 
 export default function LandingPageRoute() {

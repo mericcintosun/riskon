@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "next-intl/navigation";
+import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { useWallet } from "../contexts/WalletContext";
 import LanguageSwitcher from "./LanguageSwitcher";

@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Offline Detection Component
  * Provides offline detection and UI indicators for network status

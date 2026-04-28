@@ -6,9 +6,9 @@ import { testContractExists, getContractInfo } from "./lib/testContract";
 import { performAutoRiskAnalysis } from "../lib/autoRiskAnalyzer";
 import BlendDashboard from "../components/BlendDashboard.jsx";
 import EnhancedLiquidityPools from "../components/EnhancedLiquidityPools.jsx";
-import UserRiskProfile from "../components/UserRiskProfile.jsx";
-import AutomatedRiskAnalyzer from "../components/AutomatedRiskAnalyzer.jsx";
-import Header from "../components/Header.tsx";
+import UserRiskProfile from "../components/UserRiskProfile";
+import AutomatedRiskAnalyzer from "../components/AutomatedRiskAnalyzer";
+import Header from "../components/Header";
 import Link from "next/link";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
@@ -51,7 +51,7 @@ export default function RiskScoringApp() {
   } = useWallet();
 
   // Toast notifications
-  const { toast, showCategorizedError } = useToast();
+  const { showCategorizedError, success, error, warning, info, loading, dismiss } = useToast();
 
   // Issue detection
   const {
@@ -173,7 +173,7 @@ export default function RiskScoringApp() {
       );
       if (validationErrors.length > 0) {
         validationErrors.forEach((error: string) => {
-          toast.warning(error, { duration: 3000 });
+          warning(error, { duration: 3000 });
         });
       }
     } else if (autoAnalysisResult) {
@@ -203,22 +203,22 @@ export default function RiskScoringApp() {
   // Test contract existence
   const testContract = async (): Promise<void> => {
     try {
-      const loadingToast = toast.loading(
+      const loadingToast = loading(
         "Testing smart contract connection..."
       );
 
       const contractInfo = await getContractInfo();
 
-      toast.dismiss(loadingToast);
+      dismiss(loadingToast);
 
       if (contractInfo.exists) {
         setContractStatus("exists");
 
-        toast.success("✅ Smart contract connection verified");
+        success("✅ Smart contract connection verified");
       } else {
         setContractStatus("missing");
 
-        toast.error(`⛓️ Contract issue: ${contractInfo.error}`);
+        error(`⛓️ Contract issue: ${contractInfo.error}`);
       }
     } catch (error: any) {
       console.error("❌ Contract test error:", error);
@@ -230,21 +230,21 @@ export default function RiskScoringApp() {
   // Handle wallet connection for header
   const handleConnectWallet = async (): Promise<void> => {
     try {
-      const loadingToast = toast.loading("Connecting to wallet...");
+      const loadingToast = loading("Connecting to wallet...");
       const result = await connectWallet();
-      toast.dismiss(loadingToast);
+      dismiss(loadingToast);
 
       if (result.success) {
-        toast.success(`👛 Successfully connected to ${result.walletName}!`);
+        success(`👛 Successfully connected to ${result.walletName}!`);
       }
     } catch (error: any) {
-      toast.dismiss();
+      dismiss();
 
       // Handle cancellation gracefully
       if (error.message === "WALLET_SELECTION_CANCELLED") {
-        toast.info("👋 Wallet selection was cancelled");
+        info("👋 Wallet selection was cancelled");
       } else if (error.message.includes("cancelled")) {
-        toast.info("👋 Connection was cancelled");
+        info("👋 Connection was cancelled");
       } else {
         showCategorizedError(error, "Failed to connect wallet");
       }
@@ -259,9 +259,9 @@ export default function RiskScoringApp() {
         // Reset analysis when wallet disconnects
         setAutoAnalysisResult(null);
         setRiskScore(0);
-        toast.success("👛 Wallet disconnected successfully");
+        success("👛 Wallet disconnected successfully");
       } else {
-        toast.warning("Wallet disconnected (with minor issues)");
+        warning("Wallet disconnected (with minor issues)");
       }
     } catch (error: any) {
       showCategorizedError(error, "Error during wallet disconnection");
@@ -281,23 +281,23 @@ export default function RiskScoringApp() {
         ? "🔐 Analyzing Passkey smart contract..."
         : "🔍 Analyzing wallet transaction history...";
 
-      const loadingToast = toast.loading(loadingMessage);
+      const loadingToast = loading(loadingMessage);
 
       const analysisResult = await performAutoRiskAnalysis(walletAddress);
 
-      toast.dismiss(loadingToast);
+      dismiss(loadingToast);
       setAutoAnalysisResult(analysisResult);
 
       // Customize success message based on wallet type
       if (analysisResult.addressType === "contract") {
-        toast.success(
+        success(
           `✅ Passkey analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
           { duration: 6000 }
         );
 
         // Show Passkey-specific information
         setTimeout(() => {
-          toast.info(
+          info(
             `🔐 Passkey smart contract analyzed - Contract status: ${analysisResult.analysis.contractStatus}`,
             {
               duration: 8000,
@@ -307,7 +307,7 @@ export default function RiskScoringApp() {
 
         // Show additional info about Passkey wallets
         setTimeout(() => {
-          toast.info(
+          info(
             "💡 Passkey wallets are new-generation smart contracts with enhanced security",
             {
               duration: 6000,
@@ -316,14 +316,14 @@ export default function RiskScoringApp() {
         }, 4000);
       } else {
         // Traditional wallet analysis
-        toast.success(
+        success(
           `✅ Account analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
           { duration: 6000 }
         );
 
         // Show detailed factors
         setTimeout(() => {
-          toast.info(
+          info(
             `📊 Analysis: ${analysisResult.analysis.txCount} transactions, ${analysisResult.analysis.assetTypes} assets, ${analysisResult.analysis.avgHours}h avg interval`,
             {
               duration: 8000,
@@ -333,13 +333,13 @@ export default function RiskScoringApp() {
       }
     } catch (error: any) {
       console.error("❌ Auto analysis error:", error);
-      toast.dismiss();
+      dismiss();
 
       if (
         error.message.includes("404") ||
         error.message.includes("not found")
       ) {
-        toast.warning(
+        warning(
           "⚠️ No transaction history found. Switch to manual mode or fund your wallet first.",
           {
             duration: 6000,
@@ -350,7 +350,7 @@ export default function RiskScoringApp() {
         error.message.includes("Invalid Stellar address format") ||
         error.message.includes("Invalid length")
       ) {
-        toast.error(
+        error(
           "❌ Invalid wallet address format. Please reconnect your wallet.",
           {
             duration: 6000,
@@ -369,12 +369,12 @@ export default function RiskScoringApp() {
   // Submit risk score to blockchain
   const submitRiskScore = async (): Promise<void> => {
     if (!kit || !walletAddress) {
-      toast.error("⚠️ Please connect wallet and enter valid data");
+      error("⚠️ Please connect wallet and enter valid data");
       return;
     }
 
     if (contractStatus !== "exists") {
-      toast.error(
+      error(
         "⛓️ Smart contract not available. Please check your connection."
       );
       return;
@@ -383,14 +383,14 @@ export default function RiskScoringApp() {
     // Final validation
     const validationErrors = validateFormInputs(txCount, avgHours, assetTypes);
     if (validationErrors.length > 0) {
-      toast.error(`⚠️ Validation errors: ${validationErrors.join(", ")}`);
+      error(`⚠️ Validation errors: ${validationErrors.join(", ")}`);
       return;
     }
 
     try {
       setIsLoading(true);
 
-      const loadingToast = toast.loading(
+      const loadingToast = loading(
         "💾 Saving risk score to blockchain..."
       );
 
@@ -402,7 +402,7 @@ export default function RiskScoringApp() {
 
       const hash = result.hash;
 
-      toast.dismiss(loadingToast);
+      dismiss(loadingToast);
       setTransactionHash(hash);
 
       // Show success message based on storage method
@@ -410,14 +410,14 @@ export default function RiskScoringApp() {
         result.method === "local_storage" ||
         result.method === "memory_only"
       ) {
-        toast.warning("⚠️ Blockchain storage failed - using local storage", {
+        warning("⚠️ Blockchain storage failed - using local storage", {
           duration: 6000,
         });
-        toast.info(result.note || "Risk score stored locally as backup", {
+        info(result.note || "Risk score stored locally as backup", {
           duration: 8000,
         });
       } else {
-        toast.success("✅ Risk score successfully saved to blockchain!", {
+        success("✅ Risk score successfully saved to blockchain!", {
           duration: 6000,
         });
         if (
@@ -425,7 +425,7 @@ export default function RiskScoringApp() {
           hash !== `local_${Date.now()}` &&
           hash !== `fallback_${Date.now()}`
         ) {
-          toast.info(`🔗 Transaction hash: ${hash.substring(0, 8)}...`, {
+          info(`🔗 Transaction hash: ${hash.substring(0, 8)}...`, {
             duration: 5000,
           });
         }
@@ -433,7 +433,7 @@ export default function RiskScoringApp() {
 
       // Show additional success info
       setTimeout(() => {
-        toast.info("🚀 You can now access DeFi features!", {
+        info("🚀 You can now access DeFi features!", {
           duration: 5000,
         });
       }, 1000);
@@ -444,7 +444,7 @@ export default function RiskScoringApp() {
       setShowEnhancedPools(true);
     } catch (error: any) {
       console.error("❌ Blockchain write error:", error);
-      toast.dismiss(loadingToast);
+      dismiss(loadingToast);
 
       // Check if user cancelled transaction
       if (
@@ -452,7 +452,7 @@ export default function RiskScoringApp() {
         error.message?.includes("User rejected") ||
         error.message?.includes("denied")
       ) {
-        toast.info("ℹ️ Transaction was cancelled by user", {
+        info("ℹ️ Transaction was cancelled by user", {
           duration: 4000,
         });
       } else {
@@ -464,7 +464,7 @@ export default function RiskScoringApp() {
         setShowBlendDashboard(true);
         setShowEnhancedPools(true);
 
-        toast.info(
+        info(
           "💡 Risk score calculated - you can still explore features!",
           {
             duration: 5000,
@@ -482,7 +482,7 @@ export default function RiskScoringApp() {
     setTxCount(value);
 
     if (value && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100)) {
-      toast.warning("Transaction count must be between 0-100", {
+      warning("Transaction count must be between 0-100", {
         duration: 2000,
       });
     }
@@ -493,7 +493,7 @@ export default function RiskScoringApp() {
     setAvgHours(value);
 
     if (value && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 24)) {
-      toast.warning("Average hours must be between 0-24", { duration: 2000 });
+      warning("Average hours must be between 0-24", { duration: 2000 });
     }
   };
 
@@ -502,7 +502,7 @@ export default function RiskScoringApp() {
     setAssetTypes(value);
 
     if (value && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 10)) {
-      toast.warning("Asset types must be between 0-10", { duration: 2000 });
+      warning("Asset types must be between 0-10", { duration: 2000 });
     }
   };
 
@@ -511,7 +511,7 @@ export default function RiskScoringApp() {
     setCollateralAmount(value);
 
     if (value && (isNaN(parseFloat(value)) || parseFloat(value) < 0)) {
-      toast.warning("Please enter a valid collateral amount", {
+      warning("Please enter a valid collateral amount", {
         duration: 2000,
       });
     }

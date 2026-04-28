@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Header from "../../components/Header.jsx";
+import Header from "../../components/Header.tsx";
 import Link from "next/link";
 import { useWallet } from "../../contexts/WalletContext";
 import { Star, ShieldCheck, Rocket, LockKeyhole } from "lucide-react";

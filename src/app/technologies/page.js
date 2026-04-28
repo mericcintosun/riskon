@@ -1,6 +1,6 @@
 "use client";
 
-import Header from "../../components/Header.jsx";
+import Header from "../../components/Header.tsx";
 import { motion } from "framer-motion";
 import { Blocks, Bot, Palette, Lock } from "lucide-react";
 

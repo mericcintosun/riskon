@@ -3,13 +3,13 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import AutomatedRiskAnalyzer from "./AutomatedRiskAnalyzer.jsx";
-import UserRiskProfile from "./UserRiskProfile.jsx";
+import AutomatedRiskAnalyzer from "./AutomatedRiskAnalyzer.tsx";
+import UserRiskProfile from "./UserRiskProfile.tsx";
 import BlendDashboard from "./BlendDashboard.jsx";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
 import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
 import useAnalyzeRisk from "../hooks/useAnalyzeRisk.js";
-import { useWallet } from "../contexts/WalletContext.js";
+import { useWallet } from "../contexts/WalletContext.tsx";
 
 const LandingPage = () => {
   const { handleAnalyze, analysisResult, isLoading, error } = useAnalyzeRisk();

@@ -128,7 +128,7 @@ export function middleware(request: NextRequest) {
   // CSRF validation for state-changing methods
   if (
     isStateChangingMethod(request.method) &&
-    !validateCsrfToken(csrfCookie, csrfHeader)
+    !validateCsrfToken(csrfCookie || undefined, csrfHeader || undefined)
   ) {
     return NextResponse.json(
       { error: "Forbidden: CSRF validation failed" },

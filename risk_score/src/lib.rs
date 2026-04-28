@@ -32,7 +32,7 @@ impl RiskTierContract {
         
         // Emit initialization event
         env.events().publish(
-            Symbol::new(&env, "initialized"),
+            (Symbol::new(&env, "initialized"),),
             admin,
         );
     }

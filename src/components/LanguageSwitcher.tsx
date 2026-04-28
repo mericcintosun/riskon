@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Globe, ChevronDown } from "lucide-react";
-import { locales, localeNames, localeDirections } from "../i18n/config";
+import { locales, localeNames, localeDirections } from "../../i18n/config";
 
 export default function LanguageSwitcher() {
   const [isOpen, setIsOpen] = useState<boolean>(false);

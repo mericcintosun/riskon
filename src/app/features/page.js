@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Header from "../../components/Header.jsx";
+import Header from "../../components/Header.tsx";
 import Link from "next/link";
 import {
   BrainCircuit,
