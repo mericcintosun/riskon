@@ -7,14 +7,14 @@ import { Globe, ChevronDown } from "lucide-react";
 import { locales, localeNames, localeDirections } from "../i18n/config";
 
 export default function LanguageSwitcher() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('header');
 
-  const handleLanguageChange = (newLocale) => {
-    // Remove the current locale from the pathname
+  const handleLanguageChange = (newLocale: string): void => {
+    // Remove the current locale from pathname
     const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/';
     
     // Add the new locale to the pathname
@@ -55,7 +55,7 @@ export default function LanguageSwitcher() {
           role="menu"
         >
           <div className="py-1">
-            {locales.map((loc) => (
+            {locales.map((loc: string) => (
               <button
                 key={loc}
                 onClick={() => handleLanguageChange(loc)}

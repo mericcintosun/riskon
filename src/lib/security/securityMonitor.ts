@@ -77,12 +77,31 @@ class SecurityMonitor {
     // Block IP if threshold exceeded
     if (count + 1 >= this.IP_THRESHOLD) {
       this.blockedIPs.add(event.ip);
-      this.logEvent({
+      this.addEventDirectly({
         type: 'suspicious_activity',
         severity: 'high',
         details: { reason: 'IP blocked due to excessive suspicious activity' },
         ip: event.ip,
       });
+    }
+  }
+
+  /**
+   * Add event directly without triggering tracking (to avoid infinite recursion)
+   */
+  private addEventDirectly(event: Omit<SecurityEvent, 'timestamp'>): void {
+    const securityEvent: SecurityEvent = {
+      ...event,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.events.push(securityEvent);
+    this.trimEvents();
+    this.persistEvents();
+    
+    // Trigger alerts for critical events
+    if (event.severity === 'critical' || event.severity === 'high') {
+      this.triggerAlert(securityEvent);
     }
   }
 

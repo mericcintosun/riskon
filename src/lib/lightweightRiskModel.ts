@@ -3,14 +3,70 @@
 /**
  * Lightweight Risk Scoring Model
  * Browser-based logistic regression for risk score calculation
- * Uses the 4 metrics from Horizon data to calculate 0-100 risk score
+ * Uses 4 metrics from Horizon data to calculate 0-100 risk score
  */
+
+interface ModelWeights {
+  // Feature weights (how much each metric affects risk)
+  totalVolume: number; // Higher volume = lower risk (up to a point)
+  uniqueCounterparties: number; // More diverse counterparties = lower risk
+  assetDiversity: number; // More asset variety = lower risk
+  nightDayRatio: number; // More night activity = higher risk
+
+  // Interaction weights (combined effects)
+  volumeCounterpartyInteraction: number; // High volume + high counterparties = very low risk
+
+  // Bias term
+  bias: number;
+}
+
+interface Normalization {
+  totalVolume: { min: number; max: number; scale: number };
+  uniqueCounterparties: { min: number; max: number; scale: number };
+  assetDiversity: { min: number; max: number; scale: number };
+  nightDayRatio: { min: number; max: number; scale: number };
+}
+
+interface NormalizedFeatures {
+  totalVolume: number;
+  uniqueCounterparties: number;
+  assetDiversity: number;
+  nightDayRatio: number;
+}
+
+interface FeatureImportance {
+  [key: string]: {
+    weight: number;
+    normalizedValue: number;
+    impact: number;
+    rawValue: number;
+    isPositive: boolean;
+  };
+}
+
+interface RiskAnalysisResult {
+  riskScore: number;
+  tier: string;
+  confidence: number;
+  featureImportance: FeatureImportance;
+  explanation: string[];
+  recommendations: string[];
+  rawMetrics: any;
+  normalizedFeatures: NormalizedFeatures;
+  modelVersion: string;
+}
+
+interface DataQualityResult {
+  score: number;
+  isGood: boolean;
+  needsMoreData: boolean;
+}
 
 /**
  * Pre-trained model weights (simplified logistic regression)
  * These weights are trained on a hypothetical dataset of good/risky behaviors
  */
-const MODEL_WEIGHTS = {
+const MODEL_WEIGHTS: ModelWeights = {
   // Feature weights (how much each metric affects risk)
   totalVolume: -0.15, // Higher volume = lower risk (up to a point)
   uniqueCounterparties: -0.25, // More diverse counterparties = lower risk
@@ -28,7 +84,7 @@ const MODEL_WEIGHTS = {
  * Feature normalization parameters
  * Based on typical Stellar testnet usage patterns
  */
-const NORMALIZATION = {
+const NORMALIZATION: Normalization = {
   totalVolume: { min: 0, max: 10000, scale: 100 },
   uniqueCounterparties: { min: 0, max: 50, scale: 10 },
   assetDiversity: { min: 1, max: 10, scale: 3 },
@@ -40,7 +96,7 @@ const NORMALIZATION = {
  * @param {Object} metrics - Transaction metrics from Horizon API
  * @returns {Object} Complete risk analysis result with score, tier, confidence, and recommendations
  */
-export function calculateRiskScore(metrics) {
+export function calculateRiskScore(metrics: any): RiskAnalysisResult {
   try {
     // Normalize features to 0-1 range
     const normalizedFeatures = normalizeFeatures(metrics);
@@ -62,7 +118,7 @@ export function calculateRiskScore(metrics) {
       metrics
     );
 
-    const result = {
+    const result: RiskAnalysisResult = {
       riskScore,
       tier,
       confidence: calculateConfidence(normalizedFeatures),
@@ -88,16 +144,16 @@ export function calculateRiskScore(metrics) {
  * @param {Object} metrics - Raw transaction metrics
  * @returns {Object} Normalized features with values between 0-1
  */
-function normalizeFeatures(metrics) {
-  const normalized = {};
+function normalizeFeatures(metrics: any): NormalizedFeatures {
+  const normalized: NormalizedFeatures = {} as NormalizedFeatures;
 
   // Normalize each feature
   Object.keys(NORMALIZATION).forEach((feature) => {
     const value = metrics[feature] || 0;
-    const norm = NORMALIZATION[feature];
+    const norm = NORMALIZATION[feature as keyof Normalization];
 
     // Min-max normalization with scaling
-    normalized[feature] = Math.max(
+    normalized[feature as keyof NormalizedFeatures] = Math.max(
       0,
       Math.min(1, value / norm.scale / ((norm.max - norm.min) / norm.scale))
     );
@@ -111,7 +167,7 @@ function normalizeFeatures(metrics) {
  * @param {Object} features - Normalized feature values
  * @returns {number} Probability score between 0-1
  */
-function calculateLogisticRegression(features) {
+function calculateLogisticRegression(features: NormalizedFeatures): number {
   // Linear combination of features
   let linearScore = MODEL_WEIGHTS.bias;
 
@@ -138,7 +194,7 @@ function calculateLogisticRegression(features) {
  * @param {number} riskScore - Risk score between 0-100
  * @returns {string} Risk tier: 'TIER_1', 'TIER_2', or 'TIER_3'
  */
-function calculateTier(riskScore) {
+function calculateTier(riskScore: number): string {
   if (riskScore <= 30) return "TIER_1"; // Low risk - Premium access
   if (riskScore <= 70) return "TIER_2"; // Medium risk - Standard access
   return "TIER_3"; // High risk - Opportunity access
@@ -149,7 +205,7 @@ function calculateTier(riskScore) {
  * @param {Object} features - Normalized feature values
  * @returns {number} Confidence percentage between 60-95
  */
-function calculateConfidence(features) {
+function calculateConfidence(features: NormalizedFeatures): number {
   // Calculate how "typical" this feature combination is
   // Higher variance = lower confidence
   const featureValues = Object.values(features);
@@ -163,6 +219,7 @@ function calculateConfidence(features) {
   const confidence = Math.round(
     Math.max(60, Math.min(95, (1 - variance) * 100))
   );
+
   return confidence;
 }
 
@@ -172,19 +229,19 @@ function calculateConfidence(features) {
  * @param {Object} rawMetrics - Original raw metrics
  * @returns {Object} Feature importance data with weights and impacts
  */
-function calculateFeatureImportance(features, rawMetrics) {
-  const importance = {};
+function calculateFeatureImportance(features: NormalizedFeatures, rawMetrics: any): FeatureImportance {
+  const importance: FeatureImportance = {};
 
   // Calculate weighted impact of each feature
   Object.keys(features).forEach((feature) => {
-    const weight = Math.abs(MODEL_WEIGHTS[feature] || 0);
-    const featureValue = features[feature];
+    const weight = Math.abs(MODEL_WEIGHTS[feature as keyof ModelWeights] || 0);
+    const featureValue = features[feature as keyof NormalizedFeatures];
     importance[feature] = {
       weight: Math.round(weight * 100) / 100,
       normalizedValue: Math.round(featureValue * 100) / 100,
       impact: Math.round(weight * featureValue * 100) / 100,
       rawValue: rawMetrics[feature],
-      isPositive: MODEL_WEIGHTS[feature] < 0, // Negative weight = positive for safety
+      isPositive: MODEL_WEIGHTS[feature as keyof ModelWeights] < 0, // Negative weight = positive for safety
     };
   });
 
@@ -197,9 +254,9 @@ function calculateFeatureImportance(features, rawMetrics) {
  * @param {Object} featureImportance - Feature importance analysis
  * @returns {Array<string>} Array of explanation strings
  */
-function generateExplanation(riskScore, featureImportance) {
+function generateExplanation(riskScore: number, featureImportance: FeatureImportance): string[] {
   const tier = calculateTier(riskScore);
-  let explanation = [];
+  let explanation: string[] = [];
 
   // Main tier explanation
   if (tier === "TIER_1") {
@@ -249,8 +306,8 @@ function generateExplanation(riskScore, featureImportance) {
  * @param {Object} featureImportance - Feature importance analysis
  * @returns {Array<string>} Array of recommendation strings
  */
-function generateRecommendations(featureImportance) {
-  const recommendations = [];
+function generateRecommendations(featureImportance: FeatureImportance): string[] {
+  const recommendations: string[] = [];
 
   Object.entries(featureImportance).forEach(([feature, data]) => {
     if (feature === "totalVolume" && data.rawValue < 50) {
@@ -262,7 +319,7 @@ function generateRecommendations(featureImportance) {
     if (feature === "assetDiversity" && data.rawValue < 2) {
       recommendations.push("🎯 Diversify transactions with different assets");
     }
-    if (feature === "nightDayRatio" && data.rawValue > 0.3) {
+    if (feature === "nightDayRatio" && data.rawValue > 0.5) {
       recommendations.push("🌞 Make more transactions during daytime hours");
     }
   });
@@ -281,7 +338,7 @@ function generateRecommendations(featureImportance) {
  * @param {Object} metrics - Raw transaction metrics
  * @returns {Object} Basic risk analysis result
  */
-function fallbackRiskCalculation(metrics) {
+function fallbackRiskCalculation(metrics: any): RiskAnalysisResult {
   let score = 50; // Start with medium risk
 
   // Simple rule-based adjustments
@@ -300,6 +357,7 @@ function fallbackRiskCalculation(metrics) {
     explanation: ["📊 Simple rule-based calculation was used"],
     recommendations: ["🔄 Try again for more detailed analysis"],
     rawMetrics: metrics,
+    normalizedFeatures: {} as NormalizedFeatures,
     modelVersion: "fallback-1.0",
   };
 }
@@ -309,7 +367,7 @@ function fallbackRiskCalculation(metrics) {
  * @param {Object} metrics - Raw transaction metrics
  * @returns {Object} Data quality assessment with score and recommendations
  */
-export function getDataQualityScore(metrics) {
+export function getDataQualityScore(metrics: any): DataQualityResult {
   let qualityScore = 0;
 
   if (metrics.totalPayments > 10) qualityScore += 25;

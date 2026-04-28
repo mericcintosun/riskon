@@ -19,11 +19,47 @@ import {
 import { writeScoreToBlockchainEnhanced } from "../app/lib/writeScore";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
-import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
-import BlendDashboard from "./BlendDashboard.jsx";
-import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
+import BlendHistoryPerformance from "./BlendHistoryPerformance";
+import BlendDashboard from "./BlendDashboard";
+import EnhancedLiquidityPools from "./EnhancedLiquidityPools";
 import { motion } from "framer-motion";
 import { Info, AlertTriangle, FileText, Zap, Settings } from "lucide-react";
+
+interface AnalysisData {
+  success: boolean;
+  metrics?: any;
+  dataQuality?: {
+    isGood: boolean;
+    score: number;
+  };
+  timestamp?: number;
+  error?: string;
+}
+
+interface RiskAnalysis {
+  riskScore: number;
+  tier: string;
+  rawMetrics: {
+    totalVolume: number;
+    uniqueCounterparties: number;
+    assetDiversity: number;
+    nightDayRatio: number;
+  };
+  explanation: string[];
+  recommendations: string[];
+  blendImpact?: {
+    totalChange: number;
+  };
+}
+
+interface RateLimitStatus {
+  canUpdate: boolean;
+  remainingTime: number;
+}
+
+interface BlendScoreImpact {
+  totalChange: number;
+}
 
 /**
  * Automated Risk Analyzer Component
@@ -34,7 +70,7 @@ import { Info, AlertTriangle, FileText, Zap, Settings } from "lucide-react";
  * - Calculating risk scores using a machine learning model
  * - Managing rate limiting and caching
  * - Displaying risk analysis results with explanations
- * - Writing scores to the blockchain via smart contract
+ * - Writing scores to blockchain via smart contract
  * 
  * Features:
  * - Real-time risk analysis with TensorFlow.js
@@ -52,19 +88,19 @@ export default function AutomatedRiskAnalyzer() {
   const { toast } = useToast();
 
   // Analysis state
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisData, setAnalysisData] = useState(null);
-  const [riskAnalysis, setRiskAnalysis] = useState(null);
-  const [isUpdatingScore, setIsUpdatingScore] = useState(false);
-  const [blendScoreImpact, setBlendScoreImpact] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+  const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
+  const [isUpdatingScore, setIsUpdatingScore] = useState<boolean>(false);
+  const [blendScoreImpact, setBlendScoreImpact] = useState<BlendScoreImpact | null>(null);
 
   // Rate limiting state
-  const [rateLimitStatus, setRateLimitStatus] = useState(null);
-  const [countdown, setCountdown] = useState(0);
+  const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
 
   // UI state
-  const [showDetails, setShowDetails] = useState(false);
-  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [showRecommendations, setShowRecommendations] = useState<boolean>(false);
 
   // Check rate limit when wallet connects
   useEffect(() => {
@@ -118,7 +154,7 @@ export default function AutomatedRiskAnalyzer() {
   /**
    * Run complete automated analysis
    */
-  const runAutomatedAnalysis = async () => {
+  const runAutomatedAnalysis = async (): Promise<void> => {
     if (!walletAddress) {
       toast.error("⚠️ Please connect your wallet");
       return;
@@ -176,7 +212,7 @@ export default function AutomatedRiskAnalyzer() {
         timestamp: Date.now(),
       };
 
-      // Cache the results
+      // Cache results
       cacheAnalysis(walletAddress, finalResult);
 
       // Update state
@@ -196,7 +232,7 @@ export default function AutomatedRiskAnalyzer() {
           );
         }, 1000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Automated analysis failed:", error);
       toast.error(`❌ Analysis error: ${error.message}`);
     } finally {
@@ -207,7 +243,7 @@ export default function AutomatedRiskAnalyzer() {
   /**
    * Update risk score on blockchain
    */
-  const updateRiskScoreOnChain = async () => {
+  const updateRiskScoreOnChain = async (): Promise<void> => {
     if (!riskAnalysis || !walletAddress || !kit) {
       toast.error("⚠️ Risk analysis or wallet connection missing");
       return;
@@ -228,7 +264,7 @@ export default function AutomatedRiskAnalyzer() {
 
     try {
       const updatingToast = toast.loading(
-        "🔗 Saving risk score to the blockchain..."
+        "🔗 Saving risk score to blockchain..."
       );
 
       // Write to blockchain using existing system
@@ -242,7 +278,7 @@ export default function AutomatedRiskAnalyzer() {
       toast.dismiss(updatingToast);
 
       if (result.successful) {
-        // Record the update for rate limiting
+        // Record update for rate limiting
         recordUpdate(walletAddress);
 
         // Update rate limit status
@@ -256,7 +292,7 @@ export default function AutomatedRiskAnalyzer() {
         ) {
           toast.warning("⚠️ Blockchain save failed - saved locally");
         } else {
-          toast.success("✅ Risk score successfully saved to the blockchain!");
+          toast.success("✅ Risk score successfully saved to blockchain!");
 
           if (result.hash) {
             setTimeout(() => {
@@ -269,7 +305,7 @@ export default function AutomatedRiskAnalyzer() {
       } else {
         throw new Error(result.error || "Blockchain update failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Blockchain update failed:", error);
 
       if (
@@ -288,7 +324,7 @@ export default function AutomatedRiskAnalyzer() {
   /**
    * Get risk score color for gauge
    */
-  const getRiskScoreColor = (score) => {
+  const getRiskScoreColor = (score: number): string => {
     if (score <= 30) return "text-green-500";
     if (score <= 70) return "text-yellow-500";
     return "text-red-500";
@@ -297,8 +333,8 @@ export default function AutomatedRiskAnalyzer() {
   /**
    * Get tier badge styling
    */
-  const getTierBadge = (tier) => {
-    const badges = {
+  const getTierBadge = (tier: string) => {
+    const badges: Record<string, { text: string; class: string }> = {
       TIER_1: {
         text: "Tier-1: Safe",
         class: "bg-green-100 text-green-800 border-green-200",
@@ -340,7 +376,7 @@ export default function AutomatedRiskAnalyzer() {
           Connect your wallet to use AI-powered risk analysis
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-500">
-          We'll analyze your transaction data from the last 30 days
+          We'll analyze your transaction data from last 30 days
         </p>
       </div>
     );
@@ -582,7 +618,7 @@ export default function AutomatedRiskAnalyzer() {
           {showDetails && (
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
               <div className="space-y-3">
-                {riskAnalysis.explanation.map((explanation, index) => (
+                {riskAnalysis.explanation.map((explanation: string, index: number) => (
                   <div key={index} className="flex items-start space-x-2">
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       {explanation}
@@ -612,7 +648,7 @@ export default function AutomatedRiskAnalyzer() {
 
           {showRecommendations && (
             <div className="space-y-2">
-              {riskAnalysis.recommendations.map((recommendation, index) => (
+              {riskAnalysis.recommendations.map((recommendation: string, index: number) => (
                 <div
                   key={index}
                   className="text-sm text-blue-800 dark:text-blue-200"

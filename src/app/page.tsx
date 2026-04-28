@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { writeScoreToBlockchainEnhanced } from "./lib/writeScore";
 import { testContractExists, getContractInfo } from "./lib/testContract";
 import { performAutoRiskAnalysis } from "../lib/autoRiskAnalyzer";
@@ -8,12 +8,34 @@ import BlendDashboard from "../components/BlendDashboard.jsx";
 import EnhancedLiquidityPools from "../components/EnhancedLiquidityPools.jsx";
 import UserRiskProfile from "../components/UserRiskProfile.jsx";
 import AutomatedRiskAnalyzer from "../components/AutomatedRiskAnalyzer.jsx";
-import Header from "../components/Header.jsx";
+import Header from "../components/Header.tsx";
 import Link from "next/link";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
 import { useIssueDetector } from "../hooks/useIssueDetector";
 import { getTier, maxBorrow } from "../lib/borrowCalc";
+
+interface AutoAnalysisResult {
+  riskScore: number;
+  confidence: string;
+  analysis: {
+    txCount: number;
+    avgHours: number;
+    assetTypes: number;
+    contractStatus?: string;
+  };
+  factors: string[];
+  addressType: string;
+  passkeyInfo?: {
+    message: string;
+    note: string;
+  };
+}
+
+interface Tier {
+  name: string;
+  collateralFactor: number;
+}
 
 export default function RiskScoringApp() {
   // Use global wallet context
@@ -41,34 +63,34 @@ export default function RiskScoringApp() {
   } = useIssueDetector();
 
   // Form state - simplified (keeping for fallback)
-  const [txCount, setTxCount] = useState("");
-  const [avgHours, setAvgHours] = useState("");
-  const [assetTypes, setAssetTypes] = useState("");
+  const [txCount, setTxCount] = useState<string>("");
+  const [avgHours, setAvgHours] = useState<string>("");
+  const [assetTypes, setAssetTypes] = useState<string>("");
 
   // Auto risk analysis state
-  const [autoAnalysisResult, setAutoAnalysisResult] = useState(null);
-  const [isAnalyzingWallet, setIsAnalyzingWallet] = useState(false);
-  const [analysisMode, setAnalysisMode] = useState("enhanced"); // "enhanced", "auto" or "manual"
+  const [autoAnalysisResult, setAutoAnalysisResult] = useState<AutoAnalysisResult | null>(null);
+  const [isAnalyzingWallet, setIsAnalyzingWallet] = useState<boolean>(false);
+  const [analysisMode, setAnalysisMode] = useState<"enhanced" | "auto" | "manual">("enhanced");
 
   // Collateral calculator state
-  const [collateralAmount, setCollateralAmount] = useState("");
+  const [collateralAmount, setCollateralAmount] = useState<string>("");
 
   // App state
-  const [isLoading, setIsLoading] = useState(false);
-  const [transactionHash, setTransactionHash] = useState("");
-  const [contractStatus, setContractStatus] = useState("unknown");
-  const [showBlendDashboard, setShowBlendDashboard] = useState(false);
-  const [showEnhancedPools, setShowEnhancedPools] = useState(false);
-  const [showUserProfile, setShowUserProfile] = useState(false);
-  const [selectedTier, setSelectedTier] = useState(null);
-  const [riskScore, setRiskScore] = useState(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [transactionHash, setTransactionHash] = useState<string>("");
+  const [contractStatus, setContractStatus] = useState<string>("unknown");
+  const [showBlendDashboard, setShowBlendDashboard] = useState<boolean>(false);
+  const [showEnhancedPools, setShowEnhancedPools] = useState<boolean>(false);
+  const [showUserProfile, setShowUserProfile] = useState<boolean>(false);
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [riskScore, setRiskScore] = useState<number>(0);
 
   // Simplified risk score calculation
   const calculateRiskScore = (
-    txCountInput = txCount,
-    medianHoursInput = avgHours,
-    assetKindsInput = assetTypes
-  ) => {
+    txCountInput: string = txCount,
+    medianHoursInput: string = avgHours,
+    assetKindsInput: string = assetTypes
+  ): number => {
     // Input validation
     const inputs = [
       parseFloat(txCountInput) || 0,
@@ -150,7 +172,7 @@ export default function RiskScoringApp() {
         assetTypes
       );
       if (validationErrors.length > 0) {
-        validationErrors.forEach((error) => {
+        validationErrors.forEach((error: string) => {
           toast.warning(error, { duration: 3000 });
         });
       }
@@ -159,7 +181,7 @@ export default function RiskScoringApp() {
     }
   }, [txCount, avgHours, assetTypes, analysisMode, autoAnalysisResult]);
 
-  const isValidInput =
+  const isValidInput: boolean =
     analysisMode === "auto"
       ? autoAnalysisResult && autoAnalysisResult.riskScore !== null
       : riskScore !== null && (txCount || avgHours || assetTypes);
@@ -179,7 +201,7 @@ export default function RiskScoringApp() {
   }, [initError]);
 
   // Test contract existence
-  const testContract = async () => {
+  const testContract = async (): Promise<void> => {
     try {
       const loadingToast = toast.loading(
         "Testing smart contract connection..."
@@ -198,7 +220,7 @@ export default function RiskScoringApp() {
 
         toast.error(`⛓️ Contract issue: ${contractInfo.error}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Contract test error:", error);
       setContractStatus("missing");
       showCategorizedError(error, "Smart contract connectivity test failed");
@@ -206,7 +228,7 @@ export default function RiskScoringApp() {
   };
 
   // Handle wallet connection for header
-  const handleConnectWallet = async () => {
+  const handleConnectWallet = async (): Promise<void> => {
     try {
       const loadingToast = toast.loading("Connecting to wallet...");
       const result = await connectWallet();
@@ -215,7 +237,7 @@ export default function RiskScoringApp() {
       if (result.success) {
         toast.success(`👛 Successfully connected to ${result.walletName}!`);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.dismiss();
 
       // Handle cancellation gracefully
@@ -230,7 +252,7 @@ export default function RiskScoringApp() {
   };
 
   // Handle wallet disconnection
-  const handleDisconnectWallet = () => {
+  const handleDisconnectWallet = (): void => {
     try {
       const result = disconnectWallet();
       if (result.success) {
@@ -241,13 +263,13 @@ export default function RiskScoringApp() {
       } else {
         toast.warning("Wallet disconnected (with minor issues)");
       }
-    } catch (error) {
+    } catch (error: any) {
       showCategorizedError(error, "Error during wallet disconnection");
     }
   };
 
   // Perform automatic wallet analysis
-  const performWalletAnalysis = async () => {
+  const performWalletAnalysis = async (): Promise<void> => {
     if (!walletAddress) return;
 
     try {
@@ -309,7 +331,7 @@ export default function RiskScoringApp() {
           );
         }, 2000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Auto analysis error:", error);
       toast.dismiss();
 
@@ -345,7 +367,7 @@ export default function RiskScoringApp() {
   };
 
   // Submit risk score to blockchain
-  const submitRiskScore = async () => {
+  const submitRiskScore = async (): Promise<void> => {
     if (!kit || !walletAddress) {
       toast.error("⚠️ Please connect wallet and enter valid data");
       return;
@@ -420,7 +442,7 @@ export default function RiskScoringApp() {
       // This should ALWAYS happen regardless of storage method
       setShowBlendDashboard(true);
       setShowEnhancedPools(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Blockchain write error:", error);
       toast.dismiss(loadingToast);
 
@@ -455,36 +477,36 @@ export default function RiskScoringApp() {
   };
 
   // Handle form input changes with real-time validation
-  const handleTxCountChange = (e) => {
+  const handleTxCountChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setTxCount(value);
 
-    if (value && (isNaN(value) || value < 0 || value > 100)) {
+    if (value && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100)) {
       toast.warning("Transaction count must be between 0-100", {
         duration: 2000,
       });
     }
   };
 
-  const handleAvgHoursChange = (e) => {
+  const handleAvgHoursChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setAvgHours(value);
 
-    if (value && (isNaN(value) || value < 0 || value > 24)) {
+    if (value && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 24)) {
       toast.warning("Average hours must be between 0-24", { duration: 2000 });
     }
   };
 
-  const handleAssetTypesChange = (e) => {
+  const handleAssetTypesChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setAssetTypes(value);
 
-    if (value && (isNaN(value) || value < 0 || value > 10)) {
+    if (value && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 10)) {
       toast.warning("Asset types must be between 0-10", { duration: 2000 });
     }
   };
 
-  const handleCollateralChange = (e) => {
+  const handleCollateralChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setCollateralAmount(value);
 
@@ -845,7 +867,7 @@ export default function RiskScoringApp() {
                           Ready for Auto Analysis
                         </h3>
                         <p className="text-white/70 mb-4">
-                          Click the button below to analyze your wallet's
+                          Click the button below to analyze your wallet&apos;s
                           transaction history automatically
                         </p>
                         <button
@@ -994,7 +1016,7 @@ export default function RiskScoringApp() {
                             <ul className="text-xs text-white/60 space-y-1">
                               {autoAnalysisResult.factors
                                 .slice(0, 3)
-                                .map((factor, index) => (
+                                .map((factor: string, index: number) => (
                                   <li key={index}>• {factor}</li>
                                 ))}
                             </ul>
@@ -1186,7 +1208,7 @@ export default function RiskScoringApp() {
               <UserRiskProfile
                 walletAddress={walletAddress}
                 riskScore={riskScore}
-                onTierSelect={(tier) => {
+                onTierSelect={(tier: string) => {
                   setSelectedTier(tier);
                   setShowEnhancedPools(true);
                   setShowUserProfile(false);

@@ -1,5 +1,5 @@
 const BLOCKED_SENSITIVE_KEY_PATTERN =
-  /(token|jwt|secret|auth|password|session|cookie|credential|private|key|salt)/i;
+  /(token|jwt|secret|auth|password|session|cookie|credential|private[-_]?key|salt|api[-_]?key)/i;
 
 // Simple XOR-based encryption for non-critical data
 // In production, use Web Crypto API with proper key management
@@ -83,6 +83,10 @@ class SimpleEncryption {
 
 function getLocalStorage() {
   if (typeof window === "undefined") {
+    // For Node.js test environment, use global localStorage mock
+    if (typeof global !== 'undefined' && global.localStorage) {
+      return global.localStorage;
+    }
     return null;
   }
 
@@ -221,13 +225,18 @@ export function getStorageUsage() {
   let totalSize = 0;
   let itemCount = 0;
 
-  for (let i = 0; i < localStorageRef.length; i++) {
-    const key = localStorageRef.key(i);
-    if (key && !isSensitiveStorageKey(key)) {
-      const value = localStorageRef.getItem(key);
-      totalSize += (key.length + (value?.length || 0)) * 2; // UTF-16
-      itemCount++;
+  try {
+    for (let i = 0; i < localStorageRef.length; i++) {
+      const key = localStorageRef.key(i);
+      if (key && !isSensitiveStorageKey(key)) {
+        const value = localStorageRef.getItem(key);
+        totalSize += (key.length + (value?.length || 0)) * 2; // UTF-16
+        itemCount++;
+      }
     }
+  } catch (error) {
+    console.warn('Error calculating storage usage:', error);
+    return { total: 0, items: 0 };
   }
 
   return { total: totalSize, items: itemCount };

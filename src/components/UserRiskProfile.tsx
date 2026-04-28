@@ -12,12 +12,44 @@ import {
   Info,
 } from "lucide-react";
 
-const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
-  const [showRiskModal, setShowRiskModal] = useState(false);
-  const [selectedTier, setSelectedTier] = useState(null);
+interface UserRiskProfileProps {
+  walletAddress: string;
+  riskScore: number;
+  onTierSelect?: (tier: string) => void;
+}
+
+interface RiskInterpretation {
+  level: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  icon: React.ReactNode;
+  description: string;
+  guidance: string;
+}
+
+interface TierAccess {
+  [key: string]: {
+    accessible: boolean;
+    status: string;
+    color: string;
+    bgColor: string;
+    description: string;
+    icon: React.ReactNode;
+    isOpportunity?: boolean;
+  };
+}
+
+const UserRiskProfile: React.FC<UserRiskProfileProps> = ({ 
+  walletAddress, 
+  riskScore, 
+  onTierSelect 
+}) => {
+  const [showRiskModal, setShowRiskModal] = useState<boolean>(false);
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
   // Risk score interpretation
-  const getRiskInterpretation = (score) => {
+  const getRiskInterpretation = (score: number): RiskInterpretation => {
     if (score <= 30) {
       return {
         level: "Low Risk",
@@ -58,7 +90,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
   };
 
   // Tier access permissions based on credit score
-  const getTierAccess = (score) => {
+  const getTierAccess = (score: number): TierAccess => {
     return {
       TIER_1: {
         accessible: true,
@@ -105,7 +137,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
   };
 
   // Handle tier selection with risk confirmation
-  const handleTierSelect = (tier) => {
+  const handleTierSelect = (tier: string): void => {
     const tierAccess = getTierAccess(riskScore);
     if (!tierAccess[tier].accessible) {
       return;
@@ -120,7 +152,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
   };
 
   // Risk confirmation modal
-  const RiskConfirmationModal = () => (
+  const RiskConfirmationModal = (): React.ReactNode => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md mx-4">
         <div className="text-center">
@@ -150,7 +182,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
             <button
               onClick={() => {
                 setShowRiskModal(false);
-                onTierSelect?.(selectedTier);
+                onTierSelect?.(selectedTier!);
               }}
               className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
@@ -271,7 +303,7 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
               </p>
               <p className="text-sm text-blue-800 mt-2">
                 The analysis is based on on-chain data patterns and does not
-                represent a deep, financial audit of the address.
+                represent a deep, financial audit of address.
               </p>
             </div>
           </div>

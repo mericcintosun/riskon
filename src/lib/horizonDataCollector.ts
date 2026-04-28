@@ -3,6 +3,47 @@
 import { getCache, setCache } from './cacheManager';
 import { CACHE_KEYS } from '../types/cache';
 
+interface PaymentData {
+  id: string;
+  amount: number;
+  asset_type: string;
+  asset_code: string;
+  from: string;
+  to: string;
+  created_at: string;
+  type: string;
+}
+
+interface TransactionData {
+  id: string;
+  fee_charged: number;
+  operation_count: number;
+  created_at: string;
+  successful: boolean;
+}
+
+interface RiskMetrics {
+  totalVolume: number;
+  uniqueCounterparties: number;
+  assetDiversity: number;
+  nightDayRatio: number;
+  totalPayments: number;
+  totalTransactions: number;
+  averageTransactionSize: number;
+}
+
+interface AnalysisResult {
+  success: boolean;
+  metrics?: RiskMetrics;
+  dataPoints?: {
+    payments: number;
+    transactions: number;
+    period: number;
+  };
+  timestamp?: number;
+  error?: string;
+}
+
 /**
  * Horizon Data Collector
  * Collects last 30 days transaction data for automated risk analysis
@@ -18,7 +59,7 @@ const HORIZON_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for Horizon data
  * @param {string} walletAddress - User's Stellar address
  * @returns {Promise<Object>} Analysis data with 4 key metrics
  */
-export async function collectTransactionData(walletAddress) {
+export async function collectTransactionData(walletAddress: string): Promise<AnalysisResult> {
   try {
     // Check cache first
     const cacheKey = `${CACHE_KEYS.HORIZON_DATA}_${walletAddress}`;
@@ -43,11 +84,10 @@ export async function collectTransactionData(walletAddress) {
     ]);
 
     
-
     // Calculate the 4 key metrics
     const metrics = calculateRiskMetrics(payments, transactions, walletAddress);
 
-    const result = {
+    const result: AnalysisResult = {
       success: true,
       metrics,
       dataPoints: {
@@ -56,7 +96,7 @@ export async function collectTransactionData(walletAddress) {
         period: DAYS_TO_ANALYZE,
       },
       timestamp: Date.now(),
-    };
+    } as AnalysisResult;
 
     // Cache the result
     await setCache(cacheKey, result, { 
@@ -65,26 +105,36 @@ export async function collectTransactionData(walletAddress) {
     });
 
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Data collection failed:", error);
     return {
       success: false,
       error: error.message,
-      metrics: null,
-    };
+      metrics: undefined,
+      dataPoints: {
+        payments: 0,
+        transactions: 0,
+        period: DAYS_TO_ANALYZE,
+      },
+      timestamp: Date.now(),
+    } as AnalysisResult;
   }
 }
 
 /**
  * Fetch payment operations from Horizon API
  * @param {string} walletAddress - The Stellar wallet address to fetch payments for
- * @param {Date} startDate - Start date for the payment history range
- * @param {Date} endDate - End date for the payment history range
- * @returns {Promise<Array<Object>>} Array of payment operations with amount, asset info, and timestamps
+ * @param {Date} startDate - Start date for payment history range
+ * @param {Date} endDate - End date for payment history range
+ * @returns {Promise<Array<PaymentData>>} Array of payment operations with amount, asset info, and timestamps
  */
-async function fetchPayments(walletAddress, startDate, endDate) {
-  let payments = [];
-  let cursor = null;
+async function fetchPayments(
+  walletAddress: string, 
+  startDate: Date, 
+  endDate: Date
+): Promise<PaymentData[]> {
+  let payments: PaymentData[] = [];
+  let cursor: string | null = null;
   let hasMore = true;
 
   while (hasMore && payments.length < 1000) {
@@ -117,7 +167,7 @@ async function fetchPayments(walletAddress, startDate, endDate) {
         if (paymentDate >= startDate && paymentDate <= endDate) {
           payments.push({
             id: payment.id,
-            amount: parseFloat(payment.amount || 0),
+            amount: parseFloat(payment.amount || "0"),
             asset_type: payment.asset_type || "native",
             asset_code: payment.asset_code || "XLM",
             from: payment.from,
@@ -136,7 +186,7 @@ async function fetchPayments(walletAddress, startDate, endDate) {
       if (!cursor || records.length < 200) {
         hasMore = false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn(`⚠️ Error fetching payments page:`, error);
       break;
     }
@@ -148,13 +198,17 @@ async function fetchPayments(walletAddress, startDate, endDate) {
 /**
  * Fetch transaction operations from Horizon API
  * @param {string} walletAddress - The Stellar wallet address to fetch transactions for
- * @param {Date} startDate - Start date for the transaction history range
- * @param {Date} endDate - End date for the transaction history range
- * @returns {Promise<Array<Object>>} Array of transaction operations with fee, operation count, and success status
+ * @param {Date} startDate - Start date for transaction history range
+ * @param {Date} endDate - End date for transaction history range
+ * @returns {Promise<Array<TransactionData>>} Array of transaction operations with fee, operation count, and success status
  */
-async function fetchTransactions(walletAddress, startDate, endDate) {
-  let transactions = [];
-  let cursor = null;
+async function fetchTransactions(
+  walletAddress: string, 
+  startDate: Date, 
+  endDate: Date
+): Promise<TransactionData[]> {
+  let transactions: TransactionData[] = [];
+  let cursor: string | null = null;
   let hasMore = true;
 
   while (hasMore && transactions.length < 1000) {
@@ -187,7 +241,7 @@ async function fetchTransactions(walletAddress, startDate, endDate) {
         if (txDate >= startDate && txDate <= endDate) {
           transactions.push({
             id: tx.id,
-            fee_charged: parseInt(tx.fee_charged || 0),
+            fee_charged: parseInt(tx.fee_charged || "0"),
             operation_count: tx.operation_count,
             created_at: tx.created_at,
             successful: tx.successful,
@@ -203,7 +257,7 @@ async function fetchTransactions(walletAddress, startDate, endDate) {
       if (!cursor || records.length < 200) {
         hasMore = false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn(`⚠️ Error fetching transactions page:`, error);
       break;
     }
@@ -214,12 +268,16 @@ async function fetchTransactions(walletAddress, startDate, endDate) {
 
 /**
  * Calculate the 4 key risk metrics from payment and transaction data
- * @param {Array<Object>} payments - Array of payment operations
- * @param {Array<Object>} transactions - Array of transaction operations
+ * @param {Array<PaymentData>} payments - Array of payment operations
+ * @param {Array<TransactionData>} transactions - Array of transaction operations
  * @param {string} walletAddress - The wallet address being analyzed
- * @returns {Object} Risk metrics including totalVolume, uniqueCounterparties, assetDiversity, and nightDayRatio
+ * @returns {RiskMetrics} Risk metrics including totalVolume, uniqueCounterparties, assetDiversity, and nightDayRatio
  */
-function calculateRiskMetrics(payments, transactions, walletAddress) {
+function calculateRiskMetrics(
+  payments: PaymentData[], 
+  transactions: TransactionData[], 
+  walletAddress: string
+): RiskMetrics {
   // 1. Total Volume (in XLM)
   const totalVolume = payments.reduce((sum, payment) => {
     // Convert all assets to XLM equivalent (simplified)
@@ -231,7 +289,7 @@ function calculateRiskMetrics(payments, transactions, walletAddress) {
   }, 0);
 
   // 2. Unique Counterparties
-  const counterparties = new Set();
+  const counterparties = new Set<string>();
   payments.forEach((payment) => {
     if (payment.from !== walletAddress) counterparties.add(payment.from);
     if (payment.to !== walletAddress) counterparties.add(payment.to);
@@ -239,7 +297,7 @@ function calculateRiskMetrics(payments, transactions, walletAddress) {
   const uniqueCounterparties = counterparties.size;
 
   // 3. Asset Diversity
-  const assets = new Set();
+  const assets = new Set<string>();
   payments.forEach((payment) => {
     const assetId = payment.asset_code || "XLM";
     assets.add(assetId);
@@ -282,9 +340,9 @@ function calculateRiskMetrics(payments, transactions, walletAddress) {
  * @param {number} timestamp - Unix timestamp of when the data was collected
  * @returns {boolean} True if data is fresh (less than 1 hour old), false otherwise
  */
-export function isDataFresh(timestamp) {
+export function isDataFresh(timestamp: number | null): boolean {
   const hourAgo = Date.now() - 60 * 60 * 1000;
-  return timestamp && timestamp > hourAgo;
+  return timestamp !== null && timestamp > hourAgo;
 }
 
 /**
@@ -292,7 +350,7 @@ export function isDataFresh(timestamp) {
  * @param {string} walletAddress - The wallet address to retrieve cached analysis for
  * @returns {Object|null} Cached analysis data or null if not available/expired
  */
-export function getCachedAnalysis(walletAddress) {
+export function getCachedAnalysis(walletAddress: string): AnalysisResult | null {
   try {
     const cached = localStorage.getItem(`horizon_analysis_${walletAddress}`);
     if (cached) {
@@ -301,7 +359,7 @@ export function getCachedAnalysis(walletAddress) {
         return data;
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`⚠️ Error reading cached analysis:`, error);
   }
   return null;
@@ -312,13 +370,13 @@ export function getCachedAnalysis(walletAddress) {
  * @param {string} walletAddress - The wallet address to cache analysis for
  * @param {Object} analysisData - The analysis data to cache
  */
-export function cacheAnalysis(walletAddress, analysisData) {
+export function cacheAnalysis(walletAddress: string, analysisData: AnalysisResult): void {
   try {
     localStorage.setItem(
       `horizon_analysis_${walletAddress}`,
       JSON.stringify(analysisData)
     );
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`⚠️ Error caching analysis:`, error);
   }
 }

@@ -29,14 +29,14 @@ import { securityMonitor, logSecurityEvent as logSecEvent } from '../securityMon
 describe('Input Validation Tests', () => {
   describe('validateStellarAddress', () => {
     test('should validate valid Stellar public keys', () => {
-      const validAddress = 'GD5DJ3B7A2YQF4L6K5I7M8N9O0P1Q2R3S4T5U6V7W8X9Y0Z1A2B3C4D5E6F7G8H9';
+      const validAddress = 'GBKAUAL47WUDOSUD5PG3XN5YHHPFZ75FVUWMUPHX2YEKOPW7SDTF5UWE';
       const result = validateStellarAddress(validAddress);
       expect(result.isValid).toBe(true);
       expect(result.sanitized).toBe(validAddress);
     });
 
     test('should validate valid contract addresses', () => {
-      const validContract = 'CA3D5K7M2N8P9Q0R1S2T3U4V5W6X7Y8Z9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4';
+      const validContract = 'CBRNJBSQLKERBE362KMJ6KC3XTBCAR6ON3QAWFXE2PP57CBKZOPHW4GM';
       const result = validateStellarAddress(validContract);
       expect(result.isValid).toBe(true);
       expect(result.sanitized).toBe(validContract);
@@ -77,8 +77,11 @@ describe('Input Validation Tests', () => {
         expect(sanitized).not.toContain('<script>');
         expect(sanitized).not.toContain('onerror');
         expect(sanitized).not.toContain('onload');
-        expect(sanitized).toContain('&lt;');
-        expect(sanitized).toContain('&gt;');
+        
+        // Only check for encoded HTML if input contained HTML tags
+        if (attempt.includes('<') || attempt.includes('>')) {
+          expect(sanitized).toContain('&lt;') || expect(sanitized).toContain('&gt;');
+        }
       });
     });
 
@@ -175,7 +178,7 @@ describe('Input Validation Tests', () => {
 
   describe('validateTransactionHash', () => {
     test('should validate valid transaction hashes', () => {
-      const validHash = 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890';
+      const validHash = 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456';
       const result = validateTransactionHash(validHash);
       expect(result.isValid).toBe(true);
     });

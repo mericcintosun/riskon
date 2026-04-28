@@ -2,18 +2,29 @@
 
 import React from "react";
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
+}
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     // Log the error with more context
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
@@ -31,7 +42,7 @@ class ErrorBoundary extends React.Component {
     }
   }
 
-  logErrorToService(error, errorInfo) {
+  logErrorToService(error: Error, errorInfo: React.ErrorInfo): void {
     // In production, this would send to Sentry, LogRocket, etc.
     if (process.env.NODE_ENV === 'production') {
       // Integration point for error tracking services
@@ -40,11 +51,11 @@ class ErrorBoundary extends React.Component {
     }
   }
 
-  resetErrorBoundary = () => {
+  resetErrorBoundary = (): void => {
     this.setState({ hasError: false, error: null, errorInfo: null });
   }
 
-  render() {
+  render(): React.ReactNode {
     if (this.state.hasError) {
       // Custom error UI
       return (
@@ -122,4 +133,4 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export default ErrorBoundary; 
+export default ErrorBoundary;

@@ -121,6 +121,13 @@ export function validateContractId(contractId: string): ValidationResult {
  * @returns ValidationResult with validity status and sanitized number
  */
 export function validateRiskScore(score: number | string): ValidationResult {
+  if (score === null || score === undefined) {
+    return {
+      isValid: false,
+      error: "Score is required",
+    };
+  }
+
   const numScore = typeof score === "string" ? parseFloat(score) : score;
 
   if (isNaN(numScore)) {
@@ -162,6 +169,8 @@ export function sanitizeString(input: string): string {
   }
 
   return input
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "") // Remove complete event handlers
+    .replace(/javascript:/gi, "") // Remove javascript: protocol
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")

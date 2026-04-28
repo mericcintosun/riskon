@@ -7,11 +7,46 @@
 
 import React from 'react';
 
+interface SkeletonProps {
+  className?: string;
+  variant?: 'text' | 'title' | 'card' | 'circle' | 'button';
+  width?: string;
+  height?: string;
+}
+
+interface SpinnerProps {
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+interface LoadingOverlayProps {
+  message?: string;
+}
+
+interface ButtonLoadingProps {
+  children: React.ReactNode;
+  loading?: boolean;
+  [key: string]: any;
+}
+
+interface TableRowSkeletonProps {
+  columns?: number;
+}
+
+interface ListSkeletonProps {
+  items?: number;
+}
+
 // Base skeleton component
-export const Skeleton = ({ className = '', variant = 'text', width, height }) => {
+export const Skeleton: React.FC<SkeletonProps> = ({ 
+  className = '', 
+  variant = 'text', 
+  width, 
+  height 
+}) => {
   const baseClasses = 'animate-pulse bg-gradient-to-r from-white/5 via-white/10 to-white/5 rounded';
 
-  const variantClasses = {
+  const variantClasses: Record<string, string> = {
     text: 'h-4',
     title: 'h-8',
     card: 'h-32',
@@ -19,7 +54,7 @@ export const Skeleton = ({ className = '', variant = 'text', width, height }) =>
     button: 'h-12',
   };
 
-  const style = {
+  const style: React.CSSProperties = {
     width: width || '100%',
     height: height || undefined,
   };
@@ -33,7 +68,7 @@ export const Skeleton = ({ className = '', variant = 'text', width, height }) =>
 };
 
 // Card skeleton
-export const CardSkeleton = () => (
+export const CardSkeleton: React.FC = () => (
   <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
     <div className="flex items-start gap-4">
       <Skeleton variant="circle" width="48px" height="48px" />
@@ -47,7 +82,7 @@ export const CardSkeleton = () => (
 );
 
 // Risk score skeleton
-export const RiskScoreSkeleton = () => (
+export const RiskScoreSkeleton: React.FC = () => (
   <div className="text-center space-y-4">
     <Skeleton variant="circle" width="120px" height="120px" className="mx-auto" />
     <Skeleton variant="title" width="150px" className="mx-auto" />
@@ -56,7 +91,7 @@ export const RiskScoreSkeleton = () => (
 );
 
 // Table row skeleton
-export const TableRowSkeleton = ({ columns = 4 }) => (
+export const TableRowSkeleton: React.FC<TableRowSkeletonProps> = ({ columns = 4 }) => (
   <tr className="border-b border-white/5">
     {Array.from({ length: columns }).map((_, i) => (
       <td key={i} className="px-4 py-3">
@@ -67,7 +102,7 @@ export const TableRowSkeleton = ({ columns = 4 }) => (
 );
 
 // List skeleton
-export const ListSkeleton = ({ items = 3 }) => (
+export const ListSkeleton: React.FC<ListSkeletonProps> = ({ items = 3 }) => (
   <div className="space-y-3">
     {Array.from({ length: items }).map((_, i) => (
       <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
@@ -82,8 +117,8 @@ export const ListSkeleton = ({ items = 3 }) => (
 );
 
 // Spinner component
-export const Spinner = ({ size = 'md', className = '' }) => {
-  const sizes = {
+export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', className = '' }) => {
+  const sizes: Record<string, string> = {
     sm: 'w-4 h-4',
     md: 'w-8 h-8',
     lg: 'w-12 h-12',
@@ -111,7 +146,7 @@ export const Spinner = ({ size = 'md', className = '' }) => {
 };
 
 // Loading overlay
-export const LoadingOverlay = ({ message = 'Loading...' }) => (
+export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message = 'Loading...' }) => (
   <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 text-center border border-white/20">
       <Spinner size="lg" className="mx-auto mb-4" />
@@ -121,7 +156,7 @@ export const LoadingOverlay = ({ message = 'Loading...' }) => (
 );
 
 // Page loading skeleton
-export const PageSkeleton = () => (
+export const PageSkeleton: React.FC = () => (
   <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6">
     <div className="max-w-7xl mx-auto space-y-6">
       <Skeleton variant="title" width="300px" />
@@ -135,7 +170,7 @@ export const PageSkeleton = () => (
 );
 
 // Button loading state
-export const ButtonLoading = ({ children, loading, ...props }) => (
+export const ButtonLoading: React.FC<ButtonLoadingProps> = ({ children, loading, ...props }) => (
   <button {...props} disabled={loading}>
     {loading ? (
       <span className="flex items-center justify-center gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   StellarWalletsKit,
   WalletNetwork,
@@ -21,19 +21,60 @@ import {
 } from "../lib/secureStorage";
 import { sanitizeString, validateStellarAddress } from "../lib/validation";
 
-const WalletContext = createContext();
+interface PasskeySupport {
+  isSupported: boolean;
+  isAvailable: boolean;
+  message?: string;
+}
 
-export function WalletProvider({ children }) {
-  const [kit, setKit] = useState(null);
-  const [connectedWallet, setConnectedWallet] = useState(null);
-  const [walletAddress, setWalletAddress] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [initError, setInitError] = useState(null);
-  const [passkeySupport, setPasskeySupport] = useState(null);
+interface WalletValue {
+  kit: StellarWalletsKit | null;
+  connectedWallet: string | null;
+  walletAddress: string;
+  isLoading: boolean;
+  initError: Error | null;
+  passkeySupport: PasskeySupport | null;
+}
+
+interface WalletContextValue extends WalletValue {
+  connectWallet: (walletId?: string | null) => Promise<WalletConnectionResult>;
+  disconnectWallet: () => Promise<WalletDisconnectionResult>;
+  connectPasskey: (keyId?: string | null) => Promise<WalletConnectionResult>;
+  getStoredPasskeys: () => any[];
+  validateWalletConnection: () => boolean;
+  isConnected: boolean;
+  isReady: boolean;
+}
+
+interface WalletConnectionResult {
+  success: boolean;
+  walletName?: string;
+  address?: string;
+  error?: Error;
+}
+
+interface WalletDisconnectionResult {
+  success: boolean;
+  error?: string;
+}
+
+const WalletContext = createContext<WalletContextValue | null>(null);
+
+interface WalletProviderProps {
+  children: ReactNode;
+}
+
+export function WalletProvider({ children }: WalletProviderProps) {
+  const [kit, setKit] = useState<StellarWalletsKit | null>(null);
+  const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [initError, setInitError] = useState<Error | null>(null);
+  const [passkeySupport, setPasskeySupport] = useState<PasskeySupport | null>(null);
 
   // Initialize wallet kit
   useEffect(() => {
-    const initKit = async () => {
+    const initKit = async (): Promise<void> => {
       try {
         const kitInstance = new StellarWalletsKit({
           network: WalletNetwork.TESTNET,
@@ -59,7 +100,7 @@ export function WalletProvider({ children }) {
         }
 
         setInitError(null);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Wallet kit initialization error:", error);
         setInitError(error);
 
@@ -72,7 +113,7 @@ export function WalletProvider({ children }) {
     initKit();
   }, []);
 
-  const connectWallet = async (walletId = null) => {
+  const connectWallet = async (walletId: string | null = null): Promise<WalletConnectionResult> => {
     if (!kit) {
       const error = new Error(
         "Wallet kit not ready yet. Please try again in a moment."
@@ -108,7 +149,7 @@ export function WalletProvider({ children }) {
         };
       } else {
         // Modal-based wallet selection
-        return new Promise((resolve, reject) => {
+        return new Promise<WalletConnectionResult>((resolve, reject) => {
           try {
             kit.openModal({
               onWalletSelected: async (option) => {
@@ -139,7 +180,7 @@ export function WalletProvider({ children }) {
                     walletName: sanitizedWalletName,
                     address: validatedAddress.sanitized,
                   });
-                } catch (error) {
+                } catch (error: any) {
                   // Categorize wallet connection errors
                   if (error.message?.includes("User rejected")) {
                     reject(
@@ -157,7 +198,7 @@ export function WalletProvider({ children }) {
                   ) {
                     reject(
                       new Error(
-                        "Wallet extension not found. Please install the wallet extension and refresh the page."
+                        "Wallet extension not found. Please install a wallet extension and refresh the page."
                       )
                     );
                   } else {
@@ -171,7 +212,7 @@ export function WalletProvider({ children }) {
                   }
                 }
               },
-              onClosed: (error) => {
+              onClosed: (error: any) => {
                 // Handle user cancellation gracefully
                 if (error) {
                   console.log("👋 Wallet modal closed with error:", error);
@@ -186,16 +227,16 @@ export function WalletProvider({ children }) {
               modalTitle: "Select Stellar Wallet",
               notAvailableText: "This wallet is currently unavailable",
             });
-          } catch (error) {
+          } catch (error: any) {
             reject(
               new Error(`Failed to open wallet selection: ${error.message}`)
             );
           }
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       // Enhanced error handling with categorization
-      let enhancedError;
+      let enhancedError: Error;
 
       if (error.message?.includes("timeout")) {
         enhancedError = new Error(
@@ -236,7 +277,7 @@ export function WalletProvider({ children }) {
     }
   };
 
-  const disconnectWallet = () => {
+  const disconnectWallet = (): Promise<WalletDisconnectionResult> => {
     try {
       setWalletAddress("");
       setConnectedWallet(null);
@@ -246,7 +287,7 @@ export function WalletProvider({ children }) {
       removeSafeLocalStorageItem("walletAddress");
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during wallet disconnection:", error);
       // Force clear state even if localStorage fails
       setWalletAddress("");
@@ -255,11 +296,11 @@ export function WalletProvider({ children }) {
     }
   };
 
-  const connectPasskey = async (keyId = null) => {
+  const connectPasskey = async (keyId: string | null = null): Promise<WalletConnectionResult> => {
     setIsLoading(true);
 
     try {
-      let result;
+      let result: any;
 
       if (keyId) {
         // Connect to existing passkey wallet
@@ -285,18 +326,18 @@ export function WalletProvider({ children }) {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Passkey connection failed: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStoredPasskeys = () => {
+  const getStoredPasskeys = (): any[] => {
     return getStoredPasskeyWallets();
   };
 
-  const validateWalletConnection = () => {
+  const validateWalletConnection = (): boolean => {
     const storedWallet = getSafeLocalStorageItem("connectedWallet");
     const storedAddress = getSafeLocalStorageItem("walletAddress");
 
@@ -320,8 +361,8 @@ export function WalletProvider({ children }) {
     return !!(sanitizedWallet && validatedAddress.isValid);
   };
 
-  const getWalletName = (walletId) => {
-    const walletMap = {
+  const getWalletName = (walletId: string): string => {
+    const walletMap: Record<string, string> = {
       albedo: "Albedo",
       xbull: "xBull",
       freighter: "Freighter",
@@ -331,7 +372,7 @@ export function WalletProvider({ children }) {
 
   // Validate connection state on mount and periodically
   useEffect(() => {
-    const validateConnection = () => {
+    const validateConnection = (): void => {
       if (connectedWallet || walletAddress) {
         const isValid = validateWalletConnection();
         if (!isValid) {
@@ -348,7 +389,7 @@ export function WalletProvider({ children }) {
     return () => clearInterval(interval);
   }, [connectedWallet, walletAddress]);
 
-  const value = {
+  const value: WalletContextValue = {
     kit,
     connectedWallet,
     walletAddress,
@@ -369,7 +410,7 @@ export function WalletProvider({ children }) {
   );
 }
 
-export function useWallet() {
+export function useWallet(): WalletContextValue {
   const context = useContext(WalletContext);
   if (!context) {
     throw new Error("useWallet must be used within a WalletProvider");

@@ -3,19 +3,28 @@
  * Provides offline detection and UI indicators for network status
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { Wifi, WifiOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { pwaHelpers } from '../lib/pwaUtils';
 
-const OfflineDetector = ({ children }) => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [networkInfo, setNetworkInfo] = useState(null);
-  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState(null);
+interface NetworkInfo {
+  effectiveType?: string;
+  saveData?: boolean;
+}
+
+interface OfflineDetectorProps {
+  children: ReactNode;
+}
+
+const OfflineDetector: React.FC<OfflineDetectorProps> = ({ children }) => {
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null);
+  const [showOfflineBanner, setShowOfflineBanner] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
 
   useEffect(() => {
     // Update network status
-    const updateNetworkStatus = () => {
+    const updateNetworkStatus = (): void => {
       const isCurrentlyOnline = navigator.onLine;
       setIsOnline(isCurrentlyOnline);
       setNetworkInfo(pwaHelpers.getNetworkStatus());
@@ -35,11 +44,11 @@ const OfflineDetector = ({ children }) => {
     updateNetworkStatus();
 
     // Listen for online/offline events
-    const handleOnline = () => {
+    const handleOnline = (): void => {
       updateNetworkStatus();
     };
 
-    const handleOffline = () => {
+    const handleOffline = (): void => {
       updateNetworkStatus();
     };
 
@@ -47,11 +56,11 @@ const OfflineDetector = ({ children }) => {
     window.addEventListener('offline', handleOffline);
 
     // Listen for PWA events
-    const handlePWAOnline = () => {
+    const handlePWAOnline = (): void => {
       updateNetworkStatus();
     };
 
-    const handlePWAOffline = () => {
+    const handlePWAOffline = (): void => {
       updateNetworkStatus();
     };
 
@@ -66,7 +75,7 @@ const OfflineDetector = ({ children }) => {
     };
   }, []);
 
-  const formatLastSync = (timestamp) => {
+  const formatLastSync = (timestamp: number | null): string => {
     if (!timestamp) return 'Never';
     
     const now = Date.now();
@@ -78,7 +87,7 @@ const OfflineDetector = ({ children }) => {
     return `${Math.floor(diff / 86400000)} day ago`;
   };
 
-  const getConnectionColor = () => {
+  const getConnectionColor = (): string => {
     if (!isOnline) return 'text-red-500';
     if (!networkInfo) return 'text-gray-400';
     
@@ -91,7 +100,7 @@ const OfflineDetector = ({ children }) => {
     }
   };
 
-  const getConnectionText = () => {
+  const getConnectionText = (): string => {
     if (!isOnline) return 'Offline';
     if (!networkInfo) return 'Unknown';
     

@@ -6,9 +6,14 @@ import { useTranslations, useLocale } from "next-intl";
 import { useWallet } from "../contexts/WalletContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 
-export default function Header({ activeTab, setActiveTab }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+interface HeaderProps {
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
+}
+
+export default function Header({ activeTab, setActiveTab }: HeaderProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const t = useTranslations();
   const locale = useLocale();
 
@@ -37,7 +42,7 @@ export default function Header({ activeTab, setActiveTab }) {
 
   // Close menu on escape key
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         closeMobileMenu();
       }
@@ -54,10 +59,10 @@ export default function Header({ activeTab, setActiveTab }) {
     };
   }, [isMobileMenuOpen, closeMobileMenu]);
 
-  const handleConnectWallet = async () => {
+  const handleConnectWallet = async (): Promise<void> => {
     try {
       await connectWalletContext();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to connect wallet:", error);
       // Don't show error for cancelled operations
       if (
@@ -70,17 +75,17 @@ export default function Header({ activeTab, setActiveTab }) {
     }
   };
 
-  const handleDisconnectWallet = async () => {
+  const handleDisconnectWallet = async (): Promise<void> => {
     try {
       await disconnectWalletContext();
       closeMobileMenu();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to disconnect wallet:", error);
     }
   };
 
   // Format wallet address for display
-  const formatAddress = (address) => {
+  const formatAddress = (address: string): string => {
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
@@ -164,7 +169,7 @@ export default function Header({ activeTab, setActiveTab }) {
                       <span>{t('wallet.connecting')}</span>
                     </div>
                   ) : (
-                    {t('header.connectWallet')}
+                    <span>{t('header.connectWallet')}</span>
                   )}
                 </button>
               )}
@@ -174,28 +179,29 @@ export default function Header({ activeTab, setActiveTab }) {
             <div className="lg:hidden flex items-center space-x-2">
               <LanguageSwitcher />
               <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700/50 transition-colors duration-200 hover:bg-slate-700/50"
-              aria-label="Toggle mobile menu"
-            >
-              <div className="w-5 h-5 flex flex-col justify-center space-y-1">
-                <span
-                  className={`block w-full h-0.5 bg-white transition-all duration-300 ${
-                    isMobileMenuOpen ? "rotate-45 translate-y-1.5" : ""
-                  }`}
-                />
-                <span
-                  className={`block w-full h-0.5 bg-white transition-opacity duration-300 ${
-                    isMobileMenuOpen ? "opacity-0" : ""
-                  }`}
-                />
-                <span
-                  className={`block w-full h-0.5 bg-white transition-all duration-300 ${
-                    isMobileMenuOpen ? "-rotate-45 -translate-y-1.5" : ""
-                  }`}
-                />
-              </div>
-            </button>
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700/50 transition-colors duration-200 hover:bg-slate-700/50"
+                aria-label="Toggle mobile menu"
+              >
+                <div className="w-5 h-5 flex flex-col justify-center space-y-1">
+                  <span
+                    className={`block w-full h-0.5 bg-white transition-all duration-300 ${
+                      isMobileMenuOpen ? "rotate-45 translate-y-1.5" : ""
+                    }`}
+                  />
+                  <span
+                    className={`block w-full h-0.5 bg-white transition-opacity duration-300 ${
+                      isMobileMenuOpen ? "opacity-0" : ""
+                    }`}
+                  />
+                  <span
+                    className={`block w-full h-0.5 bg-white transition-all duration-300 ${
+                      isMobileMenuOpen ? "-rotate-45 -translate-y-1.5" : ""
+                    }`}
+                  />
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -263,7 +269,7 @@ export default function Header({ activeTab, setActiveTab }) {
                         <span>{t('wallet.connecting')}</span>
                       </div>
                     ) : (
-                      {t('header.connectWallet')}
+                      <span>{t('header.connectWallet')}</span>
                     )}
                   </button>
                 )}

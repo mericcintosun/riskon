@@ -9,6 +9,35 @@ import PWAInstallPrompt from "../components/PWAInstallPrompt";
 import OfflineDetector from "../components/OfflineDetector";
 import { pwaUtils } from "../lib/pwaUtils";
 
+interface Metadata {
+  title: string;
+  description: string;
+  icons: {
+    icon: Array<{
+      url: string;
+      sizes?: string;
+      type?: string;
+    }>;
+    shortcut?: string;
+    apple?: Array<{
+      url: string;
+      sizes?: string;
+      type?: string;
+    }>;
+  };
+  manifest: string;
+}
+
+interface Viewport {
+  themeColor: string;
+  width: string;
+  initialScale: number;
+}
+
+interface RootLayoutProps {
+  children: React.ReactNode;
+}
+
 const inter = Inter({ subsets: ["latin"] });
 const montserrat = Montserrat({ 
   subsets: ["latin"],
@@ -16,7 +45,7 @@ const montserrat = Montserrat({
   variable: '--font-montserrat'
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Riskon - AI-Powered Blockchain Risk Scoring",
   description: "Calculate personalized blockchain risk scores and access DeFi features through Blend Protocol integration on Stellar network.",
   icons: {
@@ -36,13 +65,13 @@ export const metadata = {
   manifest: '/manifest.json',
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   themeColor: '#000',
   width: 'device-width',
   initialScale: 1,
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: RootLayoutProps) {
   // Initialize PWA features
   if (typeof window !== 'undefined') {
     pwaUtils.registerServiceWorker().catch(console.error);
@@ -61,7 +90,6 @@ export default function RootLayout({ children }) {
                 </div>
                 <Footer />
               </OfflineDetector>
-              <PWAInstallPrompt />
             </WalletProvider>
           </ToastProvider>
         </ErrorBoundary>
