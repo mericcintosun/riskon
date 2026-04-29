@@ -330,3 +330,7 @@ npm test -- --coverage
 ## Disclaimer
 
 The `riskon` credit score is an AI-generated prediction based on past on-chain activity and is provided for informational purposes only. It is not financial, investment, or credit advice. The score does not guarantee any specific outcomes, and all financial activities involve risk. Users should always conduct their own research and due diligence before engaging in any transactions.
+## Improvements
+
+- Improved documentation clarity
+- Added better explanation for beginners
