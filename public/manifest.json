@@ -12,6 +12,10 @@
   "lang": "en",
   "dir": "ltr",
   "categories": ["finance", "productivity", "business"],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "screenshots": [
     {
       "src": "/screenshots/desktop-1.png",
@@ -26,6 +30,13 @@
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Riskon mobile view"
+    },
+    {
+      "src": "/screenshots/mobile-2.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Riskon mobile risk analysis"
     }
   ],
   "icons": [
@@ -81,6 +92,33 @@
           "sizes": "192x192"
         }
       ]
+    },
+    {
+      "name": "Wallet Connect",
+      "short_name": "Wallet",
+      "description": "Connect your Stellar wallet",
+      "url": "/wallet",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
-  ]
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+stellar",
+      "url": "/handle?%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

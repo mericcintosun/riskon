@@ -9,6 +9,8 @@ import LanguageSwitcher from "./LanguageSwitcher";
 export default function Header({ activeTab, setActiveTab }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
   const t = useTranslations();
   const locale = useLocale();
 
@@ -34,6 +36,28 @@ export default function Header({ activeTab, setActiveTab }) {
   const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
   }, []);
+
+  // Touch gesture handling for swipe to close menu
+  const minSwipeDistance = 50;
+  
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    
+    if (isLeftSwipe && isMobileMenuOpen) {
+      closeMobileMenu();
+    }
+  };
 
   // Close menu on escape key
   useEffect(() => {
@@ -103,8 +127,8 @@ export default function Header({ activeTab, setActiveTab }) {
             : "bg-transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-20">
+        <div className="container-mobile-first">
+          <div className="flex items-center justify-between h-16 lg:h-20 safe-area-top">
             {/* Logo */}
             <Link
               href="/"
@@ -175,7 +199,7 @@ export default function Header({ activeTab, setActiveTab }) {
               <LanguageSwitcher />
               <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700/50 transition-colors duration-200 hover:bg-slate-700/50"
+              className="touch-target-large lg:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700/50 transition-colors duration-200 hover:bg-slate-700/50 active:scale-95"
               aria-label="Toggle mobile menu"
             >
               <div className="w-5 h-5 flex flex-col justify-center space-y-1">
@@ -196,6 +220,7 @@ export default function Header({ activeTab, setActiveTab }) {
                 />
               </div>
             </button>
+            </div>
           </div>
         </div>
 
@@ -206,9 +231,12 @@ export default function Header({ activeTab, setActiveTab }) {
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none"
           }`}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         >
-          <div className="h-full overflow-y-auto">
-            <div className="px-4 py-8 space-y-8">
+          <div className="h-full overflow-y-auto touch-scroll">
+            <div className="px-4 py-8 space-y-8 safe-area-bottom">
               {/* Mobile Navigation */}
               <nav className="space-y-4">
                 {navigation.map((item, index) => (
@@ -216,7 +244,7 @@ export default function Header({ activeTab, setActiveTab }) {
                     key={item.name}
                     href={item.href}
                     onClick={closeMobileMenu}
-                    className={`block py-3 px-4 text-lg font-medium text-slate-300 hover:text-white transition-all duration-200 rounded-lg hover:bg-slate-800/50 transform hover:translate-x-2`}
+                    className={`touch-target block py-4 px-4 text-lg font-medium text-slate-300 hover:text-white transition-all duration-200 rounded-lg hover:bg-slate-800/50 transform hover:translate-x-2 active:scale-[0.98]`}
                     style={{
                       animationDelay: isMobileMenuOpen
                         ? `${index * 100}ms`
@@ -246,7 +274,7 @@ export default function Header({ activeTab, setActiveTab }) {
                     </div>
                     <button
                       onClick={handleDisconnectWallet}
-                      className="w-full py-3 px-4 text-center text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-all duration-200 hover:bg-slate-800/50"
+                      className="touch-target w-full py-4 px-4 text-center text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-all duration-200 hover:bg-slate-800/50 active:scale-[0.98]"
                     >
                       {t('header.disconnectWallet')}
                     </button>
@@ -255,7 +283,7 @@ export default function Header({ activeTab, setActiveTab }) {
                   <button
                     onClick={handleConnectWallet}
                     disabled={isLoading}
-                    className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="touch-target-large w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center space-x-2">
@@ -274,7 +302,7 @@ export default function Header({ activeTab, setActiveTab }) {
       </header>
 
       {/* Spacer to prevent content overlap */}
-      <div className="h-16 lg:h-20"></div>
+      <div className="h-16 lg:h-20 safe-area-top"></div>
     </>
   );
 }
