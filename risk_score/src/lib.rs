@@ -32,7 +32,7 @@ impl RiskTierContract {
 
         // Emit initialization event
         env.events()
-            .publish(Symbol::new(&env, "initialized"), admin);
+            .publish((Symbol::new(&env, "initialized"),), admin);
     }
 
     /// Get the current admin address
