@@ -16,12 +16,52 @@ pub struct RiskTierData {
     pub chosen_tier: Symbol, // User's chosen tier for operations
 }
 
+/// Storage key for the admin address
+const ADMIN_KEY: &str = "admin";
+
 #[contractimpl]
 impl RiskTierContract {
-    /// Set risk score with tier classification and timestamp
-    /// Following Soroban persistent storage best practices with tuple keys
+    /// Initialize the contract with a trusted admin address.
+    /// Can only be called once; panics if already initialized.
+    pub fn initialize(env: Env, admin: Address) {
+        assert!(
+            !env.storage().instance().has(&Symbol::new(&env, ADMIN_KEY)),
+            "Already initialized"
+        );
+        env.storage()
+            .instance()
+            .set(&Symbol::new(&env, ADMIN_KEY), &admin);
+    }
+
+    /// Return the current admin address.
+    pub fn get_admin(env: Env) -> Address {
+        env.storage()
+            .instance()
+            .get(&Symbol::new(&env, ADMIN_KEY))
+            .expect("Not initialized")
+    }
+
+    /// Set risk score with tier classification and timestamp.
+    /// Caller must be the admin OR the user themselves.
     pub fn set_risk_tier(env: Env, user: Address, score: u32, tier: Symbol, chosen_tier: Symbol) {
-        // Validate inputs
+        // --- Access control ---
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&Symbol::new(&env, ADMIN_KEY))
+            .expect("Not initialized");
+
+        // Require auth from admin OR from the user themselves.
+        // Soroban's require_auth() will panic if the invoker hasn't signed.
+        // We try admin first; if the invoker is not admin we fall back to user.
+        let caller_is_admin = env.invoker() == admin;
+        if caller_is_admin {
+            admin.require_auth();
+        } else {
+            user.require_auth();
+        }
+
+        // --- Input validation ---
         assert!(score <= 100, "Score must be 0-100");
         assert!(
             tier == Symbol::new(&env, "TIER_1")
@@ -112,8 +152,12 @@ impl RiskTierContract {
             .unwrap_or(Vec::new(&env))
     }
 
-    /// Update user's chosen tier (risk-based validation)
+    /// Update user's chosen tier (risk-based validation).
+    /// Only the user themselves may call this.
     pub fn update_chosen_tier(env: Env, user: Address, new_chosen_tier: Symbol) {
+        // Only the user themselves can update their chosen tier
+        user.require_auth();
+
         let tuple_key = (user.clone(), Symbol::new(&env, "risk_tier"));
 
         if let Some(mut risk_data) = env
@@ -196,17 +240,138 @@ mod tests {
     use super::*;
     use soroban_sdk::{testutils::Address as _, Env};
 
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    fn setup() -> (Env, soroban_sdk::Address, RiskTierContractClient<'static>) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register_contract(None, RiskTierContract);
+        let client = RiskTierContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        client.initialize(&admin);
+        (env, admin, client)
+    }
+
+    // ── initialize ───────────────────────────────────────────────────────────
+
     #[test]
-    fn test_set_and_get_risk_tier() {
+    fn test_initialize_sets_admin() {
+        let (env, admin, client) = setup();
+        assert_eq!(client.get_admin(), admin);
+    }
+
+    #[test]
+    #[should_panic(expected = "Already initialized")]
+    fn test_initialize_twice_panics() {
+        let (env, admin, client) = setup();
+        let other = Address::generate(&env);
+        client.initialize(&other);
+    }
+
+    // ── access control: set_risk_tier ────────────────────────────────────────
+
+    #[test]
+    fn test_admin_can_set_risk_tier_for_any_user() {
+        let (env, _admin, client) = setup();
+        let user = Address::generate(&env);
+        let tier_1 = Symbol::new(&env, "TIER_1");
+        // mock_all_auths means admin auth is satisfied automatically
+        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
+        let data = client.get_risk_tier(&user).unwrap();
+        assert_eq!(data.score, 25);
+    }
+
+    #[test]
+    fn test_user_can_set_own_risk_tier() {
+        let (env, _admin, client) = setup();
+        let user = Address::generate(&env);
+        let tier_2 = Symbol::new(&env, "TIER_2");
+        client.set_risk_tier(&user, &50, &tier_2, &tier_2);
+        let data = client.get_risk_tier(&user).unwrap();
+        assert_eq!(data.score, 50);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_third_party_cannot_set_risk_tier_for_another_user() {
+        let env = Env::default();
+        // Do NOT mock all auths — we want real auth enforcement
+        let contract_id = env.register_contract(None, RiskTierContract);
+        let client = RiskTierContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        // Initialize with mock auths just for setup
+        env.mock_all_auths();
+        client.initialize(&admin);
+        env.set_auths(&[]); // clear mocked auths
+
+        let victim = Address::generate(&env);
+        let attacker = Address::generate(&env);
+        let tier_3 = Symbol::new(&env, "TIER_3");
+
+        // attacker tries to set victim's score — must panic
+        env.mock_auths(&[soroban_sdk::auth::MockAuth {
+            address: &attacker,
+            invoke: &soroban_sdk::auth::MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "set_risk_tier",
+                args: (victim.clone(), 0u32, tier_3.clone(), tier_3.clone()).into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+        client.set_risk_tier(&victim, &0, &tier_3, &tier_3);
+    }
+
+    // ── access control: update_chosen_tier ───────────────────────────────────
+
+    #[test]
+    fn test_user_can_update_own_chosen_tier() {
+        let (env, _admin, client) = setup();
+        let user = Address::generate(&env);
+        let tier_1 = Symbol::new(&env, "TIER_1");
+        let tier_2 = Symbol::new(&env, "TIER_2");
+        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
+        client.update_chosen_tier(&user, &tier_2);
+        assert_eq!(client.get_chosen_tier(&user), tier_2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_third_party_cannot_update_chosen_tier() {
         let env = Env::default();
         let contract_id = env.register_contract(None, RiskTierContract);
         let client = RiskTierContractClient::new(&env, &contract_id);
 
+        let admin = Address::generate(&env);
+        env.mock_all_auths();
+        client.initialize(&admin);
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
         client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
+        env.set_auths(&[]); // clear mocked auths
+
+        let attacker = Address::generate(&env);
+        let tier_2 = Symbol::new(&env, "TIER_2");
+        env.mock_auths(&[soroban_sdk::auth::MockAuth {
+            address: &attacker,
+            invoke: &soroban_sdk::auth::MockAuthInvoke {
+                contract: &contract_id,
+                fn_name: "update_chosen_tier",
+                args: (user.clone(), tier_2.clone()).into_val(&env),
+                sub_invokes: &[],
+            },
+        }]);
+        client.update_chosen_tier(&user, &tier_2);
+    }
+
+    // ── existing functional tests (updated to call initialize first) ──────────
+
+    #[test]
+    fn test_set_and_get_risk_tier() {
+        let (env, _admin, client) = setup();
+        let user = Address::generate(&env);
+        let tier_1 = Symbol::new(&env, "TIER_1");
+        client.set_risk_tier(&user, &25, &tier_1, &tier_1);
         let risk_data = client.get_risk_tier(&user).unwrap();
         assert_eq!(risk_data.score, 25);
         assert_eq!(risk_data.tier, tier_1);
@@ -215,183 +380,122 @@ mod tests {
 
     #[test]
     fn test_score_validation_upper_bound() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
         client.set_risk_tier(&user, &100, &tier_3, &tier_3);
-        
-        let score = client.get_score(&user);
-        assert_eq!(score, 100);
+        assert_eq!(client.get_score(&user), 100);
     }
 
     #[test]
     #[should_panic(expected = "Score must be 0-100")]
     fn test_score_validation_exceeds_limit() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
         client.set_risk_tier(&user, &101, &tier_3, &tier_3);
     }
 
     #[test]
     #[should_panic(expected = "Invalid tier")]
     fn test_invalid_tier_validation() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let invalid_tier = Symbol::new(&env, "TIER_4");
-        
         client.set_risk_tier(&user, &50, &invalid_tier, &invalid_tier);
     }
 
     #[test]
     fn test_tier_access_tier1_low_risk() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
         client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
         assert!(client.can_access_tier(&user, &tier_1));
     }
 
     #[test]
     fn test_tier_access_tier1_boundary() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
         client.set_risk_tier(&user, &30, &tier_1, &tier_1);
-        
         assert!(client.can_access_tier(&user, &tier_1));
     }
 
     #[test]
     fn test_tier_access_tier1_denied() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
         client.set_risk_tier(&user, &50, &tier_2, &tier_2);
-        
         assert!(!client.can_access_tier(&user, &tier_1));
     }
 
     #[test]
     fn test_tier_access_tier2_medium_risk() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_2 = Symbol::new(&env, "TIER_2");
-        
         client.set_risk_tier(&user, &50, &tier_2, &tier_2);
-        
         assert!(client.can_access_tier(&user, &tier_2));
     }
 
     #[test]
     fn test_tier_access_tier3_always_accessible() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
         client.set_risk_tier(&user, &85, &tier_3, &tier_3);
-        
         assert!(client.can_access_tier(&user, &tier_3));
     }
 
     #[test]
     fn test_get_tier_users() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user1 = Address::generate(&env);
         let user2 = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
         client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
         client.set_risk_tier(&user2, &25, &tier_1, &tier_1);
-        
-        let tier_users = client.get_tier_users(&tier_1);
-        assert_eq!(tier_users.len(), 2);
+        assert_eq!(client.get_tier_users(&tier_1).len(), 2);
     }
 
     #[test]
     fn test_update_chosen_tier_valid() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         let tier_2 = Symbol::new(&env, "TIER_2");
-        
         client.set_risk_tier(&user, &25, &tier_1, &tier_1);
         client.update_chosen_tier(&user, &tier_2);
-        
-        let chosen = client.get_chosen_tier(&user);
-        assert_eq!(chosen, tier_2);
+        assert_eq!(client.get_chosen_tier(&user), tier_2);
     }
 
     #[test]
     #[should_panic(expected = "High risk users can only access TIER_3")]
     fn test_update_chosen_tier_high_risk_restriction() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
         client.set_risk_tier(&user, &85, &tier_3, &tier_3);
         client.update_chosen_tier(&user, &tier_1);
     }
 
     #[test]
     fn test_get_tier_stats() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user1 = Address::generate(&env);
         let user2 = Address::generate(&env);
         let user3 = Address::generate(&env);
-        
         let tier_1 = Symbol::new(&env, "TIER_1");
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
         client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
         client.set_risk_tier(&user2, &50, &tier_2, &tier_2);
         client.set_risk_tier(&user3, &80, &tier_3, &tier_3);
-        
         let stats = client.get_tier_stats();
         assert_eq!(stats.get(tier_1).unwrap(), 1);
         assert_eq!(stats.get(tier_2).unwrap(), 1);
@@ -400,17 +504,12 @@ mod tests {
 
     #[test]
     fn test_score_update_overwrites_previous() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
         client.set_risk_tier(&user, &50, &tier_2, &tier_2);
         client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
         let risk_data = client.get_risk_tier(&user).unwrap();
         assert_eq!(risk_data.score, 25);
         assert_eq!(risk_data.tier, tier_1);
@@ -418,46 +517,31 @@ mod tests {
 
     #[test]
     fn test_no_risk_data_returns_zero_score() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
-        
-        let score = client.get_score(&user);
-        assert_eq!(score, 0);
+        assert_eq!(client.get_score(&user), 0);
     }
 
     #[test]
     fn test_no_risk_data_denies_tier_access() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
         assert!(!client.can_access_tier(&user, &tier_3));
     }
 
     #[test]
     fn test_multiple_users_different_tiers() {
-        let env = Env::default();
-        let contract_id = env.register_contract(None, RiskTierContract);
-        let client = RiskTierContractClient::new(&env, &contract_id);
-
+        let (env, _admin, client) = setup();
         let user1 = Address::generate(&env);
         let user2 = Address::generate(&env);
         let user3 = Address::generate(&env);
-        
         let tier_1 = Symbol::new(&env, "TIER_1");
         let tier_2 = Symbol::new(&env, "TIER_2");
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
         client.set_risk_tier(&user1, &15, &tier_1, &tier_1);
         client.set_risk_tier(&user2, &45, &tier_2, &tier_2);
         client.set_risk_tier(&user3, &90, &tier_3, &tier_3);
-        
         assert!(client.can_access_tier(&user1, &tier_1));
         assert!(!client.can_access_tier(&user2, &tier_1));
         assert!(client.can_access_tier(&user2, &tier_2));
