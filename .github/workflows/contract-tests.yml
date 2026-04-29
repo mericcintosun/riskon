@@ -41,21 +41,6 @@ jobs:
         cd risk_score
         cargo test --verbose
         
-    - name: Run contract integration tests
-      run: |
-        cd risk_score
-        cargo test --test integration_tests --verbose
-        
-    - name: Run gas optimization tests
-      run: |
-        cd risk_score
-        cargo test --test gas_optimization_tests --verbose
-        
-    - name: Run simulation tests
-      run: |
-        cd risk_score
-        cargo test --test simulation_tests --verbose
-        
     - name: Build contract for deployment
       run: |
         cd risk_score
