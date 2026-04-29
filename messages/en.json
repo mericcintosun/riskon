@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "connect": "Connect",
+    "disconnect": "Disconnect"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About",
+    "features": "Features",
+    "howItWorks": "How It Works",
+    "pricing": "Pricing",
+    "technologies": "Technologies",
+    "wallet": "Wallet"
+  },
+  "header": {
+    "title": "Riskon",
+    "tagline": "AI-Powered Blockchain Risk Scoring",
+    "connectWallet": "Connect Wallet",
+    "disconnectWallet": "Disconnect Wallet",
+    "language": "Language"
+  },
+  "landing": {
+    "heroTitle": "AI-Powered Risk Scoring for Stellar DeFi",
+    "heroSubtitle": "Calculate personalized blockchain risk scores and access DeFi features through Blend Protocol integration on Stellar network.",
+    "getStarted": "Get Started",
+    "learnMore": "Learn More",
+    "features": {
+      "title": "Powerful Features",
+      "riskAnalysis": {
+        "title": "Advanced Risk Analysis",
+        "description": "AI-powered risk assessment using machine learning models"
+      },
+      "defiIntegration": {
+        "title": "DeFi Integration",
+        "description": "Seamless integration with Blend Protocol for lending and borrowing"
+      },
+      "realTime": {
+        "title": "Real-time Updates",
+        "description": "Live risk scoring and portfolio monitoring"
+      },
+      "multiAsset": {
+        "title": "Multi-Asset Support",
+        "description": "Support for various Stellar assets and tokens"
+      }
+    }
+  },
+  "riskAnalyzer": {
+    "title": "Risk Analyzer",
+    "description": "Analyze your wallet's risk profile",
+    "analyzeWallet": "Analyze Wallet",
+    "analyzing": "Analyzing...",
+    "riskScore": "Risk Score",
+    "riskLevel": {
+      "low": "Low Risk",
+      "medium": "Medium Risk", 
+      "high": "High Risk"
+    },
+    "factors": {
+      "transactionHistory": "Transaction History",
+      "assetDiversity": "Asset Diversity",
+      "walletAge": "Wallet Age",
+      "activityPattern": "Activity Pattern"
+    }
+  },
+  "blendDashboard": {
+    "title": "Blend Dashboard",
+    "overview": "Overview",
+    "totalSupply": "Total Supply",
+    "totalBorrow": "Total Borrow",
+    "netAPY": "Net APY",
+    "healthFactor": "Health Factor",
+    "markets": "Markets",
+    "supply": "Supply",
+    "borrow": "Borrow",
+    "collateral": "Collateral",
+    "liquidation": "Liquidation"
+  },
+  "userProfile": {
+    "title": "User Risk Profile",
+    "walletAddress": "Wallet Address",
+    "riskTier": "Risk Tier",
+    "maxBorrowAmount": "Maximum Borrow Amount",
+    "recommendations": "Recommendations",
+    "history": "History"
+  },
+  "footer": {
+    "copyright": "© 2024 Riskon. All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact Us"
+  },
+  "errors": {
+    "walletConnection": "Failed to connect wallet",
+    "networkError": "Network error occurred",
+    "invalidInput": "Invalid input provided",
+    "transactionFailed": "Transaction failed",
+    "insufficientFunds": "Insufficient funds",
+    "unauthorized": "Unauthorized access"
+  },
+  "wallet": {
+    "connecting": "Connecting to wallet...",
+    "connected": "Wallet connected",
+    "disconnected": "Wallet disconnected",
+    "selectWallet": "Select your wallet",
+    "noWallet": "No wallet found",
+    "installWallet": "Please install a Stellar wallet"
+  }
+}

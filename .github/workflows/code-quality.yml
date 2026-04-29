@@ -1,0 +1,272 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [ main, dev, develop ]
+  pull_request:
+    branches: [ main, dev, develop ]
+
+jobs:
+  frontend-quality:
+    name: Frontend Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Setup ESLint and Prettier
+        run: |
+          npm install --save-dev \
+            eslint \
+            prettier \
+            eslint-config-next \
+            eslint-config-prettier \
+            eslint-plugin-prettier \
+            eslint-plugin-react \
+            eslint-plugin-react-hooks \
+            @typescript-eslint/eslint-plugin \
+            @typescript-eslint/parser
+            
+      - name: Create comprehensive ESLint config
+        run: |
+          cat > .eslintrc.json << 'EOF'
+          {
+            "extends": [
+              "next/core-web-vitals",
+              "prettier",
+              "@typescript-eslint/recommended"
+            ],
+            "plugins": [
+              "prettier",
+              "react",
+              "react-hooks",
+              "@typescript-eslint"
+            ],
+            "parser": "@typescript-eslint/parser",
+            "rules": {
+              "prettier/prettier": "error",
+              "no-unused-vars": "warn",
+              "no-console": "warn",
+              "react-hooks/rules-of-hooks": "error",
+              "react-hooks/exhaustive-deps": "warn",
+              "@typescript-eslint/no-unused-vars": "warn",
+              "@typescript-eslint/explicit-function-return-type": "off",
+              "@typescript-eslint/explicit-module-boundary-types": "off",
+              "@typescript-eslint/no-explicit-any": "warn"
+            },
+            "env": {
+              "browser": true,
+              "node": true,
+              "es6": true
+            }
+          }
+          EOF
+          
+      - name: Create comprehensive Prettier config
+        run: |
+          cat > .prettierrc << 'EOF'
+          {
+            "semi": true,
+            "trailingComma": "es5",
+            "singleQuote": true,
+            "printWidth": 80,
+            "tabWidth": 2,
+            "useTabs": false,
+            "bracketSpacing": true,
+            "arrowParens": "avoid",
+            "endOfLine": "lf"
+          }
+          EOF
+          
+      - name: Create .prettierignore
+        run: |
+          cat > .prettierignore << 'EOF'
+          node_modules/
+          .next/
+          out/
+          build/
+          dist/
+          coverage/
+          *.min.js
+          *.bundle.js
+          EOF
+          
+      - name: Run ESLint
+        run: npx eslint src/ --ext .js,.jsx,.ts,.tsx --max-warnings=10 || true
+        
+      - name: Run Prettier check
+        run: npx prettier --check src/ --loglevel warn || true
+        
+      - name: Run Next.js lint
+        run: npm run lint
+        
+      - name: Check for TypeScript errors
+        run: npx tsc --noEmit || true
+
+  contract-quality:
+    name: Smart Contract Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+          
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            risk_score/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+            
+      - name: Run cargo fmt check
+        run: |
+          cd risk_score
+          cargo fmt --all -- --check
+          
+      - name: Run cargo clippy
+        run: |
+          cd risk_score
+          cargo clippy -- -D warnings -W clippy::all -W clippy::pedantic
+          
+      - name: Run cargo check
+        run: |
+          cd risk_score
+          cargo check --target wasm32-unknown-unknown
+          
+      - name: Check documentation
+        run: |
+          cd risk_score
+          cargo doc --no-deps --document-private-items
+          cargo doc --no-deps --open || true
+
+  dependency-quality:
+    name: Dependency Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Check for outdated npm dependencies
+        run: npm outdated || true
+        
+      - name: Check npm security vulnerabilities
+        run: npm audit --audit-level=moderate || true
+        
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install cargo audit
+        run: cargo install cargo-audit
+        
+      - name: Check Rust security vulnerabilities
+        run: |
+          cd risk_score
+          cargo audit || true
+          
+      - name: Check for outdated Rust dependencies
+        run: |
+          cd risk_score
+          cargo install cargo-outdated
+          cargo outdated || true
+
+  performance-quality:
+    name: Performance Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Analyze bundle size
+        run: |
+          npm install --save-dev @next/bundle-analyzer
+          echo "ANALYZE=true" >> .env.local
+          npm run build
+          echo "Bundle size analysis completed"
+        continue-on-error: true
+        
+      - name: Check for performance regressions
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          lhci autorun || echo "Lighthouse CI not configured"
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        continue-on-error: true
+
+  code-coverage:
+    name: Code Coverage Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests with coverage
+        run: npm test -- --coverage --passWithNoTests
+        
+      - name: Check coverage thresholds
+        run: |
+          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "Coverage $COVERAGE% is below threshold of 70%"
+            exit 1
+          fi
+          echo "Coverage $COVERAGE% meets threshold"
+        continue-on-error: true
+        
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,0 +1,574 @@
+openapi: 3.0.3
+info:
+  title: Riskon API Documentation
+  description: |
+    API documentation for the Riskon credit scoring system on Stellar.
+    
+    This API provides endpoints for:
+    - Risk scoring and analysis
+    - Liquidity pool monitoring
+    - User risk profile management
+    - Blockchain integration
+    
+    ## Authentication
+    Most endpoints are public read-only. Write operations require Stellar wallet authentication via Passkey.
+    
+    ## Rate Limiting
+    - Risk scoring: 1 request per hour per wallet
+    - Liquidity data: 10 requests per minute
+    - General endpoints: 100 requests per minute
+  version: 1.0.0
+  contact:
+    name: Riskon Team
+    url: https://github.com/riskon-labs/riskon
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://riskon.vercel.app/api
+    description: Production server
+  - url: http://localhost:3000/api
+    description: Development server
+
+paths:
+  /risk/score:
+    get:
+      tags:
+        - Risk Scoring
+      summary: Get risk score for a wallet
+      description: |
+        Retrieves the current risk score and tier for a given Stellar wallet address.
+        This endpoint checks both on-chain data and cached analysis results.
+      operationId: getRiskScore
+      parameters:
+        - name: walletAddress
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: ^G[A-Z0-9]{55}$
+          description: Stellar wallet address to analyze
+      responses:
+        '200':
+          description: Risk score retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskScoreResponse'
+              example:
+                success: true
+                data:
+                  walletAddress: "GD5...XYZ"
+                  riskScore: 25
+                  tier: "TIER_1"
+                  confidence: 85
+                  timestamp: 1640995200000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /risk/analyze:
+    post:
+      tags:
+        - Risk Scoring
+      summary: Calculate new risk score
+      description: |
+        Performs a comprehensive risk analysis for a wallet using transaction history.
+        This endpoint fetches data from Horizon API and runs the ML model.
+        
+        **Rate Limiting**: 1 request per hour per wallet address
+      operationId: analyzeRisk
+      parameters:
+        - name: walletAddress
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: ^G[A-Z0-9]{55}$
+          description: Stellar wallet address to analyze
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskAnalysisRequest'
+      responses:
+        '200':
+          description: Risk analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAnalysisResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /liquidity/pools:
+    get:
+      tags:
+        - Liquidity Monitoring
+      summary: Get liquidity pools with risk tiers
+      description: |
+        Retrieves all available liquidity pools with their current TVL and risk tier classification.
+        Pools are categorized based on Total Value Locked (TVL).
+      operationId: getLiquidityPools
+      parameters:
+        - name: tier
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [TIER_1, TIER_2, TIER_3]
+          description: Filter pools by risk tier
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Maximum number of pools to return
+      responses:
+        '200':
+          description: Liquidity pools retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiquidityPoolsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /liquidity/monitor:
+    get:
+      tags:
+        - Liquidity Monitoring
+      summary: Get liquidity monitoring status
+      description: |
+        Retrieves the current status of the liquidity monitoring service,
+        including last update time and pool statistics.
+      operationId: getLiquidityMonitorStatus
+      responses:
+        '200':
+          description: Monitor status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitorStatusResponse'
+
+  /wallet/profile:
+    get:
+      tags:
+        - User Profile
+      summary: Get user risk profile
+      description: |
+        Retrieves comprehensive risk profile for a wallet including historical data,
+        recommendations, and eligibility information.
+      operationId: getUserProfile
+      parameters:
+        - name: walletAddress
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: ^G[A-Z0-9]{55}$
+          description: Stellar wallet address
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    RiskScoreResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/RiskScore'
+      
+    RiskScore:
+      type: object
+      properties:
+        walletAddress:
+          type: string
+          pattern: ^G[A-Z0-9]{55}$
+          example: "GD5D2R2K2YQ6XZ5Z7Z8Z9Z0Z1Z2Z3Z4Z5Z6Z7Z8Z9Z0Z1Z2Z3Z4Z5Z6Z7Z8Z9Z0"
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 25
+          description: Risk score from 0 (low risk) to 100 (high risk)
+        tier:
+          type: string
+          enum: [TIER_1, TIER_2, TIER_3]
+          example: "TIER_1"
+          description: Risk tier based on score range
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 85
+          description: Model confidence percentage
+        timestamp:
+          type: integer
+          format: int64
+          example: 1640995200000
+          description: Unix timestamp of last analysis
+
+    RiskAnalysisRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [automated, manual, ai_enhanced]
+          default: automated
+          description: Analysis mode to use
+        includeHistory:
+          type: boolean
+          default: false
+          description: Include historical analysis data
+        forceRefresh:
+          type: boolean
+          default: false
+          description: Force fresh analysis, ignoring cache
+
+    RiskAnalysisResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/RiskAnalysis'
+      
+    RiskAnalysis:
+      type: object
+      properties:
+        walletAddress:
+          type: string
+          pattern: ^G[A-Z0-9]{55}$
+        riskScore:
+          $ref: '#/components/schemas/RiskScore'
+        metrics:
+          $ref: '#/components/schemas/RiskMetrics'
+        featureImportance:
+          type: object
+          description: Feature importance analysis
+          example:
+            totalVolume:
+              weight: -0.15
+              normalizedValue: 0.75
+              impact: -0.11
+              rawValue: 1500.50
+              isPositive: true
+        explanation:
+          type: array
+          items:
+            type: string
+          example:
+            - "🟢 Low Risk - Premium pool access"
+            - "✅ High transaction volume increases trust"
+        recommendations:
+          type: array
+          items:
+            type: string
+          example:
+            - "🎉 Excellent! Your risk profile is in great condition"
+        dataQuality:
+          $ref: '#/components/schemas/DataQuality'
+
+    RiskMetrics:
+      type: object
+      properties:
+        totalVolume:
+          type: number
+          example: 1500.50
+          description: Total transaction volume in XLM
+        uniqueCounterparties:
+          type: integer
+          example: 12
+          description: Number of unique transaction counterparties
+        assetDiversity:
+          type: integer
+          example: 3
+          description: Number of different assets used
+        nightDayRatio:
+          type: number
+          example: 0.25
+          description: Ratio of night to day transactions
+        totalPayments:
+          type: integer
+          example: 45
+          description: Total number of payment operations
+        totalTransactions:
+          type: integer
+          example: 38
+          description: Total number of transactions
+        averageTransactionSize:
+          type: number
+          example: 33.34
+          description: Average transaction size in XLM
+
+    DataQuality:
+      type: object
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 85
+          description: Data quality score
+        isGood:
+          type: boolean
+          example: true
+          description: Whether data quality is sufficient for reliable scoring
+        needsMoreData:
+          type: boolean
+          example: false
+          description: Whether more transaction data would improve accuracy
+
+    LiquidityPoolsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            pools:
+              type: array
+              items:
+                $ref: '#/components/schemas/LiquidityPool'
+            total:
+              type: integer
+              example: 25
+              description: Total number of pools found
+            tiers:
+              type: object
+              description: Pool count by tier
+              example:
+                TIER_1: 3
+                TIER_2: 8
+                TIER_3: 14
+
+    LiquidityPool:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1234567890abcdef"
+          description: Unique pool identifier
+        reserves:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoolReserve'
+        totalShares:
+          type: string
+          example: "1000000.0000000"
+          description: Total pool shares
+        tvl:
+          type: number
+          example: 250000.50
+          description: Total Value Locked in USD
+        tier:
+          type: string
+          enum: [TIER_1, TIER_2, TIER_3]
+          example: "TIER_2"
+          description: Risk tier based on TVL
+        feeBp:
+          type: integer
+          example: 30
+          description: Fee in basis points
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    PoolReserve:
+      type: object
+      properties:
+        asset:
+          type: string
+          example: "native"
+          description: Asset code or 'native' for XLM
+        amount:
+          type: string
+          example: "50000.0000000"
+          description: Reserve amount
+
+    MonitorStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [active, inactive, error]
+              example: "active"
+            lastUpdate:
+              type: string
+              format: date-time
+              example: "2024-01-01T12:00:00Z"
+            poolCount:
+              type: integer
+              example: 25
+            totalTVL:
+              type: number
+              example: 1500000.75
+              description: Total TVL across all pools
+            nextUpdate:
+              type: string
+              format: date-time
+              example: "2024-01-01T12:05:00Z"
+
+    UserProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      properties:
+        walletAddress:
+          type: string
+          pattern: ^G[A-Z0-9]{55}$
+        riskScore:
+          $ref: '#/components/schemas/RiskScore'
+        eligibility:
+          type: object
+          properties:
+            tier_1_pools:
+              type: boolean
+              example: true
+            tier_2_pools:
+              type: boolean
+              example: true
+            tier_3_pools:
+              type: boolean
+              example: true
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskScore'
+          description: Historical risk scores
+        recommendations:
+          type: array
+          items:
+            type: string
+          example:
+            - "📈 Increase transaction volume organically"
+            - "🤝 Transact with different counterparties"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "INVALID_WALLET_ADDRESS"
+            message:
+              type: string
+              example: "Invalid Stellar wallet address format"
+            details:
+              type: object
+              description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "INVALID_WALLET_ADDRESS"
+              message: "Invalid Stellar wallet address format"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "WALLET_NOT_FOUND"
+              message: "No risk analysis found for this wallet"
+
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "RATE_LIMITED"
+              message: "Rate limit exceeded. Please try again later."
+              details:
+                retryAfter: 3600
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "INTERNAL_ERROR"
+              message: "An unexpected error occurred"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authenticated endpoints
+    StellarAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Stellar wallet authentication token
+
+tags:
+  - name: Risk Scoring
+    description: Risk analysis and scoring endpoints
+  - name: Liquidity Monitoring
+    description: Liquidity pool monitoring and data
+  - name: User Profile
+    description: User profile and historical data

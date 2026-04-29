@@ -14,6 +14,30 @@ import {
   formatAmount,
 } from "../lib/blendConfig.js";
 
+/**
+ * Blend Dashboard Component
+ * 
+ * A comprehensive dashboard for interacting with Blend protocol liquidity pools.
+ * This component provides:
+ * - Pool discovery and management
+ * - User position tracking
+ * - Supply, borrow, withdraw, and repay operations
+ * - Risk-aware pool access based on user's credit score
+ * - Real-time balance and position updates
+ * 
+ * Features:
+ * - Integration with Blend SDK for pool operations
+ * - Risk-gated access based on user's risk tier
+ * - Real-time position tracking and balance updates
+ * - Support for multiple asset types
+ * - Transaction status monitoring
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.kit - Passkey wallet kit for transaction signing
+ * @param {string} props.walletAddress - User's Stellar wallet address
+ * @param {Object|null} props.riskScore - User's risk analysis results
+ * @returns {JSX.Element} The Blend protocol dashboard interface
+ */
 export default function BlendDashboard({ kit, walletAddress, riskScore }) {
   // State management
   const [activeTab, setActiveTab] = useState("pools");

@@ -1,0 +1,177 @@
+name: Smart Contract Tests
+
+on:
+  push:
+    branches: [ main, dev, develop ]
+  pull_request:
+    branches: [ main, dev, develop ]
+
+jobs:
+  smart-contract-tests:
+    name: Soroban Contract Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        targets: wasm32-unknown-unknown
+        
+    - name: Cache cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+          
+    - name: Install Soroban CLI
+      run: |
+        cargo install soroban-cli --version 24.0.0 --locked
+        
+    - name: Run smart contract tests
+      run: |
+        cd risk_score
+        cargo test --verbose
+        
+    - name: Run contract integration tests
+      run: |
+        cd risk_score
+        cargo test --test integration_tests --verbose
+        
+    - name: Run gas optimization tests
+      run: |
+        cd risk_score
+        cargo test --test gas_optimization_tests --verbose
+        
+    - name: Run simulation tests
+      run: |
+        cd risk_score
+        cargo test --test simulation_tests --verbose
+        
+    - name: Build contract for deployment
+      run: |
+        cd risk_score
+        cargo build --target wasm32-unknown-unknown --release
+        
+    - name: Verify contract binary
+      run: |
+        cd risk_score
+        ls -la target/wasm32-unknown-unknown/release/
+        file target/wasm32-unknown-unknown/release/risk_score.wasm
+        
+    - name: Generate test coverage report
+      run: |
+        cd risk_score
+        cargo install cargo-tarpaulin
+        cargo tarpaulin --out Xml --output-dir target/coverage/
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./risk_score/target/coverage/cobertura.xml
+        flags: unittests
+        name: codecov-umbrella
+        
+    - name: Run contract benchmarks
+      run: |
+        cd risk_score
+        cargo install cargo-criterion
+        cargo criterion --bench gas_benchmarks
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+      
+    - name: Run security audit
+      run: |
+        cd risk_score
+        cargo audit
+        
+    - name: Check for outdated dependencies
+      run: |
+        cd risk_score
+        cargo install cargo-outdated
+        cargo outdated
+
+  contract-lint:
+    name: Contract Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+        
+    - name: Run rustfmt
+      run: |
+        cd risk_score
+        cargo fmt --all -- --check
+        
+    - name: Run clippy
+      run: |
+        cd risk_score
+        cargo clippy -- -D warnings
+        
+    - name: Check documentation
+      run: |
+        cd risk_score
+        cargo doc --no-deps --document-private-items
+
+  contract-size-analysis:
+    name: Contract Size Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+        
+    - name: Build contract
+      run: |
+        cd risk_score
+        cargo build --target wasm32-unknown-unknown --release
+        
+    - name: Analyze contract size
+      run: |
+        cd risk_score
+        echo "Contract size analysis:"
+        ls -lh target/wasm32-unknown-unknown/release/risk_score.wasm
+        echo "Size in bytes:"
+        wc -c target/wasm32-unknown-unknown/release/risk_score.wasm
+        
+    - name: Check size limits
+      run: |
+        cd risk_score
+        SIZE=$(wc -c < target/wasm32-unknown-unknown/release/risk_score.wasm)
+        echo "Contract size: $SIZE bytes"
+        if [ $SIZE -gt 1048576 ]; then
+          echo "Contract size exceeds 1MB limit"
+          exit 1
+        fi
+        echo "Contract size is within acceptable limits"

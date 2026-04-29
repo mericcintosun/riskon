@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "refresh": "Actualizar",
+    "connect": "Conectar",
+    "disconnect": "Desconectar"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "about": "Acerca de",
+    "features": "Características",
+    "howItWorks": "Cómo Funciona",
+    "pricing": "Precios",
+    "technologies": "Tecnologías",
+    "wallet": "Billetera"
+  },
+  "header": {
+    "title": "Riskon",
+    "tagline": "Evaluación de Riesgo Blockchain con IA",
+    "connectWallet": "Conectar Billetera",
+    "disconnectWallet": "Desconectar Billetera",
+    "language": "Idioma"
+  },
+  "landing": {
+    "heroTitle": "Evaluación de Riesgo con IA para DeFi Stellar",
+    "heroSubtitle": "Calcula puntuaciones de riesgo blockchain personalizadas y accede a características DeFi a través de la integración con Blend Protocol en la red Stellar.",
+    "getStarted": "Comenzar",
+    "learnMore": "Aprender Más",
+    "features": {
+      "title": "Características Poderosas",
+      "riskAnalysis": {
+        "title": "Análisis de Riesgo Avanzado",
+        "description": "Evaluación de riesgo impulsada por IA usando modelos de aprendizaje automático"
+      },
+      "defiIntegration": {
+        "title": "Integración DeFi",
+        "description": "Integración perfecta con Blend Protocol para préstamos y borrowing"
+      },
+      "realTime": {
+        "title": "Actualizaciones en Tiempo Real",
+        "description": "Monitoreo de puntuación de riesgo y cartera en vivo"
+      },
+      "multiAsset": {
+        "title": "Soporte Multi-Activo",
+        "description": "Soporte para varios activos y tokens Stellar"
+      }
+    }
+  },
+  "riskAnalyzer": {
+    "title": "Analizador de Riesgo",
+    "description": "Analiza el perfil de riesgo de tu billetera",
+    "analyzeWallet": "Analizar Billetera",
+    "analyzing": "Analizando...",
+    "riskScore": "Puntuación de Riesgo",
+    "riskLevel": {
+      "low": "Riesgo Bajo",
+      "medium": "Riesgo Medio", 
+      "high": "Riesgo Alto"
+    },
+    "factors": {
+      "transactionHistory": "Historial de Transacciones",
+      "assetDiversity": "Diversidad de Activos",
+      "walletAge": "Antigüedad de Billetera",
+      "activityPattern": "Patrón de Actividad"
+    }
+  },
+  "blendDashboard": {
+    "title": "Panel de Blend",
+    "overview": "Resumen",
+    "totalSupply": "Suministro Total",
+    "totalBorrow": "Préstamo Total",
+    "netAPY": "APY Neto",
+    "healthFactor": "Factor de Salud",
+    "markets": "Mercados",
+    "supply": "Suministrar",
+    "borrow": "Pedir Prestado",
+    "collateral": "Colateral",
+    "liquidation": "Liquidación"
+  },
+  "userProfile": {
+    "title": "Perfil de Riesgo del Usuario",
+    "walletAddress": "Dirección de Billetera",
+    "riskTier": "Nivel de Riesgo",
+    "maxBorrowAmount": "Cantidad Máxima de Préstamo",
+    "recommendations": "Recomendaciones",
+    "history": "Historial"
+  },
+  "footer": {
+    "copyright": "© 2024 Riskon. Todos los derechos reservados.",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Servicio",
+    "contact": "Contáctanos"
+  },
+  "errors": {
+    "walletConnection": "Error al conectar la billetera",
+    "networkError": "Ocurrió un error de red",
+    "invalidInput": "Se proporcionó una entrada inválida",
+    "transactionFailed": "Transacción fallida",
+    "insufficientFunds": "Fondos insuficientes",
+    "unauthorized": "Acceso no autorizado"
+  },
+  "wallet": {
+    "connecting": "Conectando a la billetera...",
+    "connected": "Billetera conectada",
+    "disconnected": "Billetera desconectada",
+    "selectWallet": "Selecciona tu billetera",
+    "noWallet": "No se encontró billetera",
+    "installWallet": "Por favor instala una billetera Stellar"
+  }
+}

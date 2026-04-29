@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "refresh": "Actualiser",
+    "connect": "Connecter",
+    "disconnect": "Déconnecter"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "about": "À propos",
+    "features": "Fonctionnalités",
+    "howItWorks": "Comment ça Marche",
+    "pricing": "Tarifs",
+    "technologies": "Technologies",
+    "wallet": "Portefeuille"
+  },
+  "header": {
+    "title": "Riskon",
+    "tagline": "Évaluation de Risque Blockchain avec IA",
+    "connectWallet": "Connecter le Portefeuille",
+    "disconnectWallet": "Déconnecter le Portefeuille",
+    "language": "Langue"
+  },
+  "landing": {
+    "heroTitle": "Évaluation de Risque avec IA pour DeFi Stellar",
+    "heroSubtitle": "Calculez des scores de risque blockchain personnalisés et accédez aux fonctionnalités DeFi via l'intégration avec Blend Protocol sur le réseau Stellar.",
+    "getStarted": "Commencer",
+    "learnMore": "En Savoir Plus",
+    "features": {
+      "title": "Fonctionnalités Puissantes",
+      "riskAnalysis": {
+        "title": "Analyse de Risque Avancée",
+        "description": "Évaluation de risque alimentée par IA utilisant des modèles d'apprentissage automatique"
+      },
+      "defiIntegration": {
+        "title": "Intégration DeFi",
+        "description": "Intégration transparente avec Blend Protocol pour le prêt et l'emprunt"
+      },
+      "realTime": {
+        "title": "Mises à Jour en Temps Réel",
+        "description": "Suivi en direct du score de risque et du portefeuille"
+      },
+      "multiAsset": {
+        "title": "Support Multi-Actifs",
+        "description": "Support pour divers actifs et tokens Stellar"
+      }
+    }
+  },
+  "riskAnalyzer": {
+    "title": "Analyseur de Risque",
+    "description": "Analysez le profil de risque de votre portefeuille",
+    "analyzeWallet": "Analyser le Portefeuille",
+    "analyzing": "Analyse en cours...",
+    "riskScore": "Score de Risque",
+    "riskLevel": {
+      "low": "Risque Faible",
+      "medium": "Risque Moyen", 
+      "high": "Risque Élevé"
+    },
+    "factors": {
+      "transactionHistory": "Historique des Transactions",
+      "assetDiversity": "Diversité des Actifs",
+      "walletAge": "Âge du Portefeuille",
+      "activityPattern": "Modèle d'Activité"
+    }
+  },
+  "blendDashboard": {
+    "title": "Tableau de Bord Blend",
+    "overview": "Aperçu",
+    "totalSupply": "Approvisionnement Total",
+    "totalBorrow": "Emprunt Total",
+    "netAPY": "APY Net",
+    "healthFactor": "Facteur de Santé",
+    "markets": "Marchés",
+    "supply": "Fournir",
+    "borrow": "Emprunter",
+    "collateral": "Collatéral",
+    "liquidation": "Liquidation"
+  },
+  "userProfile": {
+    "title": "Profil de Risque Utilisateur",
+    "walletAddress": "Adresse du Portefeuille",
+    "riskTier": "Niveau de Risque",
+    "maxBorrowAmount": "Montant Maximal d'Emprunt",
+    "recommendations": "Recommandations",
+    "history": "Historique"
+  },
+  "footer": {
+    "copyright": "© 2024 Riskon. Tous droits réservés.",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation",
+    "contact": "Contactez-nous"
+  },
+  "errors": {
+    "walletConnection": "Échec de la connexion du portefeuille",
+    "networkError": "Erreur réseau survenue",
+    "invalidInput": "Entrée invalide fournie",
+    "transactionFailed": "Transaction échouée",
+    "insufficientFunds": "Fonds insuffisants",
+    "unauthorized": "Accès non autorisé"
+  },
+  "wallet": {
+    "connecting": "Connexion au portefeuille...",
+    "connected": "Portefeuille connecté",
+    "disconnected": "Portefeuille déconnecté",
+    "selectWallet": "Sélectionnez votre portefeuille",
+    "noWallet": "Aucun portefeuille trouvé",
+    "installWallet": "Veuillez installer un portefeuille Stellar"
+  }
+}

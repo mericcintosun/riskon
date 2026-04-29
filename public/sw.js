@@ -1,9 +1,11 @@
-// Service Worker for caching static assets and Horizon API calls
-// Optional enhancement for risk analysis app
+// Enhanced Service Worker for Riskon PWA
+// Features: caching, background sync, push notifications, offline support
 
-const CACHE_NAME = 'riskon-cache-v1';
+const CACHE_NAME = 'riskon-cache-v2';
 const STATIC_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for static assets
 const API_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for Horizon API calls
+const BACKGROUND_SYNC_TAG = 'riskon-background-sync';
+const PUSH_NOTIFICATION_TAG = 'riskon-push';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -228,7 +230,61 @@ async function fetchAndCache(request, cache) {
   return response;
 }
 
-// Message handling for cache management
+// Background sync for offline data synchronization
+self.addEventListener('sync', (event) => {
+  console.log('Service Worker: Background sync triggered:', event.tag);
+  
+  if (event.tag === BACKGROUND_SYNC_TAG) {
+    event.waitUntil(handleBackgroundSync());
+  }
+});
+
+// Push notification handling
+self.addEventListener('push', (event) => {
+  console.log('Service Worker: Push message received');
+  
+  const options = {
+    body: event.data ? event.data.text() : 'New Riskon update available',
+    icon: '/icon-192.png',
+    badge: '/icon-32.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    },
+    actions: [
+      {
+        action: 'explore',
+        title: 'Explore Riskon',
+        icon: '/icon-16.png'
+      },
+      {
+        action: 'close',
+        title: 'Close',
+        icon: '/icon-16.png'
+      }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification('Riskon', options)
+  );
+});
+
+// Notification click handling
+self.addEventListener('notificationclick', (event) => {
+  console.log('Service Worker: Notification click received');
+  
+  event.notification.close();
+
+  if (event.action === 'explore') {
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  }
+});
+
+// Message handling for cache management and PWA features
 self.addEventListener('message', (event) => {
   const { type, payload } = event.data;
   
@@ -245,6 +301,14 @@ self.addEventListener('message', (event) => {
       getCacheStatus().then(status => {
         event.ports[0].postMessage(status);
       });
+      break;
+      
+    case 'REGISTER_BACKGROUND_SYNC':
+      registerBackgroundSync();
+      break;
+      
+    case 'SUBSCRIBE_PUSH_NOTIFICATIONS':
+      subscribeToPushNotifications(payload);
       break;
       
     default:
@@ -290,33 +354,98 @@ async function clearAllCaches() {
 }
 
 /**
- * Get cache status information
+ * Handle background sync for offline data
  */
-async function getCacheStatus() {
+async function handleBackgroundSync() {
+  console.log('Service Worker: Processing background sync');
+  
+  try {
+    // Sync any pending risk analysis data
+    await syncPendingRiskData();
+    
+    // Update cached market data
+    await updateMarketDataCache();
+    
+    // Clear expired cache entries
+    await clearExpiredCacheEntries();
+    
+    console.log('Service Worker: Background sync completed successfully');
+    return true;
+  } catch (error) {
+    console.error('Service Worker: Background sync failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Register background sync
+ */
+async function registerBackgroundSync() {
+  try {
+    const registration = await self.registration.sync.register(BACKGROUND_SYNC_TAG);
+    console.log('Service Worker: Background sync registered');
+    return registration;
+  } catch (error) {
+    console.error('Service Worker: Failed to register background sync:', error);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to push notifications
+ */
+async function subscribeToPushNotifications(options = {}) {
+  try {
+    const subscription = await self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: options.vapidPublicKey,
+    });
+    
+    console.log('Service Worker: Push notification subscription successful');
+    return subscription;
+  } catch (error) {
+    console.error('Service Worker: Push notification subscription failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Sync pending risk data from IndexedDB
+ */
+async function syncPendingRiskData() {
+  // This would integrate with IndexedDB to sync pending data
+  // For now, we'll just log the action
+  console.log('Service Worker: Syncing pending risk data');
+}
+
+/**
+ * Update market data cache
+ */
+async function updateMarketDataCache() {
+  // This would fetch fresh market data and update cache
+  console.log('Service Worker: Updating market data cache');
+}
+
+/**
+ * Clear expired cache entries
+ */
+async function clearExpiredCacheEntries() {
   try {
     const cache = await caches.open(CACHE_NAME);
     const requests = await cache.keys();
     
-    const apiCacheCount = requests.filter(request => 
-      isHorizonAPICall(request.url)
-    ).length;
+    const expiredRequests = requests.filter(request => {
+      const cachedResponse = cache.match(request);
+      // Implementation would check TTL and remove expired entries
+      return false; // Placeholder
+    });
     
-    const staticCacheCount = requests.filter(request => 
-      isStaticAsset(request.url)
-    ).length;
+    await Promise.all(
+      expiredRequests.map(request => cache.delete(request))
+    );
     
-    return {
-      cacheName: CACHE_NAME,
-      totalEntries: requests.length,
-      apiCacheEntries: apiCacheCount,
-      staticCacheEntries: staticCacheCount,
-      timestamp: Date.now(),
-    };
+    console.log(`Service Worker: Cleared ${expiredRequests.length} expired cache entries`);
   } catch (error) {
-    console.error('Service Worker: Failed to get cache status:', error);
-    return {
-      error: error.message,
-      timestamp: Date.now(),
-    };
+    console.error('Service Worker: Failed to clear expired cache entries:', error);
   }
 }

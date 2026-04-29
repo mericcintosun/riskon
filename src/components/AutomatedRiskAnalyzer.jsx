@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   collectTransactionData,
   getCachedAnalysis,
@@ -26,9 +27,27 @@ import { Info, AlertTriangle, FileText, Zap, Settings } from "lucide-react";
 
 /**
  * Automated Risk Analyzer Component
- * Complete automated system for risk analysis with ML scoring
+ * 
+ * A comprehensive React component that provides automated risk analysis with ML scoring.
+ * This component handles:
+ * - Fetching transaction data from Stellar Horizon API
+ * - Calculating risk scores using a machine learning model
+ * - Managing rate limiting and caching
+ * - Displaying risk analysis results with explanations
+ * - Writing scores to the blockchain via smart contract
+ * 
+ * Features:
+ * - Real-time risk analysis with TensorFlow.js
+ * - Intelligent caching to reduce API calls
+ * - Rate limiting to prevent abuse
+ * - Detailed explanations and recommendations
+ * - Integration with Blend protocol for liquidity pools
+ * 
+ * @component
+ * @returns {JSX.Element} The complete risk analyzer interface
  */
 export default function AutomatedRiskAnalyzer() {
+  const t = useTranslations();
   const { walletAddress, kit } = useWallet();
   const { toast } = useToast();
 

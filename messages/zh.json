@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "edit": "编辑",
+    "delete": "删除",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "search": "搜索",
+    "filter": "筛选",
+    "refresh": "刷新",
+    "connect": "连接",
+    "disconnect": "断开连接"
+  },
+  "navigation": {
+    "home": "首页",
+    "about": "关于",
+    "features": "功能",
+    "howItWorks": "工作原理",
+    "pricing": "定价",
+    "technologies": "技术",
+    "wallet": "钱包"
+  },
+  "header": {
+    "title": "Riskon",
+    "tagline": "AI驱动的区块链风险评估",
+    "connectWallet": "连接钱包",
+    "disconnectWallet": "断开钱包",
+    "language": "语言"
+  },
+  "landing": {
+    "heroTitle": "AI驱动的Stellar DeFi风险评估",
+    "heroSubtitle": "通过Stellar网络上的Blend Protocol集成计算个性化区块链风险分数并访问DeFi功能。",
+    "getStarted": "开始使用",
+    "learnMore": "了解更多",
+    "features": {
+      "title": "强大功能",
+      "riskAnalysis": {
+        "title": "高级风险分析",
+        "description": "使用机器学习模型的AI驱动风险评估"
+      },
+      "defiIntegration": {
+        "title": "DeFi集成",
+        "description": "与Blend Protocol无缝集成，支持借贷功能"
+      },
+      "realTime": {
+        "title": "实时更新",
+        "description": "实时风险评分和投资组合监控"
+      },
+      "multiAsset": {
+        "title": "多资产支持",
+        "description": "支持各种Stellar资产和代币"
+      }
+    }
+  },
+  "riskAnalyzer": {
+    "title": "风险分析器",
+    "description": "分析您钱包的风险概况",
+    "analyzeWallet": "分析钱包",
+    "analyzing": "分析中...",
+    "riskScore": "风险分数",
+    "riskLevel": {
+      "low": "低风险",
+      "medium": "中等风险", 
+      "high": "高风险"
+    },
+    "factors": {
+      "transactionHistory": "交易历史",
+      "assetDiversity": "资产多样性",
+      "walletAge": "钱包年龄",
+      "activityPattern": "活动模式"
+    }
+  },
+  "blendDashboard": {
+    "title": "Blend仪表板",
+    "overview": "概览",
+    "totalSupply": "总供应量",
+    "totalBorrow": "总借贷",
+    "netAPY": "净年化收益率",
+    "healthFactor": "健康因子",
+    "markets": "市场",
+    "supply": "供应",
+    "borrow": "借贷",
+    "collateral": "抵押品",
+    "liquidation": "清算"
+  },
+  "userProfile": {
+    "title": "用户风险概况",
+    "walletAddress": "钱包地址",
+    "riskTier": "风险等级",
+    "maxBorrowAmount": "最大借贷金额",
+    "recommendations": "建议",
+    "history": "历史记录"
+  },
+  "footer": {
+    "copyright": "© 2024 Riskon。保留所有权利。",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "contact": "联系我们"
+  },
+  "errors": {
+    "walletConnection": "连接钱包失败",
+    "networkError": "发生网络错误",
+    "invalidInput": "提供了无效输入",
+    "transactionFailed": "交易失败",
+    "insufficientFunds": "资金不足",
+    "unauthorized": "未经授权的访问"
+  },
+  "wallet": {
+    "connecting": "正在连接钱包...",
+    "connected": "钱包已连接",
+    "disconnected": "钱包已断开",
+    "selectWallet": "选择您的钱包",
+    "noWallet": "未找到钱包",
+    "installWallet": "请安装Stellar钱包"
+  }
+}

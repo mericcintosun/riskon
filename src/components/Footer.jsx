@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "next-intl/navigation";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
+  const t = useTranslations();
   return (
     <footer className="py-16 border-t border-white/10 bg-black/20 mt-auto">
       <div className="container-modern">
@@ -17,30 +19,30 @@ export default function Footer() {
                 className="w-12 h-12 object-contain rounded-xl"
               />
               <span className="text-2xl font-bold font-montserrat text-gradient-modern">
-                Riskon
+                {t('header.title')}
               </span>
             </div>
             <p className="text-white/70 mb-4 max-w-md">
-              Bringing transparent, personal risk signals to DeFi through AI-powered blockchain analytics.
+              {t('landing.heroSubtitle')}
             </p>
           
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-bold mb-4">Quick Links</h3>
+            <h3 className="text-white font-bold mb-4">{t('navigation.features')}</h3>
             <div className="space-y-2">
               <Link href="/features" className="block text-white/70 hover:text-white transition-colors">
-                Features
+                {t('navigation.features')}
               </Link>
               <Link href="/how-it-works" className="block text-white/70 hover:text-white transition-colors">
-                How It Works
+                {t('navigation.howItWorks')}
               </Link>
               <Link href="/about" className="block text-white/70 hover:text-white transition-colors">
-                About
+                {t('navigation.about')}
               </Link>
               <Link href="/wallet" className="block text-white/70 hover:text-white transition-colors">
-                Connect Wallet
+                {t('navigation.wallet')}
               </Link>
             </div>
           </div>
