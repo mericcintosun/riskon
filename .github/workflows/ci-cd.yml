@@ -34,18 +34,26 @@ jobs:
         
       - name: Setup ESLint and Prettier
         run: |
-          npm install --save-dev eslint prettier eslint-config-next eslint-config-prettier eslint-plugin-prettier
+          npm install --save-dev eslint prettier eslint-config-next eslint-config-prettier eslint-plugin-prettier @typescript-eslint/eslint-plugin @typescript-eslint/parser
           
       - name: Create ESLint config
         run: |
           cat > .eslintrc.json << 'EOF'
           {
-            "extends": ["next/core-web-vitals", "prettier"],
-            "plugins": ["prettier"],
+            "extends": ["next/core-web-vitals", "prettier", "@typescript-eslint/recommended"],
+            "plugins": ["prettier", "@typescript-eslint"],
+            "parser": "@typescript-eslint/parser",
             "rules": {
               "prettier/prettier": "error",
               "no-unused-vars": "warn",
-              "no-console": "warn"
+              "no-console": "warn",
+              "@typescript-eslint/no-unused-vars": "warn",
+              "@typescript-eslint/no-explicit-any": "warn"
+            },
+            "env": {
+              "browser": true,
+              "node": true,
+              "es6": true
             }
           }
           EOF
@@ -63,10 +71,10 @@ jobs:
           EOF
           
       - name: Run ESLint
-        run: npx eslint src/ --ext .js,.jsx,.ts,.tsx || true
+        run: npx eslint src/ --ext .js,.jsx,.ts,.tsx --max-warnings=10
         
       - name: Run Prettier check
-        run: npx prettier --check src/ || true
+        run: npx prettier --check src/ --loglevel warn
         
       - name: Run Next.js lint
         run: npm run lint
@@ -90,7 +98,7 @@ jobs:
         run: npm ci
         
       - name: Run unit tests
-        run: npm test -- --coverage --passWithNoTests
+        run: npm test -- --coverage
         
       - name: Run integration tests
         run: npm run test:integration || echo "Integration tests not yet implemented"
@@ -203,7 +211,7 @@ jobs:
         run: npm ci
         
       - name: Run npm audit
-        run: npm audit --audit-level=moderate || true
+        run: npm audit --audit-level=moderate
         
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -214,13 +222,13 @@ jobs:
       - name: Run cargo audit
         run: |
           cd risk_score
-          cargo audit || true
+          cargo audit
           
       - name: Check for outdated dependencies
         run: |
           cd risk_score
           cargo install cargo-outdated
-          cargo outdated || true
+          cargo outdated
 
   # Performance Tests
   performance:
@@ -266,8 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [code-quality, frontend, smart-contract, security]
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-    environment: staging
-    
+        
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -302,8 +309,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [code-quality, frontend, smart-contract, security, performance]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
-    
+        
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -350,8 +356,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [code-quality, frontend, smart-contract, security, performance]
     if: github.event_name == 'release'
-    environment: production
-    
+        
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
