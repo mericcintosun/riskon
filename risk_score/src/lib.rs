@@ -116,10 +116,8 @@ impl RiskTierContract {
         env.storage().persistent().set(&chosen_key, &chosen_tier);
 
         // Emit Event for Indexers
-        env.events().publish(
-            (Symbol::new(&env, "risk_set"), user),
-            (score, tier, chosen_tier),
-        );
+        env.events()
+            .publish((Symbol::new(&env, "risk_set"), user), (score, tier, chosen_tier));
     }
 
     /// Get complete risk and tier data for user
@@ -191,7 +189,7 @@ impl RiskTierContract {
 
             // Emit Event for Indexers
             env.events()
-                .publish((Symbol::new(&env, "tier_updated"), user), new_chosen_tier);
+            .publish((Symbol::new(&env, "tier_updated"),), new_chosen_tier);
         }
     }
 
