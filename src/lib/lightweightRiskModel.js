@@ -41,6 +41,11 @@ const NORMALIZATION = {
  * @returns {Object} Risk analysis result
  */
 export function calculateRiskScore(metrics) {
+  if (!metrics || typeof metrics !== 'object') {
+    console.error('calculateRiskScore: metrics must be a non-null object');
+    return fallbackRiskCalculation({});
+  }
+
   try {
     // Normalize features to 0-1 range
     const normalizedFeatures = normalizeFeatures(metrics);
@@ -295,7 +300,11 @@ export function getDataQualityScore(metrics) {
   if (metrics.totalPayments > 10) qualityScore += 25;
   if (metrics.uniqueCounterparties > 3) qualityScore += 25;
   if (metrics.assetDiversity > 1) qualityScore += 25;
-  if (metrics.totalPayments > 0) qualityScore += 25;
+  // Award the final 25 points only when there is BOTH payment activity
+  // AND counterparty diversity — the original code checked totalPayments > 0
+  // which is always true when totalPayments > 10 is already satisfied,
+  // making it impossible to ever score less than 50 via this path.
+  if (metrics.totalPayments > 0 && metrics.uniqueCounterparties > 0) qualityScore += 25;
 
   return {
     score: qualityScore,
