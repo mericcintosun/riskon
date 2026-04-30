@@ -109,11 +109,7 @@ impl RiskTierContract {
     /// Get only risk score (backward compatibility)
     pub fn get_score(env: Env, user: Address) -> u32 {
         let key = DataKey::RiskTier(user);
-        if let Some(data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&key)
-        {
+        if let Some(data) = env.storage().persistent().get::<_, RiskTierData>(&key) {
             data.score
         } else {
             0
@@ -143,11 +139,7 @@ impl RiskTierContract {
         user.require_auth();
         let key = DataKey::RiskTier(user.clone());
 
-        if let Some(mut risk_data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&key)
-        {
+        if let Some(mut risk_data) = env.storage().persistent().get::<_, RiskTierData>(&key) {
             // Risk-based tier access control
             // High risk users (>70) can only choose TIER_3 for "opportunity" access
             if risk_data.score > 70 {
@@ -197,11 +189,7 @@ impl RiskTierContract {
     pub fn can_access_tier(env: Env, user: Address, target_tier: Symbol) -> bool {
         let key = DataKey::RiskTier(user);
 
-        if let Some(risk_data) = env
-            .storage()
-            .persistent()
-            .get::<_, RiskTierData>(&key)
-        {
+        if let Some(risk_data) = env.storage().persistent().get::<_, RiskTierData>(&key) {
             let tier_1 = Symbol::new(&env, "TIER_1");
             let tier_2 = Symbol::new(&env, "TIER_2");
             let tier_3 = Symbol::new(&env, "TIER_3");
@@ -273,9 +261,9 @@ mod tests {
 
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
-        
+
         client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
+
         let risk_data = client.get_risk_tier(&user).unwrap();
         assert_eq!(risk_data.score, 25);
         assert_eq!(risk_data.tier, tier_1);
@@ -304,9 +292,9 @@ mod tests {
 
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
+
         client.set_risk_tier(&user, &100, &tier_3, &tier_3);
-        
+
         let score = client.get_score(&user);
         assert_eq!(score, 100);
     }
@@ -320,7 +308,7 @@ mod tests {
 
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
+
         client.set_risk_tier(&user, &101, &tier_3, &tier_3);
     }
 
@@ -333,10 +321,10 @@ mod tests {
         let user = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         let tier_2 = Symbol::new(&env, "TIER_2");
-        
+
         client.set_risk_tier(&user, &25, &tier_1, &tier_1);
         client.update_chosen_tier(&user, &tier_2);
-        
+
         let chosen = client.get_chosen_tier(&user);
         assert_eq!(chosen, tier_2);
     }
@@ -351,14 +339,14 @@ mod tests {
         let attacker = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         let tier_2 = Symbol::new(&env, "TIER_2");
-        
+
         env.mock_all_auths(); // We mock auth for the set_risk_tier call
         client.set_risk_tier(&user, &25, &tier_1, &tier_1);
-        
+
         // Now we try to update without mocking auth for the user, or by pretending to be someone else
         // In Soroban tests, if we don't mock_all_auth, require_auth will fail unless we are in the right context.
         // But mock_all_auth applies to the NEXT call.
-        
+
         // To test unauthorized access specifically:
         env.as_contract(&attacker, || {
             client.update_chosen_tier(&user, &tier_2);
@@ -395,7 +383,7 @@ mod tests {
         let (_admin, client) = setup_test(&env);
         let user = Address::generate(&env);
         let tier_3 = Symbol::new(&env, "TIER_3");
-        
+
         assert!(!client.can_access_tier(&user, &tier_3));
     }
 
@@ -409,10 +397,10 @@ mod tests {
         let user2 = Address::generate(&env);
         let tier_1 = Symbol::new(&env, "TIER_1");
         let tier_2 = Symbol::new(&env, "TIER_2");
-        
+
         client.set_risk_tier(&user1, &20, &tier_1, &tier_1);
         client.set_risk_tier(&user2, &50, &tier_2, &tier_2);
-        
+
         let stats = client.get_tier_stats();
         assert_eq!(stats.get(tier_1).unwrap(), 1);
         assert_eq!(stats.get(tier_2).unwrap(), 1);
