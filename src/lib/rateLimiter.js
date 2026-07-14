@@ -50,6 +50,16 @@ export async function checkRateLimit(walletAddress) {
     }
 
     // Fallback to legacy localStorage check for migration
+    // Guard against SSR environments where localStorage is not available
+    if (typeof localStorage === 'undefined') {
+      return {
+        canUpdate: true,
+        remainingTime: 0,
+        lastUpdate: null,
+        nextUpdateTime: null,
+      };
+    }
+
     const lastUpdateKey = `risk_score_last_update_${walletAddress}`;
     const lastUpdate = localStorage.getItem(lastUpdateKey);
 
@@ -189,8 +199,10 @@ export async function clearRateLimit(walletAddress) {
 /**
  * Get all rate limited wallets (for debugging)
  */
-export function getAllRateLimits() {
+export async function getAllRateLimits() {
   try {
+    if (typeof localStorage === 'undefined') return [];
+
     const rateLimits = [];
 
     for (let i = 0; i < localStorage.length; i++) {
@@ -198,7 +210,8 @@ export function getAllRateLimits() {
       if (key && key.startsWith("risk_score_last_update_")) {
         const walletAddress = key.replace("risk_score_last_update_", "");
         const lastUpdate = parseInt(localStorage.getItem(key));
-        const status = checkRateLimit(walletAddress);
+        // checkRateLimit is async — must be awaited to get the resolved value
+        const status = await checkRateLimit(walletAddress);
 
         rateLimits.push({
           walletAddress,
