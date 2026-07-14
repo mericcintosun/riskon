@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useWallet } from "../contexts/WalletContext";
+import { useSwipeToClose } from "../hooks/useMobileGestures";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -168,13 +169,14 @@ export default function Header() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700/50 transition-colors duration-200 hover:bg-slate-700/50"
+              className="lg:hidden w-12 h-12 flex items-center justify-center rounded-xl bg-slate-800/50 border border-slate-700/50 transition-colors duration-200 hover:bg-slate-700/50 touch-manipulation"
               aria-label="Toggle mobile menu"
+              aria-expanded={isMobileMenuOpen}
             >
-              <div className="w-5 h-5 flex flex-col justify-center space-y-1">
+              <div className="w-6 h-6 flex flex-col justify-center space-y-1.5">
                 <span
                   className={`block w-full h-0.5 bg-white transition-all duration-300 ${
-                    isMobileMenuOpen ? "rotate-45 translate-y-1.5" : ""
+                    isMobileMenuOpen ? "rotate-45 translate-y-2" : ""
                   }`}
                 />
                 <span
@@ -184,7 +186,7 @@ export default function Header() {
                 />
                 <span
                   className={`block w-full h-0.5 bg-white transition-all duration-300 ${
-                    isMobileMenuOpen ? "-rotate-45 -translate-y-1.5" : ""
+                    isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""
                   }`}
                 />
               </div>
@@ -199,20 +201,21 @@ export default function Header() {
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none"
           }`}
+          {...useSwipeToClose(closeMobileMenu, isMobileMenuOpen)}
         >
-          <div className="h-full overflow-y-auto">
-            <div className="px-4 py-8 space-y-8">
+          <div className="h-full overflow-y-auto pb-20">
+            <div className="px-6 py-8 space-y-8">
               {/* Mobile Navigation */}
-              <nav className="space-y-4">
+              <nav className="space-y-2">
                 {navigation.map((item, index) => (
                   <Link
                     key={item.name}
                     href={item.href}
                     onClick={closeMobileMenu}
-                    className={`block py-3 px-4 text-lg font-medium text-slate-300 hover:text-white transition-all duration-200 rounded-lg hover:bg-slate-800/50 transform hover:translate-x-2`}
+                    className={`block py-4 px-6 text-lg font-medium text-slate-300 hover:text-white transition-all duration-200 rounded-xl hover:bg-slate-800/50 transform hover:translate-x-2 touch-manipulation`}
                     style={{
                       animationDelay: isMobileMenuOpen
-                        ? `${index * 100}ms`
+                        ? `${index * 50}ms`
                         : "0ms",
                     }}
                   >
@@ -225,21 +228,21 @@ export default function Header() {
               <div className="pt-8 border-t border-slate-800">
                 {walletAddress ? (
                   <div className="space-y-4">
-                    <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm text-slate-300">
+                    <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-base text-slate-300">
                           Connected Wallet
                         </span>
                       </div>
-                      <div className="text-sm text-slate-400">{walletName}</div>
-                      <div className="text-xs text-slate-500 font-mono mt-1">
+                      <div className="text-base text-slate-400 mb-1">{walletName}</div>
+                      <div className="text-sm text-slate-500 font-mono">
                         {formatAddress(walletAddress)}
                       </div>
                     </div>
                     <button
                       onClick={handleDisconnectWallet}
-                      className="w-full py-3 px-4 text-center text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-all duration-200 hover:bg-slate-800/50"
+                      className="w-full py-4 px-6 text-center text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 rounded-xl transition-all duration-200 hover:bg-slate-800/50 touch-manipulation"
                     >
                       Disconnect Wallet
                     </button>
@@ -248,10 +251,10 @@ export default function Header() {
                   <button
                     onClick={handleConnectWallet}
                     disabled={isLoading}
-                    className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                   >
                     {isLoading ? (
-                      <div className="flex items-center justify-center space-x-2">
+                      <div className="flex items-center justify-center space-x-3">
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         <span>Connecting...</span>
                       </div>

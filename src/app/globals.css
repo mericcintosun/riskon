@@ -8,12 +8,16 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
   }
 
   body {
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Modern Scrollbar */
@@ -27,9 +31,18 @@
 
   ::-webkit-scrollbar-thumb {
     border-radius: 3px;
+    background: rgba(255, 255, 255, 0.3);
   }
 
   ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    body {
+      font-size: 16px;
+    }
   }
 }
 
@@ -42,6 +55,9 @@
     @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent;
     @apply transform hover:scale-[1.02] active:scale-[0.98];
     @apply border border-transparent;
+    @apply touch-manipulation;
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .btn-primary {
@@ -50,6 +66,18 @@
     @apply shadow-lg shadow-blue-500/25 hover:shadow-purple-500/40;
     @apply focus:ring-purple-500;
     @apply transform hover:scale-105 active:scale-95;
+  }
+
+  /* Mobile-specific button adjustments */
+  @media (max-width: 768px) {
+    .btn-modern {
+      @apply px-4 py-3 text-sm;
+      min-height: 48px;
+    }
+    
+    .btn-primary {
+      @apply px-6 py-4;
+    }
   }
 
   .btn-secondary {
@@ -98,26 +126,26 @@
 
   /* Modern Typography */
   .text-hero {
-    @apply text-5xl md:text-6xl lg:text-7xl font-bold font-montserrat;
+    @apply text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold font-montserrat;
     @apply bg-gradient-to-br from-white via-gray-100 to-gray-300;
     @apply bg-clip-text text-transparent;
     @apply leading-tight tracking-tight;
   }
 
   .text-heading {
-    @apply text-3xl md:text-4xl font-bold font-montserrat;
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold font-montserrat;
     @apply bg-gradient-to-r from-white to-gray-200;
     @apply bg-clip-text text-transparent;
     @apply leading-tight;
   }
 
   .text-subheading {
-    @apply text-xl md:text-2xl font-semibold font-montserrat;
+    @apply text-lg sm:text-xl md:text-2xl font-semibold font-montserrat;
     @apply text-white/90;
   }
 
   .text-body {
-    @apply text-base md:text-lg text-white/70 font-montserrat;
+    @apply text-sm sm:text-base md:text-lg text-white/70 font-montserrat;
     @apply leading-relaxed;
   }
 
@@ -332,6 +360,7 @@
 .mobile-menu-modern {
   @apply fixed inset-0 z-50 bg-black/80 backdrop-blur-xl;
   @apply transform transition-all duration-300 ease-out;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-menu-modern.closed {
@@ -340,4 +369,50 @@
 
 .mobile-menu-modern.open {
   @apply translate-x-0 opacity-100;
+}
+
+/* Touch gesture support */
+.touch-target {
+  @apply touch-manipulation;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Mobile performance optimizations */
+@media (max-width: 768px) {
+  .card-modern {
+    @apply p-4 sm:p-6;
+  }
+  
+  .card-glass {
+    @apply p-4 sm:p-6;
+  }
+  
+  .section-modern {
+    @apply py-12 sm:py-16 lg:py-20;
+  }
+  
+  .section-compact {
+    @apply py-8 sm:py-10 lg:py-12;
+  }
+  
+  /* Reduce motion for mobile performance */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-scale-in {
+      animation: none;
+    }
+    
+    .card-hover {
+      @apply transform-none;
+    }
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .border-modern {
+    border-width: 0.5px;
+  }
 }
