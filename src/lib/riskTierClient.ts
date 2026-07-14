@@ -26,7 +26,8 @@ import { getCache, setCache, invalidateCache } from "./cacheManager";
 import { dispatchCacheEvent } from "../hooks/useCacheInvalidation";
 import { CACHE_KEYS } from "../types/cache";
 
-const horizonServer = new Server("https://horizon-testnet.stellar.org");
+// NOTE: Horizon account loading is handled inside resolveSourceAccount() using
+// Horizon.Server directly. A module-level horizonServer constant is not needed.
 
 // ─── Type Definitions ──────────────────────────────────────────────
 
@@ -150,6 +151,7 @@ const RISK_TIER_CACHE_TTL = 15 * 60 * 1000; // 15 minutes for risk tier data
  * Type-Safe Risk Tier Contract Client
  * Following Soroban CLI TypeScript bindings pattern
  * Enhanced with intelligent caching
+ */
 // ─── Contract Client (Fixes #16) ──────────────────────────────────
 
 /**
