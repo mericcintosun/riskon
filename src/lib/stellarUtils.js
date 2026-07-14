@@ -767,3 +767,29 @@ export const stellarIntegration = new StellarBlendIntegration();
 
 // Export utility functions - only export the function, not the classes
 export { initializeStellarSDK };
+
+/**
+ * Shorten a Stellar address for display (e.g., GABC...XYZ)
+ * @param {string} address The full Stellar address
+ * @param {number} chars Number of characters to show on each end
+ * @returns {string} Shortened address
+ */
+export function shortenAddress(address, chars = 4) {
+  if (!address || address.length < chars * 2 + 3) return address;
+  return `${address.slice(0, chars)}...${address.slice(-chars)}`;
+}
+
+/**
+ * Format a raw amount of stroops or big integer to a human-readable string
+ * @param {string|number|BigInt} amount The amount to format
+ * @param {number} decimals Number of decimal places
+ * @returns {string} Formatted string
+ */
+export function formatAmount(amount, decimals = 7) {
+  if (amount === undefined || amount === null) return "0.00";
+  const numericAmount = typeof amount === "string" ? parseFloat(amount) : Number(amount);
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: decimals,
+  }).format(numericAmount);
+}
