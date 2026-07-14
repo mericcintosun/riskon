@@ -216,3 +216,23 @@ docker run -p 6379:6379 redis
 - [Soroban Documentation](https://soroban.stellar.org/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Passkey Kit](https://docs.stellar.org/passkey-kit)
+
+## Project Structure
+Explain where core logic lives:
+- app / pages
+- components
+- lib / utils
+- blockchain / contract integration
+- AI / scoring related logic
+
+## Local Development Workflow
+1. install dependencies
+2. configure env variables
+3. run dev server
+4. run tests before submitting changes
+
+## Documentation Expectations
+When adding a new module or utility:
+- include comments for non-obvious logic
+- document public interfaces
+- keep README and development docs in sync
