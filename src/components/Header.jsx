@@ -86,6 +86,7 @@ export default function Header() {
     { name: "Home", href: "/" },
     { name: "Features", href: "/features" },
     { name: "Pool Risk", href: "/pools" },
+    { name: "Asset Risk", href: "/assets" },
     { name: "Technologies", href: "/technologies" },
     { name: "Pricing", href: "/pricing" },
     { name: "How It Works", href: "/how-it-works" },

@@ -80,17 +80,17 @@ export default function WalletProvider({ children }) {
           <div className="container mx-auto px-4 py-8">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <h2 className="text-lg font-semibold text-yellow-800 mb-2">
-                ⚠️ Wallet Provider Hatası
+                ⚠️ Wallet Provider Error
               </h2>
               <p className="text-yellow-700 text-sm mb-3">
-                SorobanReactProvider başlatılamadı. Bu genellikle Freighter
-                extension sorunlarından kaynaklanır.
+                SorobanReactProvider failed to start. This is usually caused by a
+                problem with the Freighter extension.
               </p>
               <button
                 onClick={() => window.location.reload()}
                 className="bg-yellow-600 text-white px-4 py-2 rounded text-sm hover:bg-yellow-700"
               >
-                Sayfayı Yenile
+                Reload page
               </button>
             </div>
             {children}
