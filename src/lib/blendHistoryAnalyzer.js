@@ -1,415 +1,165 @@
 "use client";
 
 /**
- * Blend Protocol History Analyzer
- * Analyzes user's past lending, borrowing, and repayment behavior
+ * A wallet's real Blend activity, read from Horizon.
+ *
+ * WHAT THIS REPLACES
+ * ------------------
+ * The previous version could never match anything, so it always reported "No
+ * Blend Protocol History Found" no matter what a wallet had done:
+ *
+ *   * Its contract list was two placeholders, self-labelled "Example Blend pool"
+ *     and "Another pool". Neither is a Blend pool.
+ *   * It matched with `op.source_account === contract`. For a Soroban call,
+ *     source_account is always the invoker (G...), never the contract.
+ *   * Its fallback matched `JSON.stringify(op.parameters).includes(contract)`.
+ *     Horizon returns parameters as base64 XDR, so a C... address never appears
+ *     as readable text there — that check cannot fire either.
+ *
+ * It also fabricated what it did report: liquidity contribution was
+ * `(totalLendVolume / 10000) * 100` with the comment "Assume pool TVL ~10k", and
+ * that invented percentage gated a +5 score bonus.
+ *
+ * HOW DETECTION ACTUALLY WORKS
+ * ----------------------------
+ * Verified against a real Blend supply this project made
+ * (tx b3469518f9be9794e25fd7111fe219175676c0cd0f207fc5da1f976a6bd290f5):
+ *   * parameters[0] is the invoked contract as an XDR ScVal Address — decode it
+ *     and compare to the pool id. Horizon's own `address` field is empty for
+ *     invoke_host_function, so it cannot be used.
+ *   * parameters[1] is the function symbol, e.g. `submit`.
+ *   * asset_balance_changes carries the real transfers, with real amounts.
+ *
+ * NO SCORE IMPACT IS COMPUTED HERE. The old UI promised this history could
+ * "influence your credit score", but the callback it relied on was never wired
+ * (the component declared no props), so the feature was inert. Rather than make
+ * an invented bonus real, the promise is gone: the risk model is a calibrated
+ * population percentile, and bolting an ad-hoc bonus onto it would uncalibrate
+ * the only thing that makes it meaningful.
  */
+
+import { xdr, Address } from "@stellar/stellar-sdk";
+
+import { BLEND_CONTRACTS } from "./blendConfig";
 
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
+const PAGE_LIMIT = 200;
+const MAX_PAGES = 5;
 
-// Known Blend Protocol contract addresses (testnet)
-const BLEND_CONTRACTS = [
-  "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQAOBKXN7AEO", // Example Blend pool
-  "CB64D3G7SM2RTH6JSGG34DDTFTQ5CFDKVDZJZSODMCX4NJ2HV2KN7OHT", // Another pool
-  // Add more known Blend contract addresses
-];
+/** Pools whose activity counts as Blend activity. Real, from blendConfig. */
+const BLEND_POOL_IDS = new Set([BLEND_CONTRACTS.MAIN_POOL_V2]);
 
-/**
- * Analyze user's Blend Protocol history
- * @param {string} walletAddress - User's Stellar address
- * @returns {Promise<Object>} Historical performance analysis
- */
-export async function analyzeBlendHistory(walletAddress) {
+async function getJson(url) {
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Horizon ${res.status}`);
+  return res.json();
+}
+
+/** Decode the contract a Soroban operation invoked, or null. */
+export function invokedContract(op) {
+  const first = op?.parameters?.[0];
+  if (!first || first.type !== "Address") return null;
   try {
-    // Fetch all transactions for the user
-    const transactions = await fetchAllUserTransactions(walletAddress);
+    return Address.fromScVal(xdr.ScVal.fromXDR(first.value, "base64")).toString();
+  } catch {
+    return null;
+  }
+}
 
-    // Filter Blend-related transactions
-    const blendTransactions = await filterBlendTransactions(transactions);
+/** Decode the invoked function name, or null. */
+export function invokedFunction(op) {
+  const second = op?.parameters?.[1];
+  if (!second) return null;
+  try {
+    return xdr.ScVal.fromXDR(second.value, "base64").sym().toString();
+  } catch {
+    return null;
+  }
+}
 
-    // Analyze lending and borrowing patterns
-    const behaviorMetrics = analyzeBehaviorMetrics(
-      blendTransactions,
-      walletAddress
-    );
+async function fetchOperations(address) {
+  const out = [];
+  let url = `${HORIZON_URL}/accounts/${address}/operations?order=desc&limit=${PAGE_LIMIT}&include_failed=false`;
 
-    // Calculate score impact
-    const scoreImpact = calculateScoreImpact(behaviorMetrics);
+  for (let page = 0; page < MAX_PAGES && url; page++) {
+    const data = await getJson(url);
+    const records = data?._embedded?.records ?? [];
+    if (records.length === 0) break;
+    out.push(...records);
+    url = records.length === PAGE_LIMIT ? data?._links?.next?.href : null;
+  }
 
-    // Generate performance insights
-    const insights = generatePerformanceInsights(behaviorMetrics);
+  return out;
+}
 
-    const result = {
-      success: true,
-      metrics: behaviorMetrics,
-      scoreImpact,
-      insights,
-      transactionCount: blendTransactions.length,
-      timestamp: Date.now(),
-    };
-
-    return result;
-  } catch (error) {
-    console.error("❌ Blend history analysis failed:", error);
+/**
+ * Real Blend interactions for a wallet.
+ * Returns { supported: false } for smart wallets — Horizon's /accounts endpoints
+ * are ed25519-only and answer 400 for a contract address.
+ */
+export async function analyzeBlendHistory(address) {
+  if (typeof address !== "string" || !address.startsWith("G")) {
     return {
-      success: false,
-      error: error.message,
-      metrics: null,
-      scoreImpact: 0,
+      supported: false,
+      reason:
+        "Blend history is read from Horizon's account operations, which exist for account addresses (G...) only.",
     };
   }
-}
 
-/**
- * Fetch all user transactions (not limited to 30 days)
- */
-async function fetchAllUserTransactions(walletAddress) {
-  let allTransactions = [];
-  let cursor = null;
-  let hasMore = true;
-  let pageCount = 0;
+  const operations = await fetchOperations(address);
 
-  while (hasMore && pageCount < 50) {
-    // Safety limit
-    try {
-      let url = `${HORIZON_URL}/accounts/${walletAddress}/transactions?order=desc&limit=200`;
-      if (cursor) {
-        url += `&cursor=${cursor}`;
-      }
+  const interactions = [];
+  for (const op of operations) {
+    if (op.type !== "invoke_host_function") continue;
 
-      const response = await fetch(url);
-      const data = await response.json();
+    const contract = invokedContract(op);
+    if (!contract || !BLEND_POOL_IDS.has(contract)) continue;
 
-      if (!data._embedded || !data._embedded.records) {
-        break;
-      }
+    // Real amounts, from the transfers the ledger actually recorded.
+    const transfers = (op.asset_balance_changes ?? []).map((c) => ({
+      assetType: c.asset_type,
+      assetCode: c.asset_code ?? "XLM",
+      amount: parseFloat(c.amount) || 0,
+      direction: c.from === address ? "out" : "in",
+    }));
 
-      const records = data._embedded.records;
-      allTransactions.push(...records);
-
-      // Check for next page
-      cursor = data._links?.next?.href
-        ? new URL(data._links.next.href).searchParams.get("cursor")
-        : null;
-
-      if (!cursor || records.length < 200) {
-        hasMore = false;
-      }
-
-      pageCount++;
-    } catch (error) {
-      console.warn(`⚠️ Error fetching transaction page ${pageCount}:`, error);
-      break;
-    }
-  }
-
-  return allTransactions;
-}
-
-/**
- * Filter transactions that involve Blend Protocol contracts
- */
-async function filterBlendTransactions(transactions) {
-  const blendTransactions = [];
-
-  for (const tx of transactions) {
-    try {
-      // Get transaction operations
-      const operationsResponse = await fetch(
-        `${HORIZON_URL}/transactions/${tx.id}/operations`
-      );
-      const operationsData = await operationsResponse.json();
-
-      if (operationsData._embedded && operationsData._embedded.records) {
-        const operations = operationsData._embedded.records;
-
-        // Check if any operation involves Blend contracts
-        const hasBlendOperation = operations.some((op) => {
-          // Check for invoke_host_function operations (Soroban contract calls)
-          if (op.type === "invoke_host_function") {
-            return BLEND_CONTRACTS.some(
-              (contract) =>
-                op.source_account === contract ||
-                (op.parameters &&
-                  JSON.stringify(op.parameters).includes(contract))
-            );
-          }
-
-          // Check for payments to/from Blend contracts
-          if (op.type === "payment") {
-            return (
-              BLEND_CONTRACTS.includes(op.from) ||
-              BLEND_CONTRACTS.includes(op.to)
-            );
-          }
-
-          return false;
-        });
-
-        if (hasBlendOperation) {
-          blendTransactions.push({
-            ...tx,
-            operations: operations,
-          });
-        }
-      }
-    } catch (error) {
-      console.warn(`⚠️ Error analyzing transaction ${tx.id}:`, error);
-    }
-  }
-
-  return blendTransactions;
-}
-
-/**
- * Analyze lending and borrowing behavior metrics
- */
-function analyzeBehaviorMetrics(blendTransactions, walletAddress) {
-  let totalLendVolume = 0;
-  let totalBorrowVolume = 0;
-  let totalRepaid = 0;
-  let latePayments = 0;
-  let onTimePayments = 0;
-  let liquidityContributions = [];
-
-  const transactionHistory = [];
-
-  blendTransactions.forEach((tx) => {
-    tx.operations?.forEach((op) => {
-      const txDate = new Date(tx.created_at);
-      const amount = parseFloat(op.amount || 0);
-
-      // Analyze operation type based on function name or operation type
-      let operationType = "unknown";
-      let status = "completed";
-
-      if (op.type === "invoke_host_function") {
-        // Try to determine operation type from function name
-        const functionName = op.function_name || "";
-        if (functionName.includes("supply") || functionName.includes("lend")) {
-          operationType = "lend";
-          totalLendVolume += amount;
-        } else if (functionName.includes("borrow")) {
-          operationType = "borrow";
-          totalBorrowVolume += amount;
-        } else if (functionName.includes("repay")) {
-          operationType = "repay";
-          totalRepaid += amount;
-
-          // Simple heuristic for late payment detection
-          // In real implementation, this would check against due dates
-          const daysSinceTransaction =
-            (Date.now() - txDate.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSinceTransaction > 30) {
-            latePayments++;
-            status = "late";
-          } else {
-            onTimePayments++;
-            status = "on_time";
-          }
-        }
-      } else if (op.type === "payment") {
-        // Determine if it's lending or borrowing based on direction
-        if (op.from === walletAddress) {
-          operationType = "lend";
-          totalLendVolume += amount;
-        } else if (op.to === walletAddress) {
-          operationType = "borrow";
-          totalBorrowVolume += amount;
-        }
-      }
-
-      if (operationType !== "unknown" && amount > 0) {
-        transactionHistory.push({
-          date: txDate,
-          type: operationType,
-          amount: amount,
-          status: status,
-          txId: tx.id,
-        });
-      }
+    interactions.push({
+      hash: op.transaction_hash,
+      at: op.created_at,
+      pool: contract,
+      action: invokedFunction(op) ?? "unknown",
+      transfers,
     });
-  });
+  }
 
-  // Calculate repayment rate
-  const repaymentRate =
-    totalBorrowVolume > 0
-      ? Math.min(100, (totalRepaid / totalBorrowVolume) * 100)
-      : 100;
-
-  // Estimate liquidity contribution (simplified)
-  const avgLiquidityContribution =
-    totalLendVolume > 0 ? Math.min(5, (totalLendVolume / 10000) * 100) : 0; // Assume pool TVL ~10k for calculation
+  const allTransfers = interactions.flatMap((i) => i.transfers);
+  const sent = allTransfers
+    .filter((t) => t.direction === "out")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const received = allTransfers
+    .filter((t) => t.direction === "in")
+    .reduce((sum, t) => sum + t.amount, 0);
 
   return {
-    totalLendVolume: Math.round(totalLendVolume * 100) / 100,
-    totalBorrowVolume: Math.round(totalBorrowVolume * 100) / 100,
-    totalRepaid: Math.round(totalRepaid * 100) / 100,
-    repaymentRate: Math.round(repaymentRate * 100) / 100,
-    latePayments,
-    onTimePayments,
-    liquidityContribution: Math.round(avgLiquidityContribution * 100) / 100,
-    transactionHistory: transactionHistory.slice(0, 20), // Limit to recent 20 transactions
-    totalTransactions: transactionHistory.length,
-  };
-}
-
-/**
- * Calculate score impact based on behavior metrics
- */
-function calculateScoreImpact(metrics) {
-  let scoreChange = 0;
-  const impacts = [];
-
-  // Repayment rate impact
-  if (metrics.repaymentRate >= 90) {
-    scoreChange += 10;
-    impacts.push({
-      factor: "Excellent Repayment Rate",
-      impact: +10,
-      description: `${metrics.repaymentRate}% repayment rate`,
-    });
-  } else if (metrics.repaymentRate >= 70) {
-    scoreChange += 5;
-    impacts.push({
-      factor: "Good Repayment Rate",
-      impact: +5,
-      description: `${metrics.repaymentRate}% repayment rate`,
-    });
-  } else if (metrics.repaymentRate < 50) {
-    scoreChange -= 10;
-    impacts.push({
-      factor: "Poor Repayment Rate",
-      impact: -10,
-      description: `${metrics.repaymentRate}% repayment rate`,
-    });
-  }
-
-  // Late payment penalty
-  if (metrics.latePayments > 0) {
-    const penalty = Math.min(15, metrics.latePayments * 3);
-    scoreChange -= penalty;
-    impacts.push({
-      factor: "Late Payments",
-      impact: -penalty,
-      description: `${metrics.latePayments} late payments`,
-    });
-  }
-
-  // Liquidity contribution bonus
-  if (metrics.liquidityContribution >= 1) {
-    scoreChange += 5;
-    impacts.push({
-      factor: "Significant Liquidity Contribution",
-      impact: +5,
-      description: `${metrics.liquidityContribution}% liquidity contribution`,
-    });
-  }
-
-  // Volume bonus (for active users)
-  if (metrics.totalLendVolume > 1000) {
-    scoreChange += 3;
-    impacts.push({
-      factor: "High Lending Volume",
-      impact: +3,
-      description: `${metrics.totalLendVolume} XLM total lending`,
-    });
-  }
-
-  return {
-    totalChange: Math.max(-25, Math.min(25, scoreChange)), // Cap at ±25 points
-    impacts,
-    breakdown: {
-      repaymentBonus:
-        impacts.find((i) => i.factor.includes("Repayment"))?.impact || 0,
-      latePaymentPenalty:
-        impacts.find((i) => i.factor === "Late Payments")?.impact || 0,
-      liquidityBonus:
-        impacts.find((i) => i.factor.includes("Liquidity"))?.impact || 0,
-      volumeBonus:
-        impacts.find((i) => i.factor.includes("Volume"))?.impact || 0,
+    supported: true,
+    interactions,
+    summary: {
+      count: interactions.length,
+      // Native asset units, deliberately not converted to USD: there is no price
+      // oracle on this path. The old UI rendered these through
+      // toLocaleString("en-US", { style: "currency", currency: "USD" }).
+      sentNative: Number(sent.toFixed(7)),
+      receivedNative: Number(received.toFixed(7)),
+      firstAt: interactions.at(-1)?.at ?? null,
+      lastAt: interactions[0]?.at ?? null,
+    },
+    meta: {
+      pools: [...BLEND_POOL_IDS],
+      source:
+        "Horizon /accounts/{id}/operations; contract decoded from parameters[0]",
+      scanned: operations.length,
+      truncated: operations.length >= PAGE_LIMIT * MAX_PAGES,
     },
   };
-}
-
-/**
- * Generate performance insights and recommendations
- */
-function generatePerformanceInsights(metrics) {
-  const insights = [];
-
-  if (metrics.totalTransactions === 0) {
-    insights.push({
-      type: "info",
-      message: "No Blend Protocol history found",
-      recommendation: "Start by making your first lending transaction",
-    });
-    return insights;
-  }
-
-  if (metrics.repaymentRate >= 90) {
-    insights.push({
-      type: "positive",
-      message: "Excellent repayment history",
-      recommendation: "Your risk score has been improved",
-    });
-  } else if (metrics.repaymentRate < 70) {
-    insights.push({
-      type: "warning",
-      message: "Low repayment rate",
-      recommendation: "Pay debts on time",
-    });
-  }
-
-  if (metrics.latePayments > 0) {
-    insights.push({
-      type: "negative",
-      message: `${metrics.latePayments} late payments detected`,
-      recommendation: "Make future payments on time",
-    });
-  }
-
-  if (metrics.totalLendVolume > metrics.totalBorrowVolume * 2) {
-    insights.push({
-      type: "positive",
-      message: "Active liquidity provider",
-      recommendation: "Bonus points for your contribution to the protocol",
-    });
-  }
-
-  return insights;
-}
-
-/**
- * Get cached Blend history if available
- */
-export function getCachedBlendHistory(walletAddress) {
-  try {
-    const cached = localStorage.getItem(`blend_history_${walletAddress}`);
-    if (cached) {
-      const data = JSON.parse(cached);
-      // Cache valid for 1 hour
-      const hourAgo = Date.now() - 60 * 60 * 1000;
-      if (data.timestamp > hourAgo) {
-        return data;
-      }
-    }
-  } catch (error) {
-    console.warn(`⚠️ Error reading cached Blend history:`, error);
-  }
-  return null;
-}
-
-/**
- * Cache Blend history analysis
- */
-export function cacheBlendHistory(walletAddress, analysisData) {
-  try {
-    localStorage.setItem(
-      `blend_history_${walletAddress}`,
-      JSON.stringify(analysisData)
-    );
-  } catch (error) {
-    console.warn(`⚠️ Error caching Blend history:`, error);
-  }
 }

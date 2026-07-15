@@ -1,6 +1,20 @@
-# 🚀 Anti-Gravity Transaction Engine
+# Anti-Gravity Transaction Engine
 
-The **Anti-Gravity Transaction Engine** is a production-grade, self-healing execution layer designed for the Riskon and Stellar AgentKit ecosystems. It prevents transaction pipelines from collapsing under adverse network conditions—such as RPC timeouts, rate limits, and partial finality—guaranteeing deterministic, exactly-once execution.
+> **Status: not wired into the app.** Nothing in `src/` imports this module. The
+> code is real — the error taxonomy maps actual Horizon/Soroban `result_codes`,
+> and the backoff scheduler is genuine exponential backoff with jitter — but it
+> is a library sitting on the shelf, not a layer any Riskon request passes
+> through. Read the examples below as a proposal, not a description of what runs.
+>
+> **It cannot guarantee exactly-once as shipped.** The only `IStateStore`
+> implementation here is `InMemoryStateStore` (a `Map`, `state.ts`), which loses
+> every record on restart — so the idempotency guard cannot survive the crash it
+> exists to protect against. Exactly-once needs a durable store (Redis, Postgres)
+> behind the same interface. Until one exists, this is at-least-once with good
+> retry behaviour.
+
+A self-healing execution layer for Soroban transaction pipelines: it aims to keep
+them from collapsing under RPC timeouts, rate limits, and partial finality.
 
 ## 1. System Architecture
 
