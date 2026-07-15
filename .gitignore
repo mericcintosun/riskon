@@ -59,3 +59,6 @@ test_snapshots/
 
 # Misc build/scratch
 /backend/node_modules/
+
+# Local clone of the passkey SDK used for reference; not part of this project.
+temp-passkey-latest/
