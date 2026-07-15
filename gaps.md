@@ -58,19 +58,29 @@
 
 ---
 
-## ⚠️ İnceleme gerektiren davranış değişikliği
+## ⚠️ Modelin dürüst tanımı (v2.0.0-empirical)
 
-**Risk modeli yeniden kalibre edildi** — `src/lib/lightweightRiskModel.js`
-- Ters skor düzeltildikten sonra model hâlâ her profili **48-67** aralığına sıkıştırıyordu, yani **hiçbir zaman TIER_1/TIER_3 atamıyordu** — üstelik 30/70 eşikleri kontrata gömülü (`can_access_tier`), yani model kendi tüketicisinin sözleşmesini karşılamıyordu.
-- Ağırlık **oranları korunarak** büyüklükler ölçeklendi, bias 0.45 → 0.35.
-- Sonuç: mükemmel → 28 (TIER_1), ortalama → 52 (TIER_2), riskli → 75 (TIER_3).
-- **Açık uyarı:** bu model hâlâ **elle uydurulmuş sezgisel bir skordur** ("trained on a hypothetical dataset"), doğrulanmış bir risk modeli değil. Anlamlı olması için ağırlıkların ve 30/70 eşiklerinin gerçek Stellar verisinden türetilmesi gerekir. Site "AI-Powered Risk Scoring" diyor — bu iddia şu an fazla.
+**Skor artık ampirik olarak kalibre** — `src/lib/lightweightRiskModel.js` + `src/lib/riskCalibration.js`
+- Normalizasyon artık **gerçek Stellar popülasyonunun persentilleri** üzerinden (300 gerçek mainnet cüzdanından, `scripts/calibrate-risk-model.mjs` ile yeniden üretilebilir).
+- **Skor = "bu cüzdan gerçek Stellar cüzdanlarına kıyasla nerede duruyor"** (0-100 persentil).
+
+**Ama hâlâ bir risk TAHMİNİ değil.** Ağırlıkların yönü/oranı hâlâ elle konmuş sezgi; kalibre edilen şey dağılım, ağırlıkların *doğruluğu* değil. Doğrulanmış bir temerrüt modeli için **sonuç etiketi** (temerrüt/likidasyon) gerekir — Stellar'da açık böyle bir veri seti yok (bkz. aşağıdaki not). Site "AI-Powered Risk Scoring" diyor; dürüst tanım: **popülasyona göreli aktivite skoru**.
+
+### Kalan bilinen zayıflık: nightDayRatio
+Ölçülen: 200 ödemelik pencere medyan cüzdanda sadece **~0.64 gün**'ü kapsıyor (p95: 10 gün). Bu kadar kısa pencerede "gece/gündüz oranı" davranış değil, cüzdanın günün hangi saatinde aktif olduğunu ölçüyor — büyük ölçüde gürültü. Ayrıca gece penceresi 9 saat / gündüz 15 saat olduğu için 7/24 aktif bir cüzdanın *beklenen* oranı ≈ 0.6, yani taban sıfır değil. Özellik hâlâ en yüksek ağırlıklı "risk" sinyali (+0.875) — zaman-pencereli bir yeniden tanım gerekiyor.
 
 ---
 
 ## ✅ Çözülenler
 
-### Bu turda (risk oracle çalışması)
+### Bu turda (ampirik kalibrasyon)
+- **Uydurma normalizasyon sınırları → gerçek popülasyon persentilleri.** Ölçüm: gerçek mainnet cüzdanlarına karşı sınırlar **3-3300 kat** yanlıştı (`totalVolume` max 10.000 iken gerçek medyan **33.000.000**). `min(1, value/(max-min))` doyuyordu: cüzdanların **%88'i** totalVolume'u tam 1.0'a, **%83'ü** assetDiversity'yi 1.0'a kırpıyordu → iki özellik **sabit**, sıfır bilgi. Sonuç: gerçek 200 cüzdanın **%92'si TIER_2**.
+- **Kompozit de kalibre edildi.** Sadece özellikleri düzeltmek yetmedi (%96.5 TIER_2): ~bağımsız özelliklerin ağırlıklı toplamı MLT gereği ortalama etrafında yoğunlaşıyor, sigmoid daha da sıkıştırıyor. Kompozit kendi popülasyon persentiline eşlendi → dağılım inşaen uniform.
+- **Ölçülen sonuç (aynı gerçek 200 cüzdan):** skor p5-p95 `29-56` → **`4-92`**; farklı skor `38` → **`86`**; tier `%7/%92/%1` → **`%32/%36/%32`**; doygun özellik `2` → **`0`**.
+- **Önceki kalibrasyonum yanlıştı** — kurgusal test fixture'larına fit edilmişti (`totalVolume: 8000`, gerçek medyan 33M). Testler artık gerçek dağılımın persentillerine çapalı.
+- **Örneklem yanlılığı bulundu ve düzeltildi:** `/transactions`'tan hesap toplamak %100 `invoke_host_function` (Soroban bot) getiriyor — bu kayıtlarda `from/to/amount` yok, formül onları sessizce **0** okuyor. Örneklem ağ genelindeki `/payments`'a çevrildi.
+
+### Önceki turda (risk oracle çalışması)
 - **Skor artık self-report edilemiyor (eski #4)** → Yeni sunucu tarafı oracle: `src/app/api/risk/attest` + `src/lib/server/riskOracle.js`. Skor, **sunucunun Horizon'dan kendi çektiği** veriden türetiliyor ve `admin_set_risk_tier` ile kontrat admin anahtarıyla imzalanıyor. Tarayıcının skor gönderdiği iki yol (`AutomatedRiskAnalyzer`, `page.js` — ki ikincisi kullanıcının **elle girdiği form değerlerini** yazıyordu) kaldırıldı; `src/app/lib/writeScore.js` tamamen **silindi**.
 - **On-chain yazma yolu artık çalışıyor (eski #3)** → Oracle `prepareTransaction()` ile simüle edip footprint + resource fee + **auth entry**'leri ekliyor, sonra imzalayıp gönderiyor. Gerçek testnet tx ile doğrulandı: `3f983a678bf191d0ed7b790d507b7f14a80e55314ff18cd7382e2d0d4caefb00` → zincirde `{"score":57,"tier":"TIER_2"}`, `can_access_tier(TIER_2)` → `true`.
 - **Rate limit artık sunucuda (eski #5)** → Kontratın kendi `timestamp` alanından okunuyor (stateless, client'tan temizlenemez). 2. çağrı **HTTP 429** + `retry_after` ile doğrulandı.

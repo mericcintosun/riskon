@@ -7,11 +7,13 @@ import { calculateRiskScore } from '../lightweightRiskModel';
 describe('Lightweight Risk Model', () => {
   describe('Score Calculation', () => {
     test('should calculate low risk score for excellent profile', () => {
+      // Anchored to the real Stellar distribution (riskCalibration.js):
+      // ~p90 volume/counterparties/assets, ~p10 night activity.
       const metrics = {
-        totalVolume: 8000,
-        uniqueCounterparties: 40,
-        assetDiversity: 8,
-        nightDayRatio: 0.15,
+        totalVolume: 704952329,
+        uniqueCounterparties: 24,
+        assetDiversity: 56,
+        nightDayRatio: 0,
       };
 
       const result = calculateRiskScore(metrics);
@@ -23,11 +25,12 @@ describe('Lightweight Risk Model', () => {
     });
 
     test('should calculate medium risk score for average profile', () => {
+      // ~p50 on every feature: the median real Stellar wallet.
       const metrics = {
-        totalVolume: 3000,
-        uniqueCounterparties: 15,
-        assetDiversity: 4,
-        nightDayRatio: 0.5,
+        totalVolume: 35093963,
+        uniqueCounterparties: 18,
+        assetDiversity: 30,
+        nightDayRatio: 2.28,
       };
 
       const result = calculateRiskScore(metrics);
@@ -38,11 +41,12 @@ describe('Lightweight Risk Model', () => {
     });
 
     test('should calculate high risk score for risky profile', () => {
+      // ~p10 volume/counterparties/assets, ~p90 night activity.
       const metrics = {
-        totalVolume: 500,
-        uniqueCounterparties: 3,
-        assetDiversity: 1,
-        nightDayRatio: 1.8,
+        totalVolume: 61666,
+        uniqueCounterparties: 5,
+        assetDiversity: 4,
+        nightDayRatio: 13.29,
       };
 
       const result = calculateRiskScore(metrics);
@@ -184,18 +188,20 @@ describe('Lightweight Risk Model', () => {
     // It therefore measures how homogeneous the feature vector is, NOT how much
     // data was available.
     test('should report higher confidence for a homogeneous feature vector', () => {
+      // Every feature at ~p50 -> all percentiles ~0.5 -> low variance.
       const homogeneousMetrics = {
-        totalVolume: 5000, // -> 0.5
-        uniqueCounterparties: 25, // -> 0.5
-        assetDiversity: 5.5, // -> 0.5
-        nightDayRatio: 1.0, // -> 0.5
+        totalVolume: 35093963,
+        uniqueCounterparties: 18,
+        assetDiversity: 30,
+        nightDayRatio: 2.28,
       };
 
+      // Extremes on opposite ends -> percentiles near 0 and 1 -> high variance.
       const dispersedMetrics = {
-        totalVolume: 10000, // -> 1.0
-        uniqueCounterparties: 0, // -> 0.0
-        assetDiversity: 10, // -> 1.0
-        nightDayRatio: 0, // -> 0.0
+        totalVolume: 5e9,
+        uniqueCounterparties: 0,
+        assetDiversity: 200,
+        nightDayRatio: 0,
       };
 
       const homogeneousResult = calculateRiskScore(homogeneousMetrics);
@@ -375,25 +381,26 @@ describe('Lightweight Risk Model', () => {
     });
 
     test('should show score progression with improving metrics', () => {
+      // Percentile-anchored: p10 activity -> p50 -> p90 activity.
       const poorMetrics = {
-        totalVolume: 1000,
+        totalVolume: 61666,
         uniqueCounterparties: 5,
-        assetDiversity: 2,
-        nightDayRatio: 1.5,
+        assetDiversity: 4,
+        nightDayRatio: 13.29,
       };
 
       const goodMetrics = {
-        totalVolume: 5000,
-        uniqueCounterparties: 25,
-        assetDiversity: 5,
-        nightDayRatio: 0.3,
+        totalVolume: 35093963,
+        uniqueCounterparties: 18,
+        assetDiversity: 30,
+        nightDayRatio: 2.28,
       };
 
       const excellentMetrics = {
-        totalVolume: 10000,
-        uniqueCounterparties: 50,
-        assetDiversity: 10,
-        nightDayRatio: 0.1,
+        totalVolume: 704952329,
+        uniqueCounterparties: 24,
+        assetDiversity: 56,
+        nightDayRatio: 0,
       };
 
       const poorResult = calculateRiskScore(poorMetrics);
