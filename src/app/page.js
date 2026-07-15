@@ -507,7 +507,8 @@ export default function RiskScoringApp() {
                   Risk Score Analysis
                 </h2>
                 <p className="text-slate-400 text-lg">
-                  Choose your preferred analysis method
+                  Scored against the real Stellar population, from chain data the
+                  server fetches itself
                 </p>
               </div>
 
