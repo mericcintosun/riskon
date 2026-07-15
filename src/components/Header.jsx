@@ -85,6 +85,7 @@ export default function Header() {
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Features", href: "/features" },
+    { name: "Pool Risk", href: "/pools" },
     { name: "Technologies", href: "/technologies" },
     { name: "Pricing", href: "/pricing" },
     { name: "How It Works", href: "/how-it-works" },

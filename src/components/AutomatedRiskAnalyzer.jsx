@@ -398,11 +398,39 @@ export default function AutomatedRiskAnalyzer() {
                   {riskAnalysis ? riskAnalysis.riskScore : "--"}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-[-10px]">
-                  Risk Score
+                  Activity Percentile
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Honest framing: say what this number is, and what it is not.
+              The score is calibrated against ~300 real Stellar wallets, so it is
+              a population percentile — not a probability of default. Nobody can
+              claim the latter on Stellar: there is no public outcome-label
+              (default/liquidation) dataset to validate against. */}
+          {riskAnalysis && (
+            <div className="mb-4 mx-auto max-w-md rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-left">
+              <p className="text-xs leading-relaxed text-slate-400">
+                <span className="font-medium text-slate-300">
+                  Bu skor ne demek:
+                </span>{" "}
+                cüzdanınızın aktivitesi{" "}
+                <strong>gerçek Stellar cüzdanlarının %{riskAnalysis.riskScore}
+                &apos;inden daha &quot;riskli&quot; profilde</strong> (300 gerçek
+                mainnet cüzdanına göre kalibre).{" "}
+                <span className="font-medium text-slate-300">Ne değil:</span> bir
+                temerrüt tahmini değil — zincirde temerrüt/likidasyon etiketi
+                olmadığı için doğrulanmış bir kredi modeli kurulamaz.{" "}
+                <a
+                  href="/pools"
+                  className="text-blue-400 underline hover:text-blue-300"
+                >
+                  Sybil&apos;lenemeyen havuz notlarına bakın →
+                </a>
+              </p>
+            </div>
+          )}
 
           {/* Tier Badge */}
           {riskAnalysis && (

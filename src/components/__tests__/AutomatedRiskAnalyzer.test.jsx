@@ -202,7 +202,10 @@ describe('AutomatedRiskAnalyzer Component', () => {
     test('should show risk score gauge when wallet is connected', () => {
       render(<AutomatedRiskAnalyzer />);
 
-      expect(screen.getByText('Risk Score')).toBeInTheDocument();
+      // The gauge is deliberately labelled "Activity Percentile", not "Risk
+      // Score": it is calibrated against real Stellar wallets, so it reports
+      // where this wallet sits in that population — not a default probability.
+      expect(screen.getByText('Activity Percentile')).toBeInTheDocument();
       expect(screen.getByText('--')).toBeInTheDocument(); // Initial score display
       expect(screen.getByRole('button', { name: /🧠 Start Analysis/ })).toBeInTheDocument();
     });
