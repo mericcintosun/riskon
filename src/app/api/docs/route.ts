@@ -1,8 +1,8 @@
 /**
  * GET /api/docs
- * 
- * API documentation endpoint
- * Provides OpenAPI-like documentation for all endpoints
+ *
+ * API documentation endpoint.
+ * Provides OpenAPI-like documentation for all endpoints.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,164 +11,48 @@ export async function GET(request: NextRequest) {
   const docs = {
     info: {
       title: 'Riskon API Layer',
-      version: '1.0.0',
+      version: '2.0.0',
       description:
-        'Type-safe API routes for liquidity monitoring and cache management',
+        'Pool ratings read from Blend mainnet, server-side wallet risk attestation, and passkey smart-wallet deployment.',
       baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
     },
     endpoints: [
       {
-        path: '/liquidity/pools/all',
-        method: 'GET',
-        description: 'Fetch all liquidity pools with tier classification',
-        parameters: {
-          query: [
-            {
-              name: 'sort',
-              in: 'query',
-              type: 'enum',
-              enum: ['tvl', 'accounts', 'newest'],
-              default: 'tvl',
-              description: 'Field to sort by',
-            },
-            {
-              name: 'order',
-              in: 'query',
-              type: 'enum',
-              enum: ['asc', 'desc'],
-              default: 'desc',
-              description: 'Sort order',
-            },
-            {
-              name: 'limit',
-              in: 'query',
-              type: 'integer',
-              min: 1,
-              max: 200,
-              default: 100,
-              description: 'Maximum number of results',
-            },
-          ],
-        },
-        response: {
-          status: 200,
-          schema: {
-            success: 'boolean',
-            data: 'LiquidityPool[]',
-            timestamp: 'string (ISO-8601)',
-          },
-        },
-        example:
-          'GET /api/liquidity/pools/all?sort=tvl&order=desc&limit=50',
-      },
-      {
-        path: '/liquidity/pools/tier/:tier',
-        method: 'GET',
-        description: 'Fetch liquidity pools filtered by risk tier',
-        parameters: {
-          path: [
-            {
-              name: 'tier',
-              type: 'enum',
-              enum: ['TIER_1', 'TIER_2', 'TIER_3'],
-              required: true,
-              description:
-                'Risk tier: TIER_1 (TVL ≥$1M), TIER_2 ($250k-$1M), TIER_3 (<$250k)',
-            },
-          ],
-        },
-        response: {
-          status: 200,
-          schema: {
-            success: 'boolean',
-            data: 'LiquidityPool[]',
-            meta: { tier: 'string', count: 'number' },
-            timestamp: 'string (ISO-8601)',
-          },
-        },
-        example: 'GET /api/liquidity/pools/tier/TIER_1',
-      },
-      {
-        path: '/liquidity/pool/:poolId',
-        method: 'GET',
-        description: 'Fetch detailed information for a specific pool',
-        parameters: {
-          path: [
-            {
-              name: 'poolId',
-              type: 'string',
-              required: true,
-              description: 'Unique pool identifier',
-            },
-          ],
-        },
-        response: {
-          status: 200,
-          schema: {
-            success: 'boolean',
-            data: 'LiquidityPool',
-            timestamp: 'string (ISO-8601)',
-          },
-          errors: [
-            {
-              status: 404,
-              code: 'NOT_FOUND',
-              message: 'Pool with specified ID not found',
-            },
-            {
-              status: 400,
-              code: 'INVALID_INPUT',
-              message: 'Invalid pool ID format',
-            },
-          ],
-        },
-        example: 'GET /api/liquidity/pool/pool-xlm-usdc',
-      },
-      {
-        path: '/liquidity/stats',
+        path: '/pools/ratings',
         method: 'GET',
         description:
-          'Fetch aggregated liquidity statistics (pool counts, TVL breakdown)',
+          "Risk ratings for Blend's mainnet lending pools, read live from chain. Every rating ships with its raw inputs and the rubric weights so it can be recomputed independently.",
         parameters: {},
         response: {
           status: 200,
           schema: {
             success: 'boolean',
-            data: 'ExtendedLiquidityStats',
+            data: {
+              pools: 'PoolRating[]',
+              failed: 'Array<{ name, poolId, error }> (pools that failed to load)',
+              meta: 'object (network, rpc, source, rubric, caveat, generatedAt)',
+            },
             timestamp: 'string (ISO-8601)',
           },
         },
-        example: 'GET /api/liquidity/stats',
+        notes: [
+          'Cached in-process for 60s; the x-cache header reports HIT or MISS.',
+          'Pools that fail to load are reported in `failed`, never silently dropped.',
+        ],
+        example: 'GET /api/pools/ratings',
       },
       {
-        path: '/cache/invalidate',
+        path: '/risk/attest',
         method: 'POST',
-        description: 'Trigger cache invalidation for liquidity data',
+        description:
+          'Compute a wallet activity score from chain data the server fetches itself, then write it on-chain signed by the oracle admin key. The score cannot be self-reported: the request body carries only the address.',
         parameters: {
           body: [
             {
-              name: 'paths',
-              type: 'string[]',
-              required: false,
-              description: 'Specific cache paths to invalidate',
-              example: [
-                'liquidity-pools-all',
-                'liquidity-stats',
-                'liquidity-pools-tier-1',
-              ],
-            },
-            {
-              name: 'all',
-              type: 'boolean',
-              required: false,
-              default: false,
-              description: 'Invalidate all caches',
-            },
-            {
-              name: 'reason',
+              name: 'address',
               type: 'string',
-              required: false,
-              description: 'Reason for invalidation (for logging)',
+              required: true,
+              description: 'Stellar address (G...) or smart wallet contract (C...) to score',
             },
           ],
         },
@@ -176,13 +60,61 @@ export async function GET(request: NextRequest) {
           status: 200,
           schema: {
             success: 'boolean',
-            invalidated: 'string[]',
-            meta: { reason: 'string', timestamp: 'string' },
+            data: 'object (score, tier, transaction hash)',
             timestamp: 'string (ISO-8601)',
           },
+          errors: [
+            {
+              status: 422,
+              code: 'INVALID_INPUT',
+              message:
+                'Wallet has too little history to score. No score is invented for thin accounts.',
+            },
+            {
+              status: 429,
+              code: 'RATE_LIMITED',
+              message:
+                "Rate limited. Read from the contract's own timestamp, so it cannot be cleared client-side. Includes retry_after.",
+            },
+            {
+              status: 503,
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'NOT_CONFIGURED — the oracle signing key is absent in this environment.',
+            },
+          ],
         },
-        example: `POST /api/cache/invalidate
-Body: { "all": true, "reason": "scheduled refresh" }`,
+        notes: [
+          'Requires a CSRF token (double-submit cookie); use csrfFetch from the client.',
+        ],
+        example: 'POST /api/risk/attest\nBody: { "address": "G..." }',
+      },
+      {
+        path: '/passkey/deploy',
+        method: 'POST',
+        description:
+          'Submit a passkey smart-wallet deploy transaction to Soroban RPC, wrapped in a fee-bump paid by the sponsor account.',
+        parameters: {
+          body: [
+            {
+              name: 'xdr',
+              type: 'string',
+              required: true,
+              description: 'Signed deploy transaction envelope produced by passkey-kit',
+            },
+          ],
+        },
+        response: {
+          status: 200,
+          schema: {
+            success: 'boolean',
+            hash: 'string (transaction hash)',
+            contractId: 'string (deployed smart wallet address)',
+          },
+        },
+        notes: [
+          'The fee-bump is required, not incidental: passkey-kit builds the inner transaction at the SDK default of 100 stroops because it expects a relayer to pay. Raw submission always fails with txInsufficientFee.',
+        ],
+        example: 'POST /api/passkey/deploy\nBody: { "xdr": "AAAA..." }',
       },
       {
         path: '/health',
@@ -202,57 +134,35 @@ Body: { "all": true, "reason": "scheduled refresh" }`,
       },
     ],
     schemas: {
-      LiquidityPool: {
-        poolId: 'string (unique identifier)',
-        tvl: 'number (USD)',
-        tier: 'TIER_1 | TIER_2 | TIER_3',
-        reserves: 'Array<{ asset: string, amount: string }>',
-        totalAccounts: 'number',
-        totalShares: 'string (precise decimal)',
-        lastModified: 'string (ISO-8601)',
-        timestamp: 'string (ISO-8601)',
-      },
-      LiquidityStats: {
-        TIER_1: 'number (pool count)',
-        TIER_2: 'number (pool count)',
-        TIER_3: 'number (pool count)',
-        total: 'number (total pool count)',
-        lastUpdate: 'string (ISO-8601)',
-      },
-      ExtendedLiquidityStats: {
-        '...LiquidityStats': 'all fields from LiquidityStats',
-        tvl_breakdown: 'object (TVL by tier)',
-        average_pool_size: 'number (USD)',
+      PoolRating: {
+        name: 'string (pool name)',
+        poolId: 'string (contract address)',
+        score: 'number (0-100, higher = more risk)',
+        grade: 'A | B | C | D',
+        factors:
+          'Record<string, { label, risk (0-1), weight, rationale }> — the rubric, itemised',
+        observed: 'object (raw measurements the score was derived from)',
+        reserves: 'Array<{ asset, utilization, collateralFactor, supply, borrow }>',
       },
       ApiError: {
         error: 'string (error message)',
-        code:
-          'INVALID_INPUT | NOT_FOUND | INTERNAL_ERROR | SERVICE_UNAVAILABLE',
+        code: 'INVALID_INPUT | NOT_FOUND | INTERNAL_ERROR | SERVICE_UNAVAILABLE',
         details: 'object (additional context)',
         timestamp: 'string (ISO-8601)',
       },
     },
-    validCachePaths: [
-      'liquidity-pools-all',
-      'liquidity-pools-tier-1',
-      'liquidity-pools-tier-2',
-      'liquidity-pools-tier-3',
-      'liquidity-stats',
-      'risk-tier-data',
-      'user-profile',
-    ],
     tierThresholds: {
-      TIER_1: { min: 1000000, description: '≥ $1,000,000 TVL' },
-      TIER_2: { min: 250000, max: 1000000, description: '$250k - $1M TVL' },
-      TIER_3: { max: 250000, description: '< $250k TVL' },
+      note: 'Thresholds are enforced by the risk contract itself (can_access_tier); the model must agree with them.',
+      TIER_1: { max: 30, description: 'score ≤ 30' },
+      TIER_2: { min: 30, max: 70, description: 'score 30-70' },
+      TIER_3: { min: 70, description: 'score ≥ 70' },
     },
     notes: [
-      'All timestamps are in ISO-8601 format (UTC)',
-      'TVL values are in USD',
-      'Pool IDs are stable and should be used as cache keys',
-      'Use cache/invalidate endpoint to refresh data on demand',
-      'Tier classification is automatic based on TVL thresholds',
-      'All endpoints support CORS and standard HTTP methods',
+      'All timestamps are in ISO-8601 format (UTC).',
+      'A wallet score is an activity percentile relative to the real Stellar population — not a default prediction. Stellar exposes no default or liquidation labels, so no outcome-validated credit model is possible here.',
+      'Pool ratings are a transparent rubric with declared weights, deliberately not presented as ML.',
+      'Pool supply and borrow figures are in native asset units, not USD: there is no price oracle in this path.',
+      'Mutating endpoints require a CSRF token (double-submit cookie).',
     ],
   };
 
