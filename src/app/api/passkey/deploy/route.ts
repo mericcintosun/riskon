@@ -74,11 +74,38 @@ export async function POST(request: NextRequest) {
     const sent = await server.sendTransaction(transaction);
 
     if (sent.status === "ERROR") {
+      // Surface WHY. `errorResult` is an xdr.TransactionResult whose switch name
+      // is the actual reason (txBadSeq, txTooLate, txSorobanInvalid, ...).
+      // Returning a bare "rejected" here is what made the first failure opaque.
+      let reason: string | undefined;
+      let diagnostics: string[] | undefined;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        reason = (sent as any).errorResult?.result?.()?.switch?.()?.name;
+      } catch {
+        /* keep going — the response is still useful without it */
+      }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        diagnostics = (sent as any).diagnosticEvents?.map((e: any) =>
+          e?.toXDR ? e.toXDR("base64") : String(e)
+        );
+      } catch {
+        /* optional */
+      }
+
+      console.error("❌ Passkey deploy rejected by RPC", {
+        reason,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        errorResultXdr: (sent as any).errorResult?.toXDR?.("base64"),
+        diagnostics,
+      });
+
       return fail(
-        "Soroban RPC rejected the wallet deployment.",
+        `Soroban RPC rejected the wallet deployment${reason ? `: ${reason}` : ""}.`,
         "SUBMIT_FAILED",
         502,
-        { status: sent.status }
+        { reason, diagnostics }
       );
     }
 
