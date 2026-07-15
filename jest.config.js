@@ -32,7 +32,10 @@ module.exports = {
   ],
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
   transformIgnorePatterns: [
-    '/node_modules/',
+    // @stellar/stellar-sdk and its ESM-only dependencies (@noble/*) cannot be
+    // parsed by Jest untransformed, which is why the oracle had no tests at all.
+    // Transform them so server modules importing StrKey/Address can be covered.
+    '/node_modules/(?!(@stellar|@noble|uint8array-extras)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],

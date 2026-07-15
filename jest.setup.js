@@ -1,5 +1,16 @@
 import '@testing-library/jest-dom';
 
+// jsdom omits TextEncoder/TextDecoder, which @stellar/stellar-sdk's dependency
+// chain reaches for at module load. Without these, importing anything that pulls
+// in the SDK dies at import time — which is why the risk oracle had no tests.
+const nodeUtil = require('node:util');
+if (typeof globalThis.TextEncoder === 'undefined') {
+  globalThis.TextEncoder = nodeUtil.TextEncoder;
+}
+if (typeof globalThis.TextDecoder === 'undefined') {
+  globalThis.TextDecoder = nodeUtil.TextDecoder;
+}
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

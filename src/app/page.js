@@ -495,39 +495,60 @@ export default function RiskScoringApp() {
           {/* Hero Section */}
           <div className="text-center mb-20">
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              AI-Powered{" "}
+              387 issuers call themselves{" "}
               <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                Risk Scoring
+                USDC
               </span>
+              . One is Circle.
             </h1>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-8">
-              Calculate your personalized blockchain risk score using advanced
-              AI analysis. Get tailored DeFi recommendations and unlock better
-              rates based on your transaction patterns.
+              Riskon reads Stellar risk straight from chain: which issuer is the
+              real one, what that issuer can do to your balance, and how Blend&apos;s
+              lending pools actually rate. No black box — every rating ships with
+              its raw inputs.
             </p>
 
-            {/* Quick Stats */}
+            {/* Measured facts, not marketing. Each is checkable from the links
+                below, which is the point: nothing here is a number we made up. */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto mb-12">
               <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">
-                  AI-Powered
+                <div className="text-2xl font-bold text-white mb-1">387</div>
+                <div className="text-sm text-slate-400">
+                  Issuers using the code USDC
                 </div>
-                <div className="text-sm text-slate-400">Risk Analysis</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">&lt;5s</div>
-                <div className="text-sm text-slate-400">Analysis Time</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">100%</div>
-                <div className="text-sm text-slate-400">Privacy Protected</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">
-                  Instant
+                <div className="text-2xl font-bold text-white mb-1">97.4%</div>
+                <div className="text-sm text-slate-400">
+                  Of USDC holders on the real one
                 </div>
-                <div className="text-sm text-slate-400">DeFi Access</div>
               </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white mb-1">Freeze</div>
+                <div className="text-sm text-slate-400">
+                  Circle can freeze your USDC
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white mb-1">Seize</div>
+                <div className="text-sm text-slate-400">
+                  Ondo can claw back your USDY
+                </div>
+              </div>
+            </div>
+
+            {/* Lead with the thing that cannot be gamed by its subject. */}
+            <div className="mb-10 flex flex-wrap justify-center gap-4">
+              <Link href="/assets">
+                <button className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-3 font-medium text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                  Check an asset issuer →
+                </button>
+              </Link>
+              <Link href="/pools">
+                <button className="rounded-xl border border-slate-700/50 bg-slate-800/50 px-8 py-3 font-medium text-white transition-all duration-300 hover:bg-slate-700/50">
+                  Rate a lending pool
+                </button>
+              </Link>
             </div>
 
             {/* Quick Navigation */}

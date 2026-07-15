@@ -362,63 +362,35 @@ function getAddressType(walletAddress) {
 }
 
 /**
- * For Passkey smart contracts, we need to handle the analysis differently
- * as they may not have traditional transaction history
+ * A passkey smart wallet cannot be scored, and the reason is structural.
+ *
+ * The previous implementation here invented an entire analysis for one:
+ * `txCount: 1`, `assetTypes: 1` ("Assume XLM support"), `nightRatio: 0.5`
+ * ("Neutral"), `activityScore: 20`. It gated those constants on
+ * `GET /contracts/{id}` against Horizon — an endpoint that does not exist and
+ * answers 404 for everything. So the `ok` branch was dead code, every passkey
+ * wallet silently took the fallback, and every one of them was labelled
+ * `new_or_inactive` with a hardcoded score — including wallets that are demonstrably
+ * live on chain.
+ *
+ * There is no data to score:
+ *   * Horizon's /accounts endpoints are ed25519-only and answer 400 for a
+ *     contract address, so there is no classic payment history.
+ *   * Soroban event history on public RPC spans roughly 7 days — too short to
+ *     place a wallet against a population.
+ *   * The model's percentiles are calibrated on classic-payment G wallets. A
+ *     contract is not a member of that population.
+ *
+ * "No data" is not "risky" and it is not "neutral" — it is unknown. Report that.
  */
-async function analyzePasskeySmartContract(contractAddress) {
-
-  try {
-    // Try to fetch contract data to see if it exists and is active
-    const contractResponse = await fetch(
-      `${HORIZON_URL}/contracts/${contractAddress}`
-    );
-
-    if (contractResponse.ok) {
-
-      // For smart contracts, we'll provide a base analysis
-      // since they don't have traditional transaction history like accounts
-      return {
-        txCount: 1, // New contract = minimal activity
-        avgHours: 24, // Default interval
-        assetTypes: 1, // Assume XLM support
-        avgAmount: 0,
-        maxAmount: 0,
-        nightRatio: 0.5, // Neutral
-        activityScore: 20, // New contract = moderate activity score
-        isSmartContract: true,
-        contractStatus: "active",
-      };
-    } else {
-
-      // Contract might be newly created or not yet active
-      return {
-        txCount: 1, // Very new
-        avgHours: 12, // Default
-        assetTypes: 1, // Basic
-        avgAmount: 0,
-        maxAmount: 0,
-        nightRatio: 0.5,
-        activityScore: 10, // New/inactive contract
-        isSmartContract: true,
-        contractStatus: "new_or_inactive",
-      };
-    }
-  } catch (error) {
-    console.warn("⚠️ Could not analyze smart contract, using defaults:", error);
-
-    // Return safe defaults for unknown contracts
-    return {
-      txCount: 1,
-      avgHours: 12,
-      assetTypes: 1,
-      avgAmount: 0,
-      maxAmount: 0,
-      nightRatio: 0.5,
-      activityScore: 15, // Moderate default
-      isSmartContract: true,
-      contractStatus: "unknown",
-    };
-  }
+function unscorableSmartWallet(contractAddress) {
+  return {
+    address: contractAddress,
+    addressType: "passkey_contract",
+    unscorable: true,
+    reason:
+      "Smart wallets (C...) have no classic payment history. Horizon indexes payments for account addresses (G...) only, and Soroban event history is too short-lived to place a wallet against the population.",
+  };
 }
 
 /**
@@ -438,26 +410,14 @@ export async function performAutoRiskAnalysis(walletAddress) {
 
 
 
+    // A smart wallet has nothing to measure, so stop before pretending otherwise.
+    if (addressInfo.type === "contract") {
+      return unscorableSmartWallet(walletAddress);
+    }
+
     let historyData, assets, analysis;
 
-    if (addressInfo.type === "contract") {
-      // Handle Passkey smart contract addresses
-
-      analysis = await analyzePasskeySmartContract(walletAddress);
-
-      // For smart contracts, we don't have traditional assets, so provide defaults
-      assets = [];
-
-      // Add contract-specific information
-      analysis.addressType = "passkey_contract";
-      analysis.currentAssets = [
-        {
-          asset: "XLM",
-          balance: 0, // We can't easily get smart contract balances via Horizon
-          asset_type: "native",
-        },
-      ];
-    } else {
+    {
       // Handle traditional Stellar account addresses
 
       // Step 1: Fetch transaction history

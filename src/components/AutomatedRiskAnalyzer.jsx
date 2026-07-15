@@ -36,6 +36,9 @@ export default function AutomatedRiskAnalyzer() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisData, setAnalysisData] = useState(null);
   const [riskAnalysis, setRiskAnalysis] = useState(null);
+  // Set when the connected wallet cannot be scored at all (smart wallets have no
+  // classic payment history). Distinct from an error and from a low score.
+  const [unscorable, setUnscorable] = useState(null);
   const [isUpdatingScore, setIsUpdatingScore] = useState(false);
   const [blendScoreImpact, setBlendScoreImpact] = useState(null);
 
@@ -117,6 +120,7 @@ export default function AutomatedRiskAnalyzer() {
     }
 
     setIsAnalyzing(true);
+    setUnscorable(null);
 
     try {
       const loadingToast = toast.loading(
@@ -125,6 +129,16 @@ export default function AutomatedRiskAnalyzer() {
 
       // Step 1: Collect transaction data from Horizon
       const horizonData = await collectTransactionData(walletAddress);
+
+      // A smart wallet has no history to read. That is a fact about the wallet,
+      // not a failure of the app, so it is not surfaced as an error.
+      if (horizonData.unscorable) {
+        toast.dismiss(loadingToast);
+        setUnscorable(horizonData.reason);
+        setRiskAnalysis(null);
+        setAnalysisData(null);
+        return;
+      }
 
       if (!horizonData.success) {
         throw new Error(horizonData.error || "Data collection failed");
@@ -280,7 +294,7 @@ export default function AutomatedRiskAnalyzer() {
 
       if (error.code === "INSUFFICIENT_HISTORY") {
         toast.warning(
-          "📭 Bu cüzdanın puanlanacak kadar işlem geçmişi yok — riskli olduğu için değil, bilinmediği için."
+          "📭 This wallet has too little transaction history to score — not because it is risky, but because it is unknown."
         );
       } else if (error.code === "RATE_LIMITED") {
         toast.warning("⏰ This wallet was already scored in the last 24 hours");
@@ -407,7 +421,7 @@ export default function AutomatedRiskAnalyzer() {
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-[-10px]">
                   {riskAnalysis?.insufficientData
-                    ? "Yetersiz geçmiş"
+                    ? "Not enough history"
                     : "Activity Percentile"}
                 </div>
               </div>
@@ -419,17 +433,35 @@ export default function AutomatedRiskAnalyzer() {
               a population percentile — not a probability of default. Nobody can
               claim the latter on Stellar: there is no public outcome-label
               (default/liquidation) dataset to validate against. */}
+          {/* A smart wallet cannot be scored at all — structurally, not yet. */}
+          {unscorable && (
+            <div className="mb-4 mx-auto max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-left">
+              <p className="text-xs leading-relaxed text-amber-200/90">
+                <span className="font-medium text-amber-100">
+                  This wallet cannot be scored.
+                </span>{" "}
+                {unscorable} This is not a judgement about the wallet — there is
+                simply nothing to measure. Connect an account-based wallet
+                (G&hellip;) to get a score, or{" "}
+                <a href="/assets" className="text-amber-100 underline">
+                  check asset issuer risk
+                </a>{" "}
+                instead, which needs no wallet at all.
+              </p>
+            </div>
+          )}
+
           {riskAnalysis && riskAnalysis.insufficientData && (
             <div className="mb-4 mx-auto max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-left">
               <p className="text-xs leading-relaxed text-amber-200/90">
                 <span className="font-medium text-amber-100">
-                  Bu cüzdan henüz puanlanamıyor.
+                  This wallet cannot be scored yet.
                 </span>{" "}
-                Yeterli işlem geçmişi yok — bu, cüzdanın{" "}
-                <strong>riskli olduğu anlamına gelmez</strong>, sadece
-                <strong> bilinmediği</strong> anlamına gelir. Kanıtın yokluğunu
-                risk kanıtı gibi sunmuyoruz. Stellar&apos;da bir süre kullanıp
-                tekrar deneyin. (Veri kalitesi: {riskAnalysis.dataQuality?.score ?? 0}/100)
+                There is not enough transaction history — which does{" "}
+                <strong>not mean the wallet is risky</strong>, only that it is{" "}
+                <strong>unknown</strong>. We do not present absence of evidence as
+                evidence of risk. Use Stellar for a while and try again. (Data
+                quality: {riskAnalysis.dataQuality?.score ?? 0}/100)
               </p>
             </div>
           )}
@@ -438,20 +470,23 @@ export default function AutomatedRiskAnalyzer() {
             <div className="mb-4 mx-auto max-w-md rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-left">
               <p className="text-xs leading-relaxed text-slate-400">
                 <span className="font-medium text-slate-300">
-                  Bu skor ne demek:
+                  What this score means:
                 </span>{" "}
-                cüzdanınızın aktivitesi{" "}
-                <strong>gerçek Stellar cüzdanlarının %{riskAnalysis.riskScore}
-                &apos;inden daha &quot;riskli&quot; profilde</strong> (300 gerçek
-                mainnet cüzdanına göre kalibre).{" "}
-                <span className="font-medium text-slate-300">Ne değil:</span> bir
-                temerrüt tahmini değil — zincirde temerrüt/likidasyon etiketi
-                olmadığı için doğrulanmış bir kredi modeli kurulamaz.{" "}
+                your wallet is{" "}
+                <strong>
+                  less active than {riskAnalysis.riskScore}% of real Stellar
+                  wallets
+                </strong>{" "}
+                (calibrated against 300 real mainnet wallets).{" "}
+                <span className="font-medium text-slate-300">What it is not:</span>{" "}
+                a default prediction — there are no default or liquidation labels
+                on chain, so no validated credit model can be built. A wallet can
+                also escape a bad score by opening a new address.{" "}
                 <a
-                  href="/pools"
+                  href="/assets"
                   className="text-blue-400 underline hover:text-blue-300"
                 >
-                  Sybil&apos;lenemeyen havuz notlarına bakın →
+                  Asset issuer risk cannot be dodged that way &rarr;
                 </a>
               </p>
             </div>

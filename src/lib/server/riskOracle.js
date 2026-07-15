@@ -88,14 +88,41 @@ export function tierForScore(score) {
 }
 
 export function assertValidStellarAddress(address) {
-  if (typeof address !== "string" || !StrKey.isValidEd25519PublicKey(address.trim())) {
+  const trimmed = typeof address === "string" ? address.trim() : "";
+
+  if (StrKey.isValidEd25519PublicKey(trimmed)) return trimmed;
+
+  // A passkey smart wallet (C...) is a real address this app mints itself, so
+  // rejecting it as malformed was both wrong and confusing. It is well-formed —
+  // it simply cannot be scored, and the reason is structural rather than a
+  // missing feature:
+  //
+  //   * Horizon's /accounts endpoints are ed25519-only. Every one of them
+  //     (/accounts, /payments, /transactions, /operations) answers 400 for a
+  //     contract address, so there is no classic payment history to read.
+  //   * A smart wallet's activity is Soroban events, and public RPC retains only
+  //     about 7 days of them — far too short a window to place a wallet against
+  //     a population.
+  //   * The model's calibration population is classic-payment G wallets. Scoring
+  //     a contract against those percentiles would compare it to a population it
+  //     is not part of.
+  //
+  // So this is "no data", not "bad data", and the project's own rule applies:
+  // absence of evidence is not evidence of risk. Say so plainly instead of
+  // inventing a score or blaming the caller's input.
+  if (StrKey.isValidContract(trimmed)) {
     throw new OracleError(
-      "INVALID_INPUT",
-      "A valid Stellar account address (G...) is required.",
-      400
+      "UNSCORABLE_ADDRESS",
+      "This is a smart wallet (C...). It has no classic payment history to score: Horizon indexes payments for account addresses (G...) only, and Soroban event history is too short-lived to place a wallet against the population. Connect an account-based wallet to get a score.",
+      422
     );
   }
-  return address.trim();
+
+  throw new OracleError(
+    "INVALID_INPUT",
+    "A valid Stellar address is required (G... account or C... contract).",
+    400
+  );
 }
 
 function buildServer() {

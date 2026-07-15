@@ -4,6 +4,61 @@
 
 import { calculateRiskScore } from '../lightweightRiskModel';
 
+describe('nightDayRatio removal (v3.0.0)', () => {
+  // The feature was inverted: the formula was `day > 0 ? night / day : 0`, so a
+  // wallet active ONLY at night scored 0 — the safest value on the model's
+  // highest-weighted RISK term. 31.3% of 300 real mainnet wallets are entirely
+  // nocturnal by that definition, and every one of them was handed a perfect
+  // score on it. Guard against anyone reintroducing an hour-of-day term.
+  test('a fully nocturnal wallet is not scored as the safest possible', () => {
+    const base = { totalVolume: 5000, uniqueCounterparties: 10, assetDiversity: 3, totalPayments: 50 };
+
+    const nocturnal = calculateRiskScore({ ...base, nightDayRatio: 0 });
+    const diurnal = calculateRiskScore({ ...base, nightDayRatio: 5 });
+
+    // Passing the old field must change nothing at all — it is no longer read.
+    expect(nocturnal.riskScore).toBe(diurnal.riskScore);
+  });
+
+  test('hour-of-day cannot influence the score', () => {
+    const base = { totalVolume: 5000, uniqueCounterparties: 10, assetDiversity: 3, totalPayments: 50 };
+
+    const scores = [0, 0.6, 1, 12.33, 999].map(
+      (nightDayRatio) => calculateRiskScore({ ...base, nightDayRatio }).riskScore
+    );
+
+    expect(new Set(scores).size).toBe(1);
+  });
+
+  test('reports the model version that dropped it', () => {
+    const result = calculateRiskScore({
+      totalVolume: 5000,
+      uniqueCounterparties: 10,
+      assetDiversity: 3,
+      totalPayments: 50,
+    });
+
+    expect(result.modelVersion).toBe('3.0.0-activity-index');
+  });
+
+  test('no longer tells anyone which hours to transact in', () => {
+    // The old advice ("Make more transactions during daytime hours") told a
+    // Tokyo user to transact between midnight and 07:00 local, because "night"
+    // was UTC 22-06.
+    const result = calculateRiskScore({
+      totalVolume: 10,
+      uniqueCounterparties: 1,
+      assetDiversity: 1,
+      totalPayments: 2,
+      nightDayRatio: 9,
+    });
+
+    for (const r of result.recommendations) {
+      expect(r).not.toMatch(/daytime|night|hours/i);
+    }
+  });
+});
+
 describe('Lightweight Risk Model', () => {
   describe('Score Calculation', () => {
     test('should calculate low risk score for excellent profile', () => {
@@ -106,7 +161,6 @@ describe('Lightweight Risk Model', () => {
         totalVolume: 5000,
         uniqueCounterparties: 25,
         assetDiversity: 5,
-        nightDayRatio: 0.3,
       };
 
       const result = calculateRiskScore(metrics);
@@ -115,7 +169,10 @@ describe('Lightweight Risk Model', () => {
       expect(result.featureImportance).toHaveProperty('totalVolume');
       expect(result.featureImportance).toHaveProperty('uniqueCounterparties');
       expect(result.featureImportance).toHaveProperty('assetDiversity');
-      expect(result.featureImportance).toHaveProperty('nightDayRatio');
+      // nightDayRatio was removed in v3.0.0: it was inverted for the 31% of real
+      // wallets that are entirely nocturnal, and "night" in UTC is business
+      // hours across Asia. See lightweightRiskModel.js.
+      expect(result.featureImportance).not.toHaveProperty('nightDayRatio');
     });
 
     test('should identify most important feature', () => {

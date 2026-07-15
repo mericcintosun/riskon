@@ -61,7 +61,6 @@ const FEATURES = [
   "totalVolume",
   "uniqueCounterparties",
   "assetDiversity",
-  "nightDayRatio",
 ];
 
 async function getJson(url) {
@@ -116,19 +115,10 @@ function calculateRiskMetrics(payments, walletAddress) {
   const assets = new Set();
   payments.forEach((p) => assets.add(p.asset_code || "XLM"));
 
-  let night = 0;
-  let day = 0;
-  payments.forEach((p) => {
-    const hour = new Date(p.created_at).getUTCHours();
-    if (hour >= 22 || hour <= 6) night++;
-    else day++;
-  });
-
   return {
     totalVolume: Math.round(totalVolume * 100) / 100,
     uniqueCounterparties: counterparties.size,
     assetDiversity: assets.size,
-    nightDayRatio: day > 0 ? Math.round((night / day) * 100) / 100 : 0,
   };
 }
 

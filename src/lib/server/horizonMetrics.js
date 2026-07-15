@@ -57,8 +57,12 @@ async function fetchAccountActivity(address) {
 }
 
 /**
- * Compute the 4 risk features. Mirrors calculateRiskMetrics() in
+ * Compute the risk features. Mirrors calculateRiskMetrics() in
  * src/lib/horizonDataCollector.js.
+ *
+ * nightDayRatio was removed in model v3.0.0 — see the note in
+ * lightweightRiskModel.js. It was inverted for the 31% of wallets that are
+ * entirely nocturnal, and "night" in UTC is business hours in Asia.
  */
 function calculateRiskMetrics(payments, transactions, walletAddress) {
   // 1. Total volume (XLM equivalent; non-native uses the same simplified rate
@@ -87,23 +91,10 @@ function calculateRiskMetrics(payments, transactions, walletAddress) {
     assets.add(payment.asset_code || "XLM");
   });
 
-  // 4. Night/day ratio (UTC on the server, so the result is deterministic and
-  //    not dependent on a client's timezone)
-  let nightTransactions = 0;
-  let dayTransactions = 0;
-  payments.forEach((payment) => {
-    const hour = new Date(payment.created_at).getUTCHours();
-    if (hour >= 22 || hour <= 6) nightTransactions++;
-    else dayTransactions++;
-  });
-  const nightDayRatio =
-    dayTransactions > 0 ? nightTransactions / dayTransactions : 0;
-
   return {
     totalVolume: Math.round(totalVolume * 100) / 100,
     uniqueCounterparties: counterparties.size,
     assetDiversity: assets.size,
-    nightDayRatio: Math.round(nightDayRatio * 100) / 100,
     totalPayments: payments.length,
     totalTransactions: transactions.length,
     averageTransactionSize:
