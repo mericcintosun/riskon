@@ -11,6 +11,13 @@ import { Server } from '@stellar/stellar-sdk/rpc';
 
 // Mock Stellar SDK
 jest.mock('@stellar/stellar-sdk', () => ({
+  // Read-only simulation constructs a throwaway source account directly
+  // (no network round-trip), so Account must be mocked too.
+  Account: jest.fn().mockImplementation(() => ({
+    accountId: () => 'GA5WUJ54Z23KILLCUOUNAKTPBVZWKMQVO4O6EQ5GHLAERIMLLHNCSKYH',
+    sequenceNumber: () => '0',
+    incrementSequenceNumber: jest.fn(),
+  })),
   Contract: jest.fn().mockImplementation(() => ({
     call: jest.fn().mockReturnValue('mock-operation'),
   })),
@@ -219,52 +226,10 @@ describe('RiskTierContractClient', () => {
     });
   });
 
-  describe('Score Validation', () => {
-    // Score is only validated by the write path (set_risk_tier), so drive it there.
-    const setupHappyPath = () => {
-      const { passkeyWallet } = require('../passkeyIntegration');
-      passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
-      passkeyWallet.submitTransactionDirectly.mockResolvedValue({ hash: '0xhash' });
-      mockHorizon.loadAccount.mockResolvedValue({ sequence: '123456789' });
-    };
-
-    test('should accept valid score', async () => {
-      setupHappyPath();
-      await client.setRiskTier(mockWalletAddress, 50, 'TIER_1', 'TIER_1');
-      // The validated (unchanged) score is forwarded to the contract call.
-      expect(nativeToScVal).toHaveBeenCalledWith(50, { type: 'u32' });
-    });
-
-    test('should round decimal scores', async () => {
-      setupHappyPath();
-      await client.setRiskTier(mockWalletAddress, 75.7, 'TIER_1', 'TIER_1');
-      expect(nativeToScVal).toHaveBeenCalledWith(76, { type: 'u32' });
-    });
-
-    test('should reject negative scores', async () => {
-      await expect(
-        client.setRiskTier(mockWalletAddress, -10, 'TIER_1', 'TIER_1')
-      ).rejects.toThrow('Score must be between 0 and 100 (inclusive), received -10.');
-    });
-
-    test('should reject scores over 100', async () => {
-      await expect(
-        client.setRiskTier(mockWalletAddress, 150, 'TIER_1', 'TIER_1')
-      ).rejects.toThrow('Score must be between 0 and 100 (inclusive), received 150.');
-    });
-
-    test('should reject non-numeric scores', async () => {
-      await expect(
-        client.setRiskTier(mockWalletAddress, 'invalid' as any, 'TIER_1', 'TIER_1')
-      ).rejects.toThrow('Score must be a finite number.');
-    });
-
-    test('should reject infinite scores', async () => {
-      await expect(
-        client.setRiskTier(mockWalletAddress, Infinity, 'TIER_1', 'TIER_1')
-      ).rejects.toThrow('Score must be a finite number.');
-    });
-  });
+  // NOTE: the "Score Validation" block was removed along with the client's write
+  // path. A user can no longer supply a score at all — the server-side oracle
+  // derives it from Horizon data and writes it via admin_set_risk_tier — so
+  // validating a caller-supplied score is no longer a thing this client does.
 
   describe('Tier Validation', () => {
     // Tier normalization/validation ("Tier" label) is exercised via get_tier_users.
@@ -524,155 +489,7 @@ describe('RiskTierContractClient', () => {
     });
   });
 
-  describe('Write Operations', () => {
-    describe('setRiskTier', () => {
-      test('should set risk tier successfully', async () => {
-        const { passkeyWallet } = require('../passkeyIntegration');
-        const { invalidateCache } = require('../cacheManager');
-        const { dispatchCacheEvent } = require('../../hooks/useCacheInvalidation');
-        
-        passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
-        passkeyWallet.submitTransactionDirectly.mockResolvedValue({
-          hash: '0x1234567890abcdef',
-        });
-
-        mockHorizon.loadAccount.mockResolvedValue({
-          sequence: '123456789',
-        });
-
-        const result = await client.setRiskTier(
-          mockWalletAddress,
-          25,
-          'TIER_1',
-          'TIER_1'
-        );
-
-        expect(result).toBe('0x1234567890abcdef');
-        expect(invalidateCache).toHaveBeenCalled();
-        expect(dispatchCacheEvent.riskTierUpdated).toHaveBeenCalledWith(
-          mockWalletAddress,
-          'TIER_1'
-        );
-      });
-
-      test('should handle signing errors', async () => {
-        const { passkeyWallet } = require('../passkeyIntegration');
-        
-        passkeyWallet.signTransaction.mockRejectedValue(new Error('Signing failed'));
-
-        mockHorizon.loadAccount.mockResolvedValue({
-          sequence: '123456789',
-        });
-
-        await expect(
-          client.setRiskTier(mockWalletAddress, 25, 'TIER_1', 'TIER_1')
-        ).rejects.toThrow('Signing failed');
-      });
-    });
-
-    describe('updateChosenTier', () => {
-      test('should update chosen tier successfully', async () => {
-        const { passkeyWallet } = require('../passkeyIntegration');
-        
-        passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
-        passkeyWallet.submitTransactionDirectly.mockResolvedValue({
-          hash: '0xabcdef1234567890',
-        });
-
-        mockHorizon.loadAccount.mockResolvedValue({
-          sequence: '123456789',
-        });
-
-        const result = await client.updateChosenTier(mockWalletAddress, 'TIER_2');
-
-        expect(result).toBe('0xabcdef1234567890');
-      });
-    });
-  });
-
-  describe('Cache Management', () => {
-    test('should invalidate user cache after updates', async () => {
-      const { passkeyWallet } = require('../passkeyIntegration');
-      const { invalidateCache } = require('../cacheManager');
-      
-      passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
-      passkeyWallet.submitTransactionDirectly.mockResolvedValue({
-        hash: '0x1234567890abcdef',
-      });
-
-      mockHorizon.loadAccount.mockResolvedValue({
-        sequence: '123456789',
-      });
-
-      await client.setRiskTier(mockWalletAddress, 25, 'TIER_1', 'TIER_1');
-
-      expect(invalidateCache).toHaveBeenCalledTimes(3); // USER_RISK_TIER, RISK_SCORE, HORIZON_DATA
-    });
-  });
-
-  describe('Account Resolution', () => {
-    test('should load G address from Horizon', async () => {
-      const { passkeyWallet } = require('../passkeyIntegration');
-      
-      passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
-      passkeyWallet.submitTransactionDirectly.mockResolvedValue({
-        hash: '0x1234567890abcdef',
-      });
-
-      const mockAccount = {
-        sequence: '123456789',
-      };
-      mockHorizon.loadAccount.mockResolvedValue(mockAccount);
-
-      await client.setRiskTier(mockWalletAddress, 25, 'TIER_1', 'TIER_1');
-
-      expect(mockHorizon.loadAccount).toHaveBeenCalledWith(mockWalletAddress);
-    });
-
-    test('should fund account via friendbot on testnet', async () => {
-      const { passkeyWallet } = require('../passkeyIntegration');
-      
-      passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
-      passkeyWallet.submitTransactionDirectly.mockResolvedValue({
-        hash: '0x1234567890abcdef',
-      });
-
-      // First call fails (account not found), second succeeds (after funding)
-      mockHorizon.loadAccount
-        .mockRejectedValueOnce(new Error('Account not found'))
-        .mockResolvedValueOnce({ sequence: '123456789' });
-
-      // Mock fetch for friendbot
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-      });
-
-      await client.setRiskTier(mockWalletAddress, 25, 'TIER_1', 'TIER_1');
-
-      expect(fetch).toHaveBeenCalledWith(
-        `https://friendbot.stellar.org?addr=${encodeURIComponent(mockWalletAddress)}`
-      );
-    });
-  });
-
   describe('Error Handling', () => {
-    test('should handle validation errors in setRiskTier', async () => {
-      const { StrKey } = require('@stellar/stellar-sdk');
-      StrKey.isValidEd25519PublicKey.mockReturnValue(false);
-
-      // Invalid inputs are rejected up-front by the validators, before any
-      // network work is attempted.
-      await expect(
-        client.setRiskTier('invalid', -10, 'INVALID', 'TIER_1')
-      ).rejects.toThrow();
-    });
-
-    test('should handle validation errors in updateChosenTier', async () => {
-      await expect(
-        client.updateChosenTier('invalid', 'INVALID')
-      ).rejects.toThrow();
-    });
-
     test('should handle validation errors in canAccessTier', async () => {
       await expect(
         client.canAccessTier('invalid', 'INVALID')
@@ -691,11 +508,15 @@ describe('useRiskTierContract Hook', () => {
 
     expect(result.current).toHaveProperty('loading');
     expect(result.current).toHaveProperty('error');
-    expect(result.current).toHaveProperty('setRiskTier');
     expect(result.current).toHaveProperty('getRiskTier');
     expect(result.current).toHaveProperty('canAccessTier');
-    expect(result.current).toHaveProperty('updateChosenTier');
     expect(result.current).toHaveProperty('getTierStats');
+
+    // The hook is read-only now: writes go through the server-side oracle
+    // (/api/risk/attest), so exposing setRiskTier/updateChosenTier here would
+    // just re-open the self-reported-score hole.
+    expect(result.current).not.toHaveProperty('setRiskTier');
+    expect(result.current).not.toHaveProperty('updateChosenTier');
   });
 
   test('should handle loading states', async () => {

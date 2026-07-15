@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import {
+  Account,
   Address,
   Contract,
   nativeToScVal,
@@ -53,6 +54,10 @@ const VALID_TIERS: readonly TierLevel[] = [
   "TIER_2",
   "TIER_3",
 ] as const;
+
+/** Throwaway source for read-only simulation (never signed/submitted). */
+const SIMULATION_SOURCE =
+  "GA5WUJ54Z23KILLCUOUNAKTPBVZWKMQVO4O6EQ5GHLAERIMLLHNCSKYH";
 
 const DEFAULT_RPC_URL = "https://soroban-testnet.stellar.org";
 const DEFAULT_NETWORK = Networks.TESTNET;
@@ -201,90 +206,10 @@ export class RiskTierContractClient {
     return this._contract;
   }
 
-  // ── Write Operations ──────────────────────────────────────────
-
-  /**
-   * Set risk score with tier classification.
-   * Maps to Rust: `set_risk_tier(user, score, tier, chosen_tier)`
-   *
-   * @param userAddress - Stellar G... or C... address
-   * @param score       - Risk score 0-100
-   * @param tier        - Calculated tier (TIER_1 | TIER_2 | TIER_3)
-   * @param chosenTier  - User's chosen tier
-   * @returns Transaction hash
-   */
-  async setRiskTier(
-    userAddress: string,
-    score: number,
-    tier: TierLevel,
-    chosenTier: TierLevel
-  ): Promise<string> {
-    const addr = validateAddress(userAddress, "User address");
-    const safeScore = validateScore(score);
-    const safeTier = validateTierInput(tier, "Tier");
-    const safeChosen = validateTierInput(chosenTier, "Chosen tier");
-
-    const xdr = await this.buildWriteTransaction(addr, "set_risk_tier", [
-      Address.fromString(addr).toScVal(),
-      nativeToScVal(safeScore, { type: "u32" }),
-      nativeToScVal(safeTier, { type: "symbol" }),
-      nativeToScVal(safeChosen, { type: "symbol" }),
-    ]);
-
-    try {
-      const hash = await this.signAndSubmit(xdr);
-
-      // Invalidate related cache entries after successful update
-      await this.invalidateUserCache(userAddress);
-
-      // Dispatch cache invalidation event
-      dispatchCacheEvent.riskTierUpdated(userAddress, tier);
-
-      loggers.riskTier.info("Risk tier updated and cache invalidated", {
-        userAddress,
-        score: safeScore,
-        tier: safeTier,
-        chosenTier: safeChosen,
-        transactionHash: hash,
-      });
-
-      return hash;
-    } catch (error) {
-      loggers.riskTier.error("Failed to set risk tier", error as Error, {
-        userAddress,
-        score: safeScore,
-        tier: safeTier,
-        chosenTier: safeChosen,
-      });
-      throw error;
-    }
-  }
-  /**
-   * Update user's chosen tier with risk-based validation.
-   * Maps to Rust: `update_chosen_tier(user, new_chosen_tier)`
-   *
-   * @param userAddress   - Stellar address
-   * @param newChosenTier - New tier to set
-   * @returns Transaction hash
-   */
-  async updateChosenTier(
-    userAddress: string,
-    newChosenTier: TierLevel
-  ): Promise<string> {
-    const addr = validateAddress(userAddress, "User address");
-    const safeTier = validateTierInput(newChosenTier, "New chosen tier");
-
-    const xdr = await this.buildWriteTransaction(
-      addr,
-      "update_chosen_tier",
-      [
-        Address.fromString(addr).toScVal(),
-        nativeToScVal(safeTier, { type: "symbol" }),
-      ]
-    );
-
-    return this.signAndSubmit(xdr);
-  }
+  // NOTE: the write path (setRiskTier / updateChosenTier) was removed.
+  // Risk scores are now written by the server-side oracle
+  // (src/lib/server/riskOracle.js -> admin_set_risk_tier), which is what stops
+  // a user from self-reporting a score. This client is read-only.
 
   // ── Read Operations ───────────────────────────────────────────
 
@@ -449,41 +374,24 @@ export class RiskTierContractClient {
     }
   }
 
-  // ── Internal: Transaction Building ────────────────────────────
+
+  // ── Internal: read-only simulation ────────────────────────────
 
   /**
-   * Build a real transaction XDR for a write (state-changing) contract call.
+   * Source account for read-only simulation.
    *
-   * The resulting XDR is signed via Passkey and submitted through
-   * Launchtube sponsorship, which handles simulation/preparation
-   * on the server side.
+   * Simulation is never signed or submitted, so the source only has to be a
+   * syntactically valid account. Using a throwaway keeps reads offline-cheap;
+   * the previous implementation fetched a funded "kalepail" sponsor account over
+   * the network on every single read.
    */
-  private async buildWriteTransaction(
-    sourceAddress: string,
-    functionName: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args: any[]
-  ): Promise<string> {
-    const account = await this.resolveSourceAccount(sourceAddress);
-
-    const operation = this.contract.call(functionName, ...args);
-
-    const transaction = new TransactionBuilder(account, {
-      fee: SUBMISSION_FEE,
-      networkPassphrase: this.networkPassphrase,
-    })
-      .addOperation(operation)
-      .setTimeout(300)
-      .build();
-
-    return transaction.toXDR();
+  private getSimulationSourceAccount() {
+    return new Account(SIMULATION_SOURCE, "0");
   }
 
   /**
-   * Simulate a read-only contract call via Soroban RPC and return
-   * the function's return value as a raw ScVal.
-   *
-   * No wallet signing is required — this is a pure simulation.
+   * Simulate a read-only contract call via Soroban RPC and return the
+   * function's return value as a raw ScVal. No wallet signing required.
    */
   private async simulateReadCall(
     functionName: string,
@@ -492,8 +400,7 @@ export class RiskTierContractClient {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any | null> {
     try {
-      const account = await this.getSimulationSourceAccount();
-
+      const account = this.getSimulationSourceAccount();
       const operation = this.contract.call(functionName, ...args);
 
       const transaction = new TransactionBuilder(account, {
@@ -506,7 +413,6 @@ export class RiskTierContractClient {
 
       const simulation = await this.server.simulateTransaction(transaction);
 
-      // Check for simulation errors
       if ("error" in simulation && simulation.error) {
         console.warn(
           `[RiskTierClient] Simulation error in ${functionName}:`,
@@ -515,7 +421,6 @@ export class RiskTierContractClient {
         return null;
       }
 
-      // Extract the return value from a successful simulation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = (simulation as any).result;
       return result?.retval ?? null;
@@ -542,114 +447,6 @@ export class RiskTierContractClient {
       console.warn('Failed to invalidate user cache:', error);
     }
   }
-  // ── Internal: Signing & Submission ────────────────────────────
-
-  /**
-   * Sign a transaction XDR with the Passkey wallet and submit it
-   * via the Launchtube sponsorship API.
-   *
-   * @returns Transaction hash on success
-   */
-  private async signAndSubmit(transactionXDR: string): Promise<string> {
-    const signature = await passkeyWallet.signTransaction(transactionXDR);
-    const result = await passkeyWallet.submitTransactionDirectly(
-      transactionXDR,
-      signature
-    );
-    return result.hash;
-  }
-
-  // ── Internal: Account Resolution ──────────────────────────────
-
-  /**
-   * Resolve the source account for transaction building.
-   *
-   * - G... addresses: load directly from Horizon
-   * - C... addresses: use the Launchtube sponsor account
-   *   (derived from the "kalepail" seed per PasskeyKit conventions)
-   */
-  private async resolveSourceAccount(address: string) {
-    // Lazy horizon server connection
-    const horizon = new Horizon.Server("https://horizon-testnet.stellar.org");
-    
-    if (StrKey.isValidEd25519PublicKey(address)) {
-      try {
-        return await horizon.loadAccount(address);
-      } catch {
-        // On testnet, attempt to fund via friendbot
-        if (this.networkPassphrase === Networks.TESTNET) {
-          await this.fundViaFriendbot(address);
-          return await horizon.loadAccount(address);
-        }
-        throw new Error(
-          `Account ${address} not found on the network. ` +
-            `Ensure it is funded before submitting transactions.`
-        );
-      }
-    }
-
-    // C... (smart contract / passkey) — use sponsor
-    return this.loadSponsorAccount();
-  }
-
-  /**
-   * Get a source account suitable for read-only simulation.
-   * Prefers the connected passkey wallet; falls back to the sponsor account.
-   */
-  private async getSimulationSourceAccount() {
-    // If the passkey wallet is connected, try its address first
-    if (passkeyWallet?.smartWalletAddress) {
-      try {
-        return await this.resolveSourceAccount(
-          passkeyWallet.smartWalletAddress
-        );
-      } catch {
-        // fall through to sponsor
-      }
-    }
-    return this.loadSponsorAccount();
-  }
-
-  /**
-   * Load the Launchtube sponsor account (the "kalepail" seed).
-   * Funds it via friendbot on testnet if it doesn't exist yet.
-   */
-  private async loadSponsorAccount() {
-    const { Keypair, hash } = await import("@stellar/stellar-sdk");
-    const seed = hash(Buffer.from("kalepail"));
-    const sponsorAddress = Keypair.fromRawEd25519Seed(seed).publicKey();
-
-    const horizon = new Horizon.Server("https://horizon-testnet.stellar.org");
-
-    try {
-      return await horizon.loadAccount(sponsorAddress);
-    } catch {
-      if (this.networkPassphrase === Networks.TESTNET) {
-        await this.fundViaFriendbot(sponsorAddress);
-        return await horizon.loadAccount(sponsorAddress);
-      }
-      throw new Error(
-        "Sponsor account not found and network is not testnet. " +
-          "Please ensure the sponsor account is funded."
-      );
-    }
-  }
-
-  /**
-   * Fund a testnet account using Stellar Friendbot.
-   * Waits 3 seconds after funding for the account to become available.
-   */
-  private async fundViaFriendbot(address: string): Promise<void> {
-    const url = `https://friendbot.stellar.org?addr=${encodeURIComponent(address)}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(
-        `Friendbot funding failed for ${address} (HTTP ${res.status}). ` +
-          `Visit https://laboratory.stellar.org/#account-creator to fund manually.`
-      );
-    }
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-  }
 }
 
 // ─── Singleton Instance ────────────────────────────────────────────
@@ -672,30 +469,6 @@ export const riskTierClient = new RiskTierContractClient();
 export function useRiskTierContract() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const setRiskTier = async (
-    userAddress: string,
-    score: number,
-    tier: TierLevel,
-    chosenTier: TierLevel
-  ) => {
-    try {
-      setLoading(true);
-      setError(null);
-      return await riskTierClient.setRiskTier(
-        userAddress,
-        score,
-        tier,
-        chosenTier
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(msg);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getRiskTier = async (userAddress: string) => {
     try {
@@ -722,33 +495,12 @@ export function useRiskTierContract() {
     }
   };
 
-  const updateChosenTier = async (
-    userAddress: string,
-    newChosenTier: TierLevel
-  ) => {
-    try {
-      setLoading(true);
-      setError(null);
-      return await riskTierClient.updateChosenTier(
-        userAddress,
-        newChosenTier
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(msg);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Read-only: writes go through the server-side oracle (/api/risk/attest).
   return {
     loading,
     error,
-    setRiskTier,
     getRiskTier,
     canAccessTier,
-    updateChosenTier,
     getTierStats: () => riskTierClient.getTierStats(),
   };
 }

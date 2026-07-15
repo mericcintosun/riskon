@@ -7,6 +7,7 @@
  */
 
 import { PasskeyKit } from "passkey-kit";
+import { csrfFetch } from "./csrfFetch";
 import {
   getSafeLocalStorageItem,
   removeSafeLocalStorageItem,
@@ -101,6 +102,25 @@ export async function createPasskeyWallet(
     );
     setSafeLocalStorageItem("last_passkey_wallet", walletResult.keyIdBase64);
 
+    // createWallet only BUILDS the deploy transaction — it does not submit it.
+    // Without this step the contract is never deployed and `contractId` is just
+    // a derived address pointing at nothing. Submit it server-side (the tx is
+    // already signed by passkey-kit's canonical fee-paying deployer).
+    const deployRes = await csrfFetch("/api/passkey/deploy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        signedTx: walletResult.signedTx,
+        contractId: walletResult.contractId,
+      }),
+    });
+
+    const deployPayload = await deployRes.json();
+    if (!deployRes.ok || !deployPayload.success) {
+      throw new Error(
+        deployPayload?.error || "Smart wallet deployment failed on-chain"
+      );
+    }
 
     return {
       success: true,
@@ -109,6 +129,7 @@ export async function createPasskeyWallet(
       contractId: sanitizeString(walletResult.contractId || ""),
       walletInfo: walletInfo,
       signedTx: walletResult.signedTx,
+      deployHash: deployPayload.data?.hash,
     };
   } catch (error) {
     console.error("❌ Passkey wallet creation failed:", error);
@@ -203,12 +224,19 @@ export async function signWithPasskey(keyId, transaction) {
 
     const kit = await initializePasskeyKit();
 
-    // Use PasskeyKit's sign method
-    const signedTransaction = await kit.sign({
-      keyId: sanitizedKeyId,
-      transaction: transaction,
-    });
+    // sign() operates on the *connected* wallet, so make sure this keyId is the
+    // connected one before signing.
+    if (kit.keyId !== sanitizedKeyId) {
+      await kit.connectWallet({
+        keyId: sanitizedKeyId,
+        getContractId: async (id) => getStoredWalletInfo(id)?.contractId,
+      });
+    }
 
+    // passkey-kit v0.14: sign(txn, signer?, options?) — the signer defaults to a
+    // PasskeySigner for the connected passkey. The old
+    // `sign({ keyId, transaction })` object form was removed.
+    const signedTransaction = await kit.sign(transaction);
 
     return {
       success: true,

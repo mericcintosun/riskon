@@ -17,44 +17,30 @@
 
 ## 🔴 KRİTİK
 
-### 1. Passkey cüzdanı tamamen mock — başarı gösterir ama hiçbir şey yapmaz
-- **Konum:** `src/lib/passkeyIntegration.js`
-- **Durum:** HÂLÂ AÇIK — kalan tek kritik.
-- **Sorunlar:**
-  - `submitTransactionDirectly()`: zincire hiçbir şey göndermez, `"demo_direct_hash_" + Date.now()` sahte hash döndürür. UI "başarılı" + explorer hash'i gösterir ama on-chain yazım yok.
-  - `extractPublicKey()`: gerçek WebAuthn public key yerine `crypto.getRandomValues()` ("mock public key") → smart wallet passkey ile hiç kontrol edilemez.
-  - `deploySmartWallet()`: `toString(36)` ile üretilmiş, geçerli Stellar strkey bile olmayan sahte `G...` adresi.
-  - `verifySmartWallet()`: her zaman `true`.
-- **Etki:** Passkey akışı sıfır güvenlik + sıfır işlevsellik; arayüz gerçek çalışıyormuş gibi davranıyor.
-- **Çözüm:** Gerçek passkey-kit SDK entegrasyonu ya da bu yolun tamamen kaldırılması.
-- **Not:** Risk skoru akışı artık passkey'e bağlı değil (oracle üzerinden yürüyor), yani bu gap artık ana ürünü bloke etmiyor — sadece passkey özelliğini.
+*(Kalmadı — passkey mock'u kapatıldı, aşağıya bakınız. Ancak WebAuthn seremonisi
+tarayıcı gerektirdiği için uçtan uca **manuel doğrulama bekliyor**.)*
 
 ---
 
 ## 🟠 YÜKSEK
 
-### 2. Herkesçe bilinen sabit "kalepail" sponsor seed'i (kapsamı daraldı)
-- **Konum:** `src/lib/riskTierClient.ts` (yalnızca burada kaldı)
-- **Durum:** AÇIK ama **kapsam küçüldü**. `src/app/lib/writeScore.js` silindiği için oradaki kullanım ortadan kalktı.
-- **Sorun:** `Keypair.fromRawEd25519Seed(hash(Buffer.from("kalepail")))` — sponsor hesabı halka açık bir sabitten türetiliyor.
-- **Hafifletici:** Kalan kullanım `riskTierClient`'ın **yazma** yolunda; o yol da mock passkey'e (#1) gidiyor, yani şu an fiilen ölü. Okuma yolu (simülasyon) bu seed'i kullanmıyor.
-- **Etki:** Mainnet'e taşınırsa hesabı herkes kontrol eder → **prodüksiyon blocker'ı**.
-- **Çözüm:** #1 ile birlikte bu yolu kaldır veya gerçek, gizli, server-side sponsor anahtarına geç.
-
-### 3. `/api/liquidity/*` route'ları gerçek veri değil MOCK döndürüyor
+### 1. `/api/liquidity/*` route'ları gerçek veri değil MOCK döndürüyor
 - **Konum:** `src/app/api/liquidity/{stats,pools/all,pools/tier/[tier],pool/[poolId]}/route.ts` (4 route)
-- **Durum:** AÇIK (PR #40 ile geldi).
-- **Sorun:** `generateMockPools()` ile hardcoded sahte havuz/TVL verisi; Horizon/Redis'ten gerçek veri çekilmiyor. "Gerçek zamanlı TVL tier" iddiası bu uçlarda karşılanmıyor.
+- **Durum:** AÇIK (PR #40 ile geldi). **Kalan tek gerçek gap.**
+- **Sorun:** `generateMockPools()` ile hardcoded sahte havuz/TVL verisi; Horizon/Redis'ten gerçek veri çekilmiyor.
+- **Not:** Yeni `/api/pools/ratings` **gerçek** zincir verisi kullanıyor (`blend-sdk`, mainnet) — bu 4 route hâlâ eski mock'ta.
 - **Ek bulgular:**
-  - `/api/liquidity/pools/all`: geçersiz `sort` parametresinde Zod hatası generic `catch`'e düşüyor → **400/`INVALID_INPUT` yerine 500/`INTERNAL_ERROR`**.
-  - `src/app/api/cache/invalidate/route.ts`: kimliksiz POST kabul ediyor; şu an no-op (zarar yok), ama gerçek cache/Redis'e bağlanırsa kimliksiz cache-flush → DoS riski.
-- **Çözüm:** Route'ları backend `liquidityMonitor`/Horizon verisine bağla; sort validasyonunu 400'e çevir; cache-invalidate ucuna auth ekle.
+  - `/api/liquidity/pools/all`: geçersiz `sort`'ta Zod hatası generic `catch`'e düşüyor → **400 yerine 500**.
+  - `src/app/api/cache/invalidate/route.ts`: kimliksiz POST (şu an no-op; gerçek cache'e bağlanırsa DoS riski).
 
----
+### 2. Passkey akışı manuel doğrulama bekliyor
+- **Durum:** Kod artık gerçek (aşağı bakınız) ama **WebAuthn tarayıcı gerektirdiği için headless doğrulanamadı**.
+- **Doğrulanan:** wallet WASM testnet'te kurulu · deployer fonlu (11.851 XLM) · okuma yolu gerçek kontrata karşı çalışıyor · build/test/lint yeşil.
+- **Doğrulanamayan:** passkey kaydı → cüzdan deploy → imzalama zinciri. **Tarayıcıda elle test edilmeli.**
 
 ## Öncelik Sırası
-1. **#1 (passkey mock)** — ya gerçek entegrasyon ya da kaldırma. #2'yi de beraberinde kapatır.
-2. **#3 (mock liquidity API)** — ürünün "gerçek zamanlı TVL" iddiasını karşılamıyor.
+1. **Passkey akışını tarayıcıda elle doğrula** — kod hazır, kanıt yok.
+2. **Mock liquidity API** — ürünün "gerçek zamanlı TVL" iddiasını karşılamıyor.
 
 ---
 
@@ -72,6 +58,21 @@
 ---
 
 ## ✅ Çözülenler
+
+### Bu turda (passkey smart wallet)
+- **Passkey mock'u kaldırıldı (eski kritik #1).** `passkeyIntegration.js` sahte olan her şeyi (`demo_direct_hash_*`, `crypto.getRandomValues()` "pubkey", uydurma `G...` adresi, hep-`true` doğrulama) döndürüyordu. Artık gerçek `passkeyWallet.js`'in üzerinde ince bir adaptör.
+- **Asıl bug bulundu:** gerçek implementasyon zaten vardı ve **v0.14 API'siyle doğruydu** — ama (a) `NEXT_PUBLIC_WALLET_WASM_HASH` hiç tanımlı değildi (kod `DEMO_MODE_DISABLED` ile fırlatıyordu) ve (b) `createWallet`'ın ürettiği **imzalı deploy tx'i hiç gönderilmiyordu** ("client-side placeholder" notuyla). Yani cüzdan hiçbir zaman deploy edilmiyordu.
+- **Eklendi:** `POST /api/passkey/deploy` — imzalı deploy tx'ini Soroban RPC'ye gönderir. OZ Channels relayer'ına gerek yok: tx zaten passkey-kit'in kanonik (fonlu) deployer'ı tarafından imzalı.
+- **Düzeltildi:** `signWithPasskey` eski `sign({keyId, transaction})` API'sini kullanıyordu; v0.14'te `sign(txn, signer?)` oldu.
+- **Yapılandırıldı:** kanonik testnet wallet WASM hash'i (`fdefad64…`) — testnet'te **kurulu olduğu doğrulandı**.
+- **Doğrulama sınırı:** WebAuthn tarayıcı gerektirdiği için uçtan uca passkey akışı **elle test edilmeli** (bkz. YÜKSEK #2).
+
+### ⚠️ Önceki bir iddiamın düzeltmesi: "kalepail" seed'i
+Daha önce bunu **kritik/prodüksiyon blocker** diye yazmıştım: *"mainnet'e taşınırsa hesabı herkes kontrol eder → fonlar çalınabilir"*. **Bu yanlıştı.** passkey-kit'in kendi dokümantasyonu:
+> *"This value MUST remain `"kalepail"`… The deployer only pays fees and salts the deploy — **it never controls the wallet** — but it IS a shared, publicly-derivable keypair."*
+
+Yani deployer cüzdanı **kontrol etmiyor**; sadece ücret ödüyor ve deploy'u salt'lıyor. Üstelik sabit olması **zorunlu** — `keyId → contract` keşfi buna bağlı; değiştirirsen türetilen adresler değişir. Gerçek risk çok daha dar: paylaşımlı ücret ödeyicisi drain edilebilir (griefing) ve SDK'nın belgelediği "deploy front-running" riski var (bunu `connectWallet` keyId'nin canlı signer olduğunu doğrulayarak azaltıyor).
+**Yine de kod tarafında kalmadı:** `riskTierClient`'ın ölü yazma yolu (0 dış kullanım — oracle onun yerini aldı) silindi; `src/` içinde artık hiç `kalepail` geçmiyor.
 
 ### Bu turda (ampirik kalibrasyon)
 - **Uydurma normalizasyon sınırları → gerçek popülasyon persentilleri.** Ölçüm: gerçek mainnet cüzdanlarına karşı sınırlar **3-3300 kat** yanlıştı (`totalVolume` max 10.000 iken gerçek medyan **33.000.000**). `min(1, value/(max-min))` doyuyordu: cüzdanların **%88'i** totalVolume'u tam 1.0'a, **%83'ü** assetDiversity'yi 1.0'a kırpıyordu → iki özellik **sabit**, sıfır bilgi. Sonuç: gerçek 200 cüzdanın **%92'si TIER_2**.
