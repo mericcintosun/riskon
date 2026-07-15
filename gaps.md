@@ -26,6 +26,20 @@
 
 ---
 
+## 📌 What is rated here, and how much each rating is worth
+
+Three subjects, in descending order of how much the rating can be trusted:
+
+| Subject | Sybil-able by the rated party? | Basis |
+| --- | --- | --- |
+| **Asset issuer** (`/assets`) | **No** — the issuer address is the asset | Declared on-chain flags + holder counts. Facts, not a score. |
+| **Blend pool** (`/pools`) | **No** — a pool is a contract with persistent state | Transparent rubric, declared weights, raw inputs returned. |
+| **Wallet** (`/`) | **Yes** — a bad score means a new address | Activity percentile vs. the real population. Not a default prediction. |
+
+The wallet score is the weakest of the three and the most prominently displayed. That ordering is worth revisiting.
+
+---
+
 ## ⚠️ The honest definition of the model (v2.0.0-empirical)
 
 **The score is now empirically calibrated** — `src/lib/lightweightRiskModel.js` + `src/lib/riskCalibration.js`
@@ -42,6 +56,21 @@ Measured: a 200-payment window covers only **~0.64 days** for the median wallet 
 ---
 
 ## ✅ Resolved
+
+### This round (asset issuer risk)
+- **Added the first rated subject that cannot Sybil.** `/api/assets/risk?code=USDC` + `/assets`. A wallet escapes a bad score by opening a new address; an asset issuer cannot, because the issuer address *is* the asset's identity. It answers two questions from live chain data that no Stellar tool surfaces: *is this the real asset*, and *what can the issuer do to your balance*.
+- **Measured, not assumed — and it corrected two claims in this document.**
+  - The business note said "USDY has clawback+freeze enabled; USDC does not." Half right. Real Circle USDC (`circle.com`, 2.27M holders) has `auth_clawback_enabled: false` but **`auth_revocable: true`** — Circle **can freeze** your USDC, it just cannot claw it back. Real Ondo USDY (`ondo.finance`, 2,462 holders) has **both**.
+  - My own first measurement of "USDY has clawback" was reading **`blackrock.com.se`** — an impersonator with 1 holder and a fabricated 920B balance, not Ondo. I flagged it as unverified at the time; it was wrong.
+  - An earlier probe read `num_accounts` and got `null` for every asset. Horizon's fields are `accounts.authorized` / `balances.authorized`. Reading a field that does not exist returns nothing, quietly — the same failure mode as the sampling bug in the calibration round.
+- **The load-bearing decision, measured: rank by holders, not balance.** Issued balance is free to fabricate; ranking mainnet issuers by it returns an impersonator **every time** (`xlmgbptreasury.com` for USDC at 1.1 quadrillion issued, `finance-ondo.com` for USDY, `bridgerew.org` for EURC — each 4-6 orders of magnitude above the real issuer). Every holder costs real XLM in account and trustline reserves, so ranking by holders returns the genuine issuer every time (`circle.com` 97.4% of USDC holders, `ondo.finance` 75.1% of USDY, `circle.com` for EURC). The response reports which issuer a balance ranking *would* have picked, so the difference is visible rather than asserted.
+- **Paging matters and was nearly missed.** A single Horizon page reports **200** USDC issuers; the real count is **387**. Capping at one page would have halved the count and could miss the genuine issuer entirely. The lib pages to exhaustion, and `meta.omitted` always reports what the display cap dropped.
+- **Honest framing kept:** holder count is a *cost* signal, not proof. A well-funded impersonator can buy holders and a genuine new asset has few — the signal is weakest exactly where the stakes are highest. The UI says so, and no composite "asset score" is invented: the two risks (impersonation, issuer power) are orthogonal and reported as facts.
+- **✅ VERIFIED IN A REAL BROWSER (Playwright + live mainnet):** `/assets` renders 387 USDC issuers with `circle.com` dominant at 97.4%; switching to USDY renders `ondo.finance` with both "Can seize your balance" and "Can freeze your balance"; the impersonator list surfaces `finance-ondo.com`, `blackrock.co.com`, `franklintempleton.co.com`. No console errors. Error paths verified: missing code → 400, malformed code → 400 (not 500 — the bug the old liquidity route had), unissued code → 404, second call → `x-cache: HIT`.
+  - One caution recorded for next time: a scoped Playwright assertion reported "no clawback badge" for USDY while the **screenshot showed the badge plainly**. The locator was broken, not the app. Assertions can lie about the DOM; the screenshot settled it.
+
+### This round (English-only repo)
+- `PoolRatings.jsx` was written in Turkish while the rest of the product is in English — and it had just become a primary destination for the main CTA. Translated, along with the last Turkish strings in `WalletProvider.jsx`. Repo artifacts are English; the conversation is not.
 
 ### This round (liquidity surface)
 - **The `/api/liquidity/*` mock is gone — and the gap was not what it looked like.** This was recorded as "4 routes return mock data instead of real data," with the fix being "wire them to real data." That framing was wrong. **Nothing in the UI ever called those routes.** `EnhancedLiquidityPools.jsx` fetched `/api/liquidity-pools/all` and `/api/liquidity-stats` (hyphens); the routes were `/api/liquidity/pools/all` and `/api/liquidity/stats` (slashes). Verified against production: the hyphenated URLs returned **404**, the real ones returned 200. There was no rewrite bridging them. So the component had *always* thrown, caught, and rendered "Failed to load liquidity pools" over an empty list — while the mock it was blamed for showing sat unreachable behind a different URL. Wiring the mock to real data would have fixed nothing a user could see.

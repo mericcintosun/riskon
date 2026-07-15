@@ -67,7 +67,7 @@ function PoolCard({ pool }) {
             <div className="mb-1 flex items-center justify-between text-xs">
               <span className="text-slate-300">{f.label}</span>
               <span className="text-slate-500">
-                {Math.round(f.risk * 100)} · ağırlık {f.weight}
+                {Math.round(f.risk * 100)} · weight {f.weight}
               </span>
             </div>
             <RiskBar risk={f.risk} />
@@ -79,23 +79,23 @@ function PoolCard({ pool }) {
         onClick={() => setOpen((v) => !v)}
         className="mt-4 text-sm font-medium text-blue-400 hover:text-blue-300"
       >
-        {open ? "Detayları gizle" : "Neden bu not? Girdileri göster"}
+        {open ? "Hide details" : "Why this grade? Show the inputs"}
       </button>
 
       {open && (
         <div className="mt-4 space-y-4 border-t border-slate-700/50 pt-4">
           <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
-            <Stat label="Rezerv" value={o.reserveCount} />
+            <Stat label="Reserves" value={o.reserveCount} />
             <Stat
-              label="Ağırlıklı util."
+              label="Weighted util."
               value={`${(o.weightedUtilization * 100).toFixed(1)}%`}
             />
             <Stat
-              label="En yüksek util."
+              label="Peak util."
               value={`${(o.maxUtilization * 100).toFixed(1)}%`}
             />
             <Stat label="Max c_factor" value={o.maxCollateralFactor} />
-            <Stat label="Konsantrasyon (HHI)" value={o.concentrationHHI} />
+            <Stat label="Concentration (HHI)" value={o.concentrationHHI} />
           </div>
 
           <div className="space-y-2">
@@ -108,7 +108,7 @@ function PoolCard({ pool }) {
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-medium text-slate-300">Rezervler</p>
+            <p className="text-xs font-medium text-slate-300">Reserves</p>
             {pool.reserves.map((r) => (
               <div
                 key={r.asset}
@@ -164,13 +164,13 @@ export default function PoolRatings() {
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold text-white">
             <Shield className="h-6 w-6 text-blue-400" />
-            Blend Havuz Risk Notları
+            Blend Pool Risk Ratings
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Blend&apos;in izinsiz mainnet kredi havuzları, <strong>canlı zincir
-            verisinden</strong> derecelendirilir. Havuz seçmek kullanıcının
-            gerçekten verdiği bir karar ve bir havuz —cüzdanın aksine— kötü nottan
-            yeni adres açarak kaçamaz.
+            Blend&apos;s permissionless mainnet lending pools, rated from{" "}
+            <strong>live chain data</strong>. Which pool to put money in is a
+            decision users actually make, and a pool — unlike a wallet — cannot
+            escape a bad rating by opening a new address.
           </p>
         </div>
         <button
@@ -179,7 +179,7 @@ export default function PoolRatings() {
           className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${state.loading ? "animate-spin" : ""}`} />
-          Yenile
+          Refresh
         </button>
       </div>
 
@@ -187,17 +187,17 @@ export default function PoolRatings() {
       <div className="mb-6 flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
         <p className="text-xs leading-relaxed text-slate-400">
-          Bu bir <strong>şeffaf rubrik</strong>, kayıp tahmini değil. Ağırlıklar
-          açıkça belirtilir ve her notun altındaki ham girdiler gösterilir, böylece
-          hesabı denetleyebilir veya kendi ağırlığınızla yeniden yapabilirsiniz.
-          Zincirde temerrüt/likidasyon <em>etiket</em> verisi olmadığı için hiç
-          kimse —biz dahil— doğrulanmış bir kayıp olasılığı iddia edemez.
+          This is a <strong>transparent rubric</strong>, not a loss prediction. The
+          weights are declared and every rating shows the raw inputs behind it, so
+          you can audit the arithmetic or redo it with your own weights. There is no
+          default or liquidation <em>label</em> data on chain, so nobody — us
+          included — can claim a validated probability of loss.
         </p>
       </div>
 
       {state.loading && (
         <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 p-8 text-center text-slate-400">
-          Havuzlar zincirden okunuyor…
+          Reading pools from chain…
         </div>
       )}
 
@@ -218,13 +218,13 @@ export default function PoolRatings() {
 
           {state.data.failed?.length > 0 && (
             <p className="mt-4 text-xs text-slate-500">
-              Okunamayan havuz:{" "}
+              Could not read:{" "}
               {state.data.failed.map((f) => f.name).join(", ")}
             </p>
           )}
 
           <p className="mt-6 text-xs leading-relaxed text-slate-500">
-            Kaynak: {state.data.meta.source} · {state.data.meta.network} ·{" "}
+            Source: {state.data.meta.source} · {state.data.meta.network} ·{" "}
             {state.data.meta.caveat}
           </p>
         </>
