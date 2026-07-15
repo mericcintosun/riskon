@@ -17,8 +17,7 @@
 
 ## 🔴 KRİTİK
 
-*(Kalmadı — passkey mock'u kapatıldı, aşağıya bakınız. Ancak WebAuthn seremonisi
-tarayıcı gerektirdiği için uçtan uca **manuel doğrulama bekliyor**.)*
+*(Kalmadı.)*
 
 ---
 
@@ -33,14 +32,8 @@ tarayıcı gerektirdiği için uçtan uca **manuel doğrulama bekliyor**.)*
   - `/api/liquidity/pools/all`: geçersiz `sort`'ta Zod hatası generic `catch`'e düşüyor → **400 yerine 500**.
   - `src/app/api/cache/invalidate/route.ts`: kimliksiz POST (şu an no-op; gerçek cache'e bağlanırsa DoS riski).
 
-### 2. Passkey akışı manuel doğrulama bekliyor
-- **Durum:** Kod artık gerçek (aşağı bakınız) ama **WebAuthn tarayıcı gerektirdiği için headless doğrulanamadı**.
-- **Doğrulanan:** wallet WASM testnet'te kurulu · deployer fonlu (11.851 XLM) · okuma yolu gerçek kontrata karşı çalışıyor · build/test/lint yeşil.
-- **Doğrulanamayan:** passkey kaydı → cüzdan deploy → imzalama zinciri. **Tarayıcıda elle test edilmeli.**
-
 ## Öncelik Sırası
-1. **Passkey akışını tarayıcıda elle doğrula** — kod hazır, kanıt yok.
-2. **Mock liquidity API** — ürünün "gerçek zamanlı TVL" iddiasını karşılamıyor.
+1. **Mock liquidity API** — kalan tek gap.
 
 ---
 
@@ -65,7 +58,10 @@ tarayıcı gerektirdiği için uçtan uca **manuel doğrulama bekliyor**.)*
 - **Eklendi:** `POST /api/passkey/deploy` — imzalı deploy tx'ini Soroban RPC'ye gönderir. OZ Channels relayer'ına gerek yok: tx zaten passkey-kit'in kanonik (fonlu) deployer'ı tarafından imzalı.
 - **Düzeltildi:** `signWithPasskey` eski `sign({keyId, transaction})` API'sini kullanıyordu; v0.14'te `sign(txn, signer?)` oldu.
 - **Yapılandırıldı:** kanonik testnet wallet WASM hash'i (`fdefad64…`) — testnet'te **kurulu olduğu doğrulandı**.
-- **Doğrulama sınırı:** WebAuthn tarayıcı gerektirdiği için uçtan uca passkey akışı **elle test edilmeli** (bkz. YÜKSEK #2).
+- **Fee-bump eklendi — asıl kök neden buydu.** Gerçek tarayıcı testi `txInsufficientFee` verdi. Sebep: passkey-kit `PasskeyClient.deploy()`'u **`fee` geçmeden** çağırıyor, yani tx SDK'nın varsayılan **100 stroop** inclusion fee'siyle çıkıyor. Bu onların tasarımında bilinçli — envelope'u OZ Channels relayer'ına verirler, o öder. Dolayısıyla ham RPC submit, deployer ne kadar fonlu olursa olsun (11.8k XLM) **hep** reddedilirdi: sorun bakiye değil **fee alanıydı**. Çözüm: imzalı iç tx'i fonlu bir sponsor'ın ödediği **fee-bump**'a sarmak (relayer'ın yaptığının aynısı; iç imzalar bozulmaz).
+- **✅ UÇTAN UCA DOĞRULANDI (tarayıcı + zincir):** WebAuthn passkey → `createWallet` → fee-bump → zincirde `CreateContractV2`.
+  - tx: `c5f4194c0c64f2b2e2e4626f66a3a16994347a6f3b7bfbaac686a0e37359f8b5` (başarılı, ledger 3614566, fee 1.211.194 stroop)
+  - Yaratılan smart wallet: `CB5R46H4YMSP7YGXDEBIX7C6DI5ENIFDXV6EJ34UTGPTO56VVZWP4PGF` — kontrat zincirde canlı (interface sorgulanabiliyor) ve UI header'ında görünen adresle birebir aynı.
 
 ### ⚠️ Önceki bir iddiamın düzeltmesi: "kalepail" seed'i
 Daha önce bunu **kritik/prodüksiyon blocker** diye yazmıştım: *"mainnet'e taşınırsa hesabı herkes kontrol eder → fonlar çalınabilir"*. **Bu yanlıştı.** passkey-kit'in kendi dokümantasyonu:
