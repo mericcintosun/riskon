@@ -105,7 +105,7 @@ export const ApiErrorSchema = z.object({
     'INTERNAL_ERROR',
     'SERVICE_UNAVAILABLE',
   ]).describe('Machine-readable error code'),
-  details: z.record(z.any()).optional().describe('Additional error context'),
+  details: z.record(z.string(), z.any()).optional().describe('Additional error context'),
   timestamp: z.string().describe('ISO timestamp of error'),
 });
 

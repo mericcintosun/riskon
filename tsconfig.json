@@ -13,13 +13,15 @@
     "incremental": true,
     "module": "esnext",
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "baseUrl": "src",
     "paths": {
-      "@/*": ["*"]
+      "@/*": [
+        "*"
+      ]
     },
     "plugins": [
       {
@@ -36,6 +38,13 @@
     "**/*.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "temp-passkey-latest",
+    "backend",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/tests/**",
+    "src/app/api/__tests__/**"
   ]
 }

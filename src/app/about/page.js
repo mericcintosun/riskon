@@ -14,7 +14,7 @@ import {
   Shield,
   Handshake,
   Unlock,
-  Github,
+  Code,
   BookOpen,
   Star,
 } from "lucide-react";
@@ -565,7 +565,7 @@ export default function AboutPage() {
                   rel="noopener noreferrer"
                 >
                   <button className="btn-primary text-lg px-8 py-4 transform hover:scale-105 transition-all duration-200 inline-flex items-center">
-                    <Github className="mr-2 h-5 w-5" />
+                    <Code className="mr-2 h-5 w-5" />
                     View on GitHub
                   </button>
                 </a>

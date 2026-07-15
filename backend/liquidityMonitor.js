@@ -1,10 +1,13 @@
 const redis = require("redis");
-const fetch = require("node-fetch");
+// Node 18+ provides a global `fetch`, so no node-fetch dependency is needed.
 
-// Redis client setup
+// Redis client setup (redis v4+/v6 uses a `socket` object for host/port)
 const redisClient = redis.createClient({
-  host: process.env.REDIS_HOST || "localhost",
-  port: process.env.REDIS_PORT || 6379,
+  socket: {
+    host: process.env.REDIS_HOST || "localhost",
+    port: Number(process.env.REDIS_PORT) || 6379,
+  },
+  password: process.env.REDIS_PASSWORD || undefined,
 });
 
 // Horizon API configuration

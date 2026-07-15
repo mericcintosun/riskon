@@ -53,3 +53,9 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+# Soroban / cargo test snapshots (regenerated)
+test_snapshots/
+**/test_snapshots/
+
+# Misc build/scratch
+/backend/node_modules/

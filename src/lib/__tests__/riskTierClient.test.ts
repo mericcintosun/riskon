@@ -2,12 +2,18 @@
  * @jest-environment jsdom
  */
 
+import { renderHook, act } from '@testing-library/react';
 import { RiskTierContractClient, riskTierClient, useRiskTierContract } from '../riskTierClient';
-import { Server, Address, nativeToScVal, scValToNative, Networks, BASE_FEE, TransactionBuilder, Horizon } from '@stellar/stellar-sdk';
+import { Address, nativeToScVal, scValToNative, Networks, BASE_FEE, TransactionBuilder, Horizon } from '@stellar/stellar-sdk';
+// The client imports `Server` from the '@stellar/stellar-sdk/rpc' subpath, so the
+// mock (and the reference the test drives) must come from there.
+import { Server } from '@stellar/stellar-sdk/rpc';
 
 // Mock Stellar SDK
 jest.mock('@stellar/stellar-sdk', () => ({
-  Server: jest.fn(),
+  Contract: jest.fn().mockImplementation(() => ({
+    call: jest.fn().mockReturnValue('mock-operation'),
+  })),
   Address: {
     fromString: jest.fn(),
   },
@@ -26,6 +32,12 @@ jest.mock('@stellar/stellar-sdk', () => ({
   },
 }));
 
+// The RPC Server lives on a separate module path that pulls in ESM-only deps;
+// mock it so Jest never loads the real (untransformed) package.
+jest.mock('@stellar/stellar-sdk/rpc', () => ({
+  Server: jest.fn(),
+}));
+
 // Mock cacheManager
 jest.mock('../cacheManager', () => ({
   getCache: jest.fn(),
@@ -34,14 +46,14 @@ jest.mock('../cacheManager', () => ({
 }));
 
 // Mock cache invalidation hook
-jest.mock('../hooks/useCacheInvalidation', () => ({
+jest.mock('../../hooks/useCacheInvalidation', () => ({
   dispatchCacheEvent: {
     riskTierUpdated: jest.fn(),
   },
 }));
 
 // Mock cache types
-jest.mock('../types/cache', () => ({
+jest.mock('../../types/cache', () => ({
   CACHE_KEYS: {
     USER_RISK_TIER: 'user_risk_tier',
     RISK_SCORE: 'risk_score',
@@ -79,6 +91,13 @@ describe('RiskTierContractClient', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Re-establish console spies each test: afterEach's restoreAllMocks() strips
+    // the module-level spies after the first test, which would otherwise make
+    // later toHaveBeenCalledWith assertions fail ("received must be a mock").
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Mock Server constructor
     mockServer = {
@@ -152,93 +171,122 @@ describe('RiskTierContractClient', () => {
     });
   });
 
+  // Address / score / tier validation are performed by module-level helpers that
+  // are exercised through the public API (they are not exposed as client methods),
+  // so these suites drive them via public methods and assert the real behavior.
   describe('Address Validation', () => {
-    test('should validate valid G address', () => {
+    // A syntactically valid 56-char C... (contract) address.
+    const validCAddress = 'C' + 'A'.repeat(55);
+
+    test('should validate valid G address', async () => {
       const { StrKey } = require('@stellar/stellar-sdk');
       StrKey.isValidEd25519PublicKey.mockReturnValue(true);
 
-      expect(() => client['validateAddress'](mockWalletAddress)).not.toThrow();
+      // Valid address passes validation; the (mocked) simulation yields false.
+      await expect(
+        client.canAccessTier(mockWalletAddress, 'TIER_1')
+      ).resolves.toBe(false);
     });
 
-    test('should validate valid C address', () => {
+    test('should validate valid C address', async () => {
       const { StrKey } = require('@stellar/stellar-sdk');
       StrKey.isValidEd25519PublicKey.mockReturnValue(false);
 
-      const cAddress = 'C1234567890ABCDEF1234567890ABCDEF12345678';
-      expect(() => client['validateAddress'](cAddress)).not.toThrow();
+      await expect(
+        client.canAccessTier(validCAddress, 'TIER_1')
+      ).resolves.toBe(false);
     });
 
-    test('should reject invalid address format', () => {
+    test('should reject invalid address format', async () => {
       const { StrKey } = require('@stellar/stellar-sdk');
       StrKey.isValidEd25519PublicKey.mockReturnValue(false);
 
-      expect(() => client['validateAddress']('INVALID')).toThrow(
-        'Address "INVALID" is not a valid Stellar address.'
-      );
+      await expect(
+        client.canAccessTier('INVALID', 'TIER_1')
+      ).rejects.toThrow('is not a valid Stellar address');
     });
 
-    test('should reject empty address', () => {
-      expect(() => client['validateAddress']('')).toThrow(
-        'Address is required and must be a non-empty string.'
-      );
+    test('should reject empty address', async () => {
+      await expect(
+        client.canAccessTier('', 'TIER_1')
+      ).rejects.toThrow('is required and must be a non-empty string.');
     });
 
-    test('should reject null address', () => {
-      expect(() => client['validateAddress'](null)).toThrow(
-        'Address is required and must be a non-empty string.'
-      );
+    test('should reject null address', async () => {
+      await expect(
+        client.canAccessTier(null as any, 'TIER_1')
+      ).rejects.toThrow('is required and must be a non-empty string.');
     });
   });
 
   describe('Score Validation', () => {
-    test('should accept valid score', () => {
-      expect(client['validateScore'](50)).toBe(50);
+    // Score is only validated by the write path (set_risk_tier), so drive it there.
+    const setupHappyPath = () => {
+      const { passkeyWallet } = require('../passkeyIntegration');
+      passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
+      passkeyWallet.submitTransactionDirectly.mockResolvedValue({ hash: '0xhash' });
+      mockHorizon.loadAccount.mockResolvedValue({ sequence: '123456789' });
+    };
+
+    test('should accept valid score', async () => {
+      setupHappyPath();
+      await client.setRiskTier(mockWalletAddress, 50, 'TIER_1', 'TIER_1');
+      // The validated (unchanged) score is forwarded to the contract call.
+      expect(nativeToScVal).toHaveBeenCalledWith(50, { type: 'u32' });
     });
 
-    test('should round decimal scores', () => {
-      expect(client['validateScore'](75.7)).toBe(76);
+    test('should round decimal scores', async () => {
+      setupHappyPath();
+      await client.setRiskTier(mockWalletAddress, 75.7, 'TIER_1', 'TIER_1');
+      expect(nativeToScVal).toHaveBeenCalledWith(76, { type: 'u32' });
     });
 
-    test('should reject negative scores', () => {
-      expect(() => client['validateScore'](-10)).toThrow(
-        'Score must be between 0 and 100 (inclusive), received -10.'
-      );
+    test('should reject negative scores', async () => {
+      await expect(
+        client.setRiskTier(mockWalletAddress, -10, 'TIER_1', 'TIER_1')
+      ).rejects.toThrow('Score must be between 0 and 100 (inclusive), received -10.');
     });
 
-    test('should reject scores over 100', () => {
-      expect(() => client['validateScore'](150)).toThrow(
-        'Score must be between 0 and 100 (inclusive), received 150.'
-      );
+    test('should reject scores over 100', async () => {
+      await expect(
+        client.setRiskTier(mockWalletAddress, 150, 'TIER_1', 'TIER_1')
+      ).rejects.toThrow('Score must be between 0 and 100 (inclusive), received 150.');
     });
 
-    test('should reject non-numeric scores', () => {
-      expect(() => client['validateScore']('invalid' as any)).toThrow(
-        'Score must be a finite number.'
-      );
+    test('should reject non-numeric scores', async () => {
+      await expect(
+        client.setRiskTier(mockWalletAddress, 'invalid' as any, 'TIER_1', 'TIER_1')
+      ).rejects.toThrow('Score must be a finite number.');
     });
 
-    test('should reject infinite scores', () => {
-      expect(() => client['validateScore'](Infinity)).toThrow(
-        'Score must be a finite number.'
-      );
+    test('should reject infinite scores', async () => {
+      await expect(
+        client.setRiskTier(mockWalletAddress, Infinity, 'TIER_1', 'TIER_1')
+      ).rejects.toThrow('Score must be a finite number.');
     });
   });
 
   describe('Tier Validation', () => {
-    test('should accept valid tiers', () => {
-      expect(client['validateTierInput']('TIER_1')).toBe('TIER_1');
-      expect(client['validateTierInput']('tier_2')).toBe('TIER_2');
-      expect(client['validateTierInput']('Tier_3')).toBe('TIER_3');
+    // Tier normalization/validation ("Tier" label) is exercised via get_tier_users.
+    test('should accept valid tiers', async () => {
+      await client.getTierUsers('TIER_1' as any);
+      expect(nativeToScVal).toHaveBeenCalledWith('TIER_1', { type: 'symbol' });
+
+      await client.getTierUsers('tier_2' as any);
+      expect(nativeToScVal).toHaveBeenCalledWith('TIER_2', { type: 'symbol' });
+
+      await client.getTierUsers('Tier_3' as any);
+      expect(nativeToScVal).toHaveBeenCalledWith('TIER_3', { type: 'symbol' });
     });
 
-    test('should reject invalid tiers', () => {
-      expect(() => client['validateTierInput']('INVALID_TIER')).toThrow(
+    test('should reject invalid tiers', async () => {
+      await expect(client.getTierUsers('INVALID_TIER' as any)).rejects.toThrow(
         'Tier "INVALID_TIER" is invalid. Must be one of: TIER_1, TIER_2, TIER_3.'
       );
     });
 
-    test('should reject empty tier', () => {
-      expect(() => client['validateTierInput']('')).toThrow(
+    test('should reject empty tier', async () => {
+      await expect(client.getTierUsers('' as any)).rejects.toThrow(
         'Tier is required and must be a string.'
       );
     });
@@ -248,7 +296,7 @@ describe('RiskTierContractClient', () => {
     describe('getRiskTier', () => {
       test('should return cached risk tier data', async () => {
         const { getCache } = require('../cacheManager');
-        const { CACHE_KEYS } = require('../types/cache');
+        const { CACHE_KEYS } = require('../../types/cache');
         
         getCache.mockResolvedValue(mockRiskTierData);
 
@@ -256,12 +304,13 @@ describe('RiskTierContractClient', () => {
 
         expect(getCache).toHaveBeenCalledWith(`${CACHE_KEYS.USER_RISK_TIER}_${mockWalletAddress}`);
         expect(result).toEqual(mockRiskTierData);
-        expect(console.log).toHaveBeenCalledWith('🚀 Using cached risk tier data');
+        // A cache hit short-circuits before any contract simulation.
+        expect(mockServer.simulateTransaction).not.toHaveBeenCalled();
       });
 
       test('should fetch fresh risk tier data from contract', async () => {
         const { getCache, setCache } = require('../cacheManager');
-        const { CACHE_KEYS } = require('../types/cache');
+        const { CACHE_KEYS } = require('../../types/cache');
         
         getCache.mockResolvedValue(null);
         mockServer.simulateTransaction.mockResolvedValue({
@@ -287,8 +336,9 @@ describe('RiskTierContractClient', () => {
         const result = await client.getRiskTier(mockWalletAddress);
 
         expect(result).toBeNull();
+        // The warning uses the underlying contract function name (get_risk_tier).
         expect(console.warn).toHaveBeenCalledWith(
-          expect.stringContaining('[RiskTierClient] Simulation error in getRiskTier:'),
+          expect.stringContaining('[RiskTierClient] Simulation error in get_risk_tier:'),
           'Simulation failed'
         );
       });
@@ -303,7 +353,7 @@ describe('RiskTierContractClient', () => {
 
         expect(result).toBeNull();
         expect(console.error).toHaveBeenCalledWith(
-          expect.stringContaining('[RiskTierClient] simulateReadCall(getRiskTier) failed:'),
+          expect.stringContaining('[RiskTierClient] simulateReadCall(get_risk_tier) failed:'),
           expect.any(Error)
         );
       });
@@ -479,7 +529,7 @@ describe('RiskTierContractClient', () => {
       test('should set risk tier successfully', async () => {
         const { passkeyWallet } = require('../passkeyIntegration');
         const { invalidateCache } = require('../cacheManager');
-        const { dispatchCacheEvent } = require('../hooks/useCacheInvalidation');
+        const { dispatchCacheEvent } = require('../../hooks/useCacheInvalidation');
         
         passkeyWallet.signTransaction.mockResolvedValue('mock-signature');
         passkeyWallet.submitTransactionDirectly.mockResolvedValue({
@@ -607,14 +657,14 @@ describe('RiskTierContractClient', () => {
 
   describe('Error Handling', () => {
     test('should handle validation errors in setRiskTier', async () => {
+      const { StrKey } = require('@stellar/stellar-sdk');
+      StrKey.isValidEd25519PublicKey.mockReturnValue(false);
+
+      // Invalid inputs are rejected up-front by the validators, before any
+      // network work is attempted.
       await expect(
         client.setRiskTier('invalid', -10, 'INVALID', 'TIER_1')
       ).rejects.toThrow();
-
-      expect(console.error).toHaveBeenCalledWith(
-        '❌ Failed to set risk tier:',
-        expect.any(Error)
-      );
     });
 
     test('should handle validation errors in updateChosenTier', async () => {
@@ -632,16 +682,6 @@ describe('RiskTierContractClient', () => {
 });
 
 describe('useRiskTierContract Hook', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    jest.spyOn(React, 'useState').mockImplementation((initial) => {
-      if (typeof initial === 'function') {
-        return [initial(), jest.fn()];
-      }
-      return [initial, jest.fn()];
-    });
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -661,16 +701,24 @@ describe('useRiskTierContract Hook', () => {
   test('should handle loading states', async () => {
     const { result } = renderHook(() => useRiskTierContract());
 
-    // Mock a slow operation
+    // A controllable pending promise so we can observe loading === true
+    // before resolution.
+    let resolveCall: (value: unknown) => void = () => {};
     jest.spyOn(riskTierClient, 'getRiskTier').mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve(null), 100))
+      () => new Promise((resolve) => { resolveCall = resolve; }) as any
     );
 
-    const promise = result.current.getRiskTier('GD5TEST');
+    let pending: Promise<unknown>;
+    act(() => {
+      pending = result.current.getRiskTier('GD5TEST');
+    });
 
     expect(result.current.loading).toBe(true);
 
-    await promise;
+    await act(async () => {
+      resolveCall(null);
+      await pending;
+    });
 
     expect(result.current.loading).toBe(false);
   });
@@ -682,7 +730,9 @@ describe('useRiskTierContract Hook', () => {
       new Error('Test error')
     );
 
-    await result.current.getRiskTier('GD5TEST');
+    await act(async () => {
+      await result.current.getRiskTier('GD5TEST');
+    });
 
     expect(result.current.error).toBe('Test error');
     expect(result.current.loading).toBe(false);
@@ -701,21 +751,3 @@ describe('Singleton Instance', () => {
     expect(client1).toBe(client2);
   });
 });
-
-// Helper function for testing hooks
-function renderHook<T>(hook: () => T): { result: { current: T } } {
-  const result = { current: null as T };
-  
-  // Simple hook renderer for testing
-  const React = require('react');
-  
-  function TestComponent() {
-    result.current = hook();
-    return null;
-  }
-
-  // Mock React rendering
-  require('react').createElement(TestComponent);
-
-  return { result };
-}

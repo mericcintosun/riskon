@@ -122,7 +122,7 @@ export async function GET(
     console.error(`❌ Error fetching pool details:`, error);
 
     if (error instanceof z.ZodError) {
-      const pathError = error.errors.find((e) => e.path.includes('poolId'));
+      const pathError = error.issues.find((e) => e.path.includes('poolId'));
       if (pathError) {
         return NextResponse.json(
           {

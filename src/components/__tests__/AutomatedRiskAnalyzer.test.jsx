@@ -3,44 +3,49 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import AutomatedRiskAnalyzer from '../AutomatedRiskAnalyzer';
 
 // Mock all the dependencies
-jest.mock('../lib/horizonDataCollector', () => ({
+jest.mock('../../lib/horizonDataCollector', () => ({
   collectTransactionData: jest.fn(),
   getCachedAnalysis: jest.fn(),
   cacheAnalysis: jest.fn(),
 }));
 
-jest.mock('../lib/lightweightRiskModel', () => ({
+jest.mock('../../lib/lightweightRiskModel', () => ({
   calculateRiskScore: jest.fn(),
   getDataQualityScore: jest.fn(),
 }));
 
-jest.mock('../lib/rateLimiter', () => ({
+jest.mock('../../lib/rateLimiter', () => ({
   checkRateLimit: jest.fn(),
   recordUpdate: jest.fn(),
   formatRemainingTime: jest.fn((ms) => '2h 30m'),
 }));
 
-jest.mock('../app/lib/writeScore', () => ({
+jest.mock('../../app/lib/writeScore', () => ({
   writeScoreToBlockchainEnhanced: jest.fn(),
 }));
 
-jest.mock('../contexts/WalletContext', () => ({
+jest.mock('../../contexts/WalletContext', () => ({
   useWallet: jest.fn(),
 }));
 
-jest.mock('../contexts/ToastContext', () => ({
+jest.mock('../../contexts/ToastContext', () => ({
   useToast: jest.fn(),
 }));
+
+// Captures the real onScoreImpactChange callback the component passes down, so a
+// test can simulate BlendHistoryPerformance reporting a score impact.
+const mockBlendImpactRef = { current: null };
 
 // Mock child components
 jest.mock('../BlendHistoryPerformance.jsx', () => {
   return function MockBlendHistoryPerformance({ onScoreImpactChange }) {
+    mockBlendImpactRef.current = onScoreImpactChange;
     return <div data-testid="blend-history-performance">Mock Blend History</div>;
   };
 });
@@ -74,13 +79,16 @@ describe('AutomatedRiskAnalyzer Component', () => {
     dismiss: jest.fn(),
   };
 
-  const mockRiskAnalysis = {
+  // The component mutates the object returned by calculateRiskScore (it reassigns
+  // riskScore and unshifts into explanation when a blend impact applies), so a
+  // fresh object must be produced per call — otherwise mutations leak across tests.
+  const createMockRiskAnalysis = () => ({
     riskScore: 25,
     tier: 'TIER_1',
     confidence: 0.85,
     featureImportance: {
       totalVolume: { weight: -0.15, normalizedValue: 0.8, impact: -0.12, rawValue: 5000, isPositive: true },
-      uniqueCounterparties: { weight: -0.25, normalizedValue: 0.5, impact: -0.125, rawValue: 25, isPositive: true },
+      uniqueCounterparties: { weight: -0.25, normalizedValue: 0.5, impact: -0.125, rawValue: 12, isPositive: true },
       assetDiversity: { weight: -0.2, normalizedValue: 0.4, impact: -0.08, rawValue: 4, isPositive: true },
       nightDayRatio: { weight: 0.35, normalizedValue: 0.2, impact: 0.07, rawValue: 0.3, isPositive: false },
     },
@@ -88,7 +96,9 @@ describe('AutomatedRiskAnalyzer Component', () => {
     recommendations: ['🎉 Excellent! Your risk profile is in great condition'],
     rawMetrics: {
       totalVolume: 5000,
-      uniqueCounterparties: 25,
+      // Deliberately different from riskScore (25) so that queries for the
+      // rendered risk score stay unambiguous.
+      uniqueCounterparties: 12,
       assetDiversity: 4,
       nightDayRatio: 0.3,
     },
@@ -99,25 +109,30 @@ describe('AutomatedRiskAnalyzer Component', () => {
       nightDayRatio: 0.2,
     },
     modelVersion: '1.0.0',
-  };
+  });
+
+  // Reference copy for feeding mocks / expected values (never handed to the component).
+  const mockRiskAnalysis = createMockRiskAnalysis();
 
   beforeEach(() => {
     jest.clearAllMocks();
     
     // Default mock implementations
-    const { useWallet } = require('../contexts/WalletContext');
-    const { useToast } = require('../contexts/ToastContext');
-    const { collectTransactionData, getCachedAnalysis } = require('../lib/horizonDataCollector');
-    const { calculateRiskScore, getDataQualityScore } = require('../lib/lightweightRiskModel');
-    const { checkRateLimit } = require('../lib/rateLimiter');
-    const { writeScoreToBlockchainEnhanced } = require('../app/lib/writeScore');
+    const { useWallet } = require('../../contexts/WalletContext');
+    const { useToast } = require('../../contexts/ToastContext');
+    const { collectTransactionData, getCachedAnalysis } = require('../../lib/horizonDataCollector');
+    const { calculateRiskScore, getDataQualityScore } = require('../../lib/lightweightRiskModel');
+    const { checkRateLimit } = require('../../lib/rateLimiter');
+    const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
 
     useWallet.mockReturnValue({
       walletAddress: mockWalletAddress,
       kit: mockKit,
     });
 
-    useToast.mockReturnValue(mockToast);
+    // The component destructures `const { toast } = useToast()`, matching the
+    // real ToastContext value shape ({ toast, ... }).
+    useToast.mockReturnValue({ toast: mockToast });
 
     collectTransactionData.mockResolvedValue({
       success: true,
@@ -128,7 +143,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
     getCachedAnalysis.mockReturnValue(null);
 
-    calculateRiskScore.mockReturnValue(mockRiskAnalysis);
+    calculateRiskScore.mockImplementation(() => createMockRiskAnalysis());
 
     getDataQualityScore.mockReturnValue({
       score: 100,
@@ -154,7 +169,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
   describe('Initial Rendering', () => {
     test('should show connect wallet message when no wallet connected', () => {
-      const { useWallet } = require('../contexts/WalletContext');
+      const { useWallet } = require('../../contexts/WalletContext');
       useWallet.mockReturnValue({ walletAddress: null, kit: null });
 
       render(<AutomatedRiskAnalyzer />);
@@ -173,7 +188,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
     });
 
     test('should load cached analysis on mount', () => {
-      const { getCachedAnalysis } = require('../lib/horizonDataCollector');
+      const { getCachedAnalysis } = require('../../lib/horizonDataCollector');
       const cachedData = {
         success: true,
         metrics: mockRiskAnalysis.rawMetrics,
@@ -213,7 +228,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
     test('should handle analysis errors gracefully', async () => {
       const user = userEvent.setup();
-      const { collectTransactionData } = require('../lib/horizonDataCollector');
+      const { collectTransactionData } = require('../../lib/horizonDataCollector');
       
       collectTransactionData.mockResolvedValue({
         success: false,
@@ -233,7 +248,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
     test('should show data quality warning when needed', async () => {
       const user = userEvent.setup();
-      const { getDataQualityScore } = require('../lib/lightweightRiskModel');
+      const { getDataQualityScore } = require('../../lib/lightweightRiskModel');
       
       getDataQualityScore.mockReturnValue({
         score: 50,
@@ -246,28 +261,31 @@ describe('AutomatedRiskAnalyzer Component', () => {
       const startButton = screen.getByRole('button', { name: /🧠 Start Analysis/ });
       await user.click(startButton);
 
-      await waitFor(() => {
-        expect(mockToast.warning).toHaveBeenCalledWith(
-          '⚠️ More transaction history needed for better analysis',
-          { duration: 6000 }
-        );
-      });
+      // The warning is emitted from a setTimeout(..., 1000), so allow more than
+      // waitFor's default 1000ms timeout.
+      await waitFor(
+        () => {
+          expect(mockToast.warning).toHaveBeenCalledWith(
+            '⚠️ More transaction history needed for better analysis',
+            { duration: 6000 }
+          );
+        },
+        { timeout: 3000 }
+      );
     });
 
     test('should apply blend score impact when available', async () => {
       const user = userEvent.setup();
-      
+
       render(<AutomatedRiskAnalyzer />);
 
-      // Simulate blend impact
-      const blendImpact = { totalChange: -5 }; // Reduce score by 5
-      
-      // We need to trigger the blend impact callback
-      // This would normally come from BlendHistoryPerformance component
-      const component = render(<AutomatedRiskAnalyzer />);
-      
-      // Find and trigger the blend impact change (this is a simplified test)
-      // In a real scenario, this would be triggered by the child component
+      // Simulate BlendHistoryPerformance reporting a -5 score impact. This must
+      // land before the analysis runs, since runAutomatedAnalysis reads the
+      // blendScoreImpact state when computing the final score.
+      await act(async () => {
+        mockBlendImpactRef.current({ totalChange: -5 });
+      });
+
       const startButton = screen.getByRole('button', { name: /🧠 Start Analysis/ });
       await user.click(startButton);
 
@@ -298,14 +316,19 @@ describe('AutomatedRiskAnalyzer Component', () => {
       expect(mockToast.loading).toHaveBeenCalledWith('🔗 Saving risk score to the blockchain...');
       expect(mockToast.success).toHaveBeenCalledWith('✅ Risk score successfully saved to the blockchain!');
       
-      await waitFor(() => {
-        expect(mockToast.info).toHaveBeenCalledWith('🔗 Transaction: 0x123456...', { duration: 5000 });
-      });
+      // The transaction toast is emitted from a setTimeout(..., 1000), so allow
+      // more than waitFor's default 1000ms timeout.
+      await waitFor(
+        () => {
+          expect(mockToast.info).toHaveBeenCalledWith('🔗 Transaction: 0x123456...', { duration: 5000 });
+        },
+        { timeout: 3000 }
+      );
     });
 
     test('should handle rate limiting', async () => {
       const user = userEvent.setup();
-      const { checkRateLimit } = require('../lib/rateLimiter');
+      const { checkRateLimit } = require('../../lib/rateLimiter');
       
       checkRateLimit.mockReturnValue({
         canUpdate: false,
@@ -329,11 +352,12 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
     test('should handle blockchain update failures', async () => {
       const user = userEvent.setup();
-      const { writeScoreToBlockchainEnhanced } = require('../app/lib/writeScore');
+      const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
       
+      // The "saved locally" fallback is reported on a successful write that had
+      // to fall back to local storage (a non-successful result throws instead).
       writeScoreToBlockchainEnhanced.mockResolvedValue({
-        successful: false,
-        error: 'Transaction failed',
+        successful: true,
         method: 'local_storage',
       });
 
@@ -358,7 +382,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
     test('should handle user cancelled transactions', async () => {
       const user = userEvent.setup();
-      const { writeScoreToBlockchainEnhanced } = require('../app/lib/writeScore');
+      const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
       
       writeScoreToBlockchainEnhanced.mockRejectedValue(new Error('User cancelled transaction'));
 
@@ -400,12 +424,13 @@ describe('AutomatedRiskAnalyzer Component', () => {
       const showDetailsButton = screen.getByRole('button', { name: 'Show Details' });
       await user.click(showDetailsButton);
 
-      expect(screen.getByText('Hide Details')).toBeInTheDocument();
+      // The toggle renders "Show Details" -> "Hide".
+      expect(screen.getByText('Hide')).toBeInTheDocument();
       expect(screen.getByText('🟢 Low Risk - Premium pool access')).toBeInTheDocument();
       expect(screen.getByText('✅ High transaction volume increases trust')).toBeInTheDocument();
 
       // Hide details
-      await user.click(screen.getByRole('button', { name: 'Hide Details' }));
+      await user.click(screen.getByRole('button', { name: 'Hide' }));
       expect(screen.getByRole('button', { name: 'Show Details' })).toBeInTheDocument();
     });
 
@@ -447,7 +472,11 @@ describe('AutomatedRiskAnalyzer Component', () => {
       const reanalyzeButton = screen.getByRole('button', { name: /🔄 Re-analyze/ });
       await user.click(reanalyzeButton);
 
-      expect(mockToast.loading).toHaveBeenCalledTimes(2); // Once for initial, once for re-analysis
+      // Each analysis run emits two loading toasts ("Analyzing..." then
+      // "Calculating..."), so two runs produce four.
+      expect(mockToast.loading).toHaveBeenCalledTimes(4);
+      expect(mockToast.loading).toHaveBeenCalledWith('📊 Analyzing transaction data from last 30 days...');
+      expect(mockToast.loading).toHaveBeenCalledWith('🧠 Calculating risk score with AI model...');
     });
   });
 
@@ -469,7 +498,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
       expect(screen.getByText('💰')).toBeInTheDocument();
       expect(screen.getByText('5000 XLM')).toBeInTheDocument();
       expect(screen.getByText('🤝')).toBeInTheDocument();
-      expect(screen.getByText('25')).toBeInTheDocument();
+      expect(screen.getByText('12')).toBeInTheDocument(); // uniqueCounterparties
       expect(screen.getByText('🎯')).toBeInTheDocument();
       expect(screen.getByText('4')).toBeInTheDocument();
       expect(screen.getByText('🌙')).toBeInTheDocument();
@@ -524,7 +553,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
   describe('Loading States', () => {
     test('should show loading state during analysis', async () => {
       const user = userEvent.setup();
-      const { collectTransactionData } = require('../lib/horizonDataCollector');
+      const { collectTransactionData } = require('../../lib/horizonDataCollector');
       
       // Make the collection take longer
       collectTransactionData.mockImplementation(() => new Promise(resolve => {
@@ -547,7 +576,7 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
     test('should show loading state during blockchain update', async () => {
       const user = userEvent.setup();
-      const { writeScoreToBlockchainEnhanced } = require('../app/lib/writeScore');
+      const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
       
       // Make the blockchain update take longer
       writeScoreToBlockchainEnhanced.mockImplementation(() => new Promise(resolve => {

@@ -11,17 +11,21 @@
  * These weights are trained on a hypothetical dataset of good/risky behaviors
  */
 const MODEL_WEIGHTS = {
-  // Feature weights (how much each metric affects risk)
-  totalVolume: -0.15, // Higher volume = lower risk (up to a point)
-  uniqueCounterparties: -0.25, // More diverse counterparties = lower risk
-  assetDiversity: -0.2, // More asset variety = lower risk
-  nightDayRatio: 0.35, // More night activity = higher risk
+  // Feature weights (how much each metric affects risk).
+  // Signs encode direction; magnitudes are scaled so the sigmoid actually spans
+  // the full 0-100 range across realistic profiles. With the previous magnitudes
+  // (and bias 0.45) every input collapsed into ~48-67, i.e. the model could never
+  // assign TIER_1 or TIER_3 — the original weight ratios are preserved here.
+  totalVolume: -0.375, // Higher volume = lower risk (up to a point)
+  uniqueCounterparties: -0.625, // More diverse counterparties = lower risk
+  assetDiversity: -0.5, // More asset variety = lower risk
+  nightDayRatio: 0.875, // More night activity = higher risk
 
   // Interaction weights (combined effects)
-  volumeCounterpartyInteraction: -0.1, // High volume + high counterparties = very low risk
+  volumeCounterpartyInteraction: -0.25, // High volume + high counterparties = very low risk
 
   // Bias term
-  bias: 0.45,
+  bias: 0.35,
 };
 
 /**
@@ -53,10 +57,14 @@ export function calculateRiskScore(metrics) {
     // Calculate logistic regression output
     const logitScore = calculateLogisticRegression(normalizedFeatures);
 
-    // Convert to 0-100 risk score (lower logit = higher risk)
-    const riskScore = Math.round(
-      Math.max(0, Math.min(100, (1 - logitScore) * 100))
-    );
+    // Convert to 0-100 risk score.
+    // MODEL_WEIGHTS are signed so that risky behaviour (e.g. nightDayRatio: +0.35)
+    // pushes the linear score UP and safe behaviour (volume/counterparty/asset
+    // diversity: negative weights) pushes it DOWN. The sigmoid therefore already
+    // yields P(risky), so it maps directly to the risk score.
+    // (Previously this was `(1 - logitScore) * 100`, which inverted the result and
+    // gave risky wallets LOW risk scores.)
+    const riskScore = Math.round(Math.max(0, Math.min(100, logitScore * 100)));
 
     // Determine tier based on risk score
     const tier = calculateTier(riskScore);

@@ -407,7 +407,7 @@ export function validateObject<T extends Record<string, any>>(
       errors[field] = result.error;
       isValid = false;
     } else if (result.sanitized !== undefined) {
-      sanitized[field] = result.sanitized;
+      sanitized[field] = result.sanitized as T[Extract<keyof T, string>];
     }
   }
 

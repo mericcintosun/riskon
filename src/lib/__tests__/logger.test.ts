@@ -4,7 +4,7 @@
  * Comprehensive tests for the structured logging system
  */
 
-import { Logger, ModuleLogger, LogLevel, logger, loggers, log } from '../logger';
+import { Logger, ModuleLogger, LogLevel, logger, loggers, log, createLogger } from '../logger';
 
 // Mock console methods
 const mockConsole = {
@@ -16,6 +16,14 @@ const mockConsole = {
 
 // Mock performance.now
 const mockPerformanceNow = jest.spyOn(performance, 'now');
+
+// Restore the real console/performance implementations only once, after the
+// entire suite has finished. Restoring between individual tests would detach
+// these module-level spies for every subsequent test (leaving them unable to
+// record calls); clearing them in each beforeEach is enough to isolate tests.
+afterAll(() => {
+  jest.restoreAllMocks();
+});
 
 describe('Logger', () => {
   let testLogger: Logger;
@@ -30,29 +38,25 @@ describe('Logger', () => {
     });
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   describe('Basic Logging', () => {
     test('should log debug messages', () => {
       testLogger.debug('Debug message', { key: 'value' });
       expect(mockConsole.debug).toHaveBeenCalledWith(
-        expect.stringContaining('DEBUG Debug message')
+        expect.stringMatching(/DEBUG\s+Debug message/)
       );
     });
 
     test('should log info messages', () => {
       testLogger.info('Info message');
       expect(mockConsole.info).toHaveBeenCalledWith(
-        expect.stringContaining('INFO Info message')
+        expect.stringMatching(/INFO\s+Info message/)
       );
     });
 
     test('should log warn messages', () => {
       testLogger.warn('Warning message');
       expect(mockConsole.warn).toHaveBeenCalledWith(
-        expect.stringContaining('WARN Warning message')
+        expect.stringMatching(/WARN\s+Warning message/)
       );
     });
 
@@ -60,7 +64,7 @@ describe('Logger', () => {
       const error = new Error('Test error');
       testLogger.error('Error message', error);
       expect(mockConsole.error).toHaveBeenCalledWith(
-        expect.stringContaining('ERROR Error message')
+        expect.stringMatching(/ERROR\s+Error message/)
       );
       expect(mockConsole.error).toHaveBeenCalledWith(
         expect.stringContaining('Error: Test error')
@@ -133,22 +137,25 @@ describe('Logger', () => {
       expect(mockConsole.error).toHaveBeenCalledWith(
         expect.stringContaining('Operation failed: failing-operation')
       );
-      expect(mockConsole.error).toHaveBeenCalledWith(
+      // The timer duration is emitted by endTimer at DEBUG level (console.debug),
+      // not by the error log above.
+      expect(mockConsole.debug).toHaveBeenCalledWith(
         expect.stringContaining('took 100ms')
       );
     });
 
     test('should support manual timer management', () => {
-      const timerId = testLogger.startTimer('manual-operation');
-      expect(typeof timerId).toBe('string');
-      expect(timerId.length).toBeGreaterThan(0);
-
+      // Mocks must be queued before startTimer, which captures the start time.
       mockPerformanceNow
         .mockReturnValueOnce(100)
         .mockReturnValueOnce(300);
 
+      const timerId = testLogger.startTimer('manual-operation');
+      expect(typeof timerId).toBe('string');
+      expect(timerId.length).toBeGreaterThan(0);
+
       testLogger.endTimer(timerId, 'manual-operation');
-      
+
       expect(mockConsole.debug).toHaveBeenCalledWith(
         expect.stringContaining('Timer completed: manual-operation')
       );
@@ -192,11 +199,14 @@ describe('Logger', () => {
     });
 
     test('should handle nested object redaction', () => {
+      // Redaction matches on the field *key* (case-insensitive substring):
+      // 'auth' matches the nested `authorization` header, 'token' matches the
+      // nested `userToken` field.
       const redactingLogger = new Logger({
         level: LogLevel.DEBUG,
         enableConsole: true,
         redactSensitiveData: true,
-        sensitiveFields: ['token'],
+        sensitiveFields: ['token', 'auth'],
       });
 
       redactingLogger.info('API call', {
@@ -238,7 +248,10 @@ describe('Logger', () => {
 
       expect(customLogger['config'].level).toBe(LogLevel.ERROR);
       expect(customLogger['config'].enableConsole).toBe(false);
-      expect(customLogger['config'].enableStructuredOutput).toBe(true); // Default value
+      // Default value: DEFAULT_CONFIG derives this from NODE_ENV (production only).
+      expect(customLogger['config'].enableStructuredOutput).toBe(
+        process.env.NODE_ENV === 'production'
+      );
     });
   });
 });
@@ -307,32 +320,34 @@ describe('Convenience Exports', () => {
   });
 
   test('should create logger function', () => {
-    const customLogger = logger.createLogger('CustomModule');
+    const customLogger = createLogger('CustomModule');
     expect(customLogger).toBeInstanceOf(ModuleLogger);
   });
 });
 
 describe('Integration Tests', () => {
   test('should handle complex logging scenarios', () => {
+    // DEBUG level so the timer's DEBUG-level completion log is emitted.
     const complexLogger = new Logger({
-      level: LogLevel.INFO,
+      level: LogLevel.DEBUG,
       enableConsole: true,
       enablePerformanceTracking: true,
       redactSensitiveData: true,
     });
 
+    // Queue timing before startTimer captures the start time.
+    mockPerformanceNow
+      .mockReturnValueOnce(100)
+      .mockReturnValueOnce(500);
+
     // Simulate a complex operation
     const timerId = complexLogger.startTimer('complex-operation');
-    
+
     complexLogger.info('Starting complex operation', {
       operationId: '12345',
       userId: 'user123',
       parameters: { secret: 'hidden', public: 'visible' },
     });
-
-    mockPerformanceNow
-      .mockReturnValueOnce(100)
-      .mockReturnValueOnce(500);
 
     complexLogger.endTimer(timerId, 'complex-operation', {
       result: 'success',
@@ -370,7 +385,7 @@ describe('Integration Tests', () => {
     });
 
     expect(mockConsole.error).toHaveBeenCalledWith(
-      expect.stringContaining('ERROR Failed to connect to database')
+      expect.stringMatching(/ERROR\s+Failed to connect to database/)
     );
     expect(mockConsole.error).toHaveBeenCalledWith(
       expect.stringContaining('Error: Database connection failed')

@@ -111,13 +111,13 @@ export async function GET(
     console.error(`❌ Error fetching pools for tier:`, error);
 
     if (error instanceof z.ZodError) {
-      const tierError = error.errors.find((e) => e.path.includes('tier'));
+      const tierError = error.issues.find((e) => e.path.includes('tier'));
       if (tierError) {
         return NextResponse.json(
           {
             error: `Invalid tier. Must be one of: TIER_1, TIER_2, TIER_3`,
             code: 'INVALID_INPUT',
-            details: { received: error.errors[0]?.message },
+            details: { received: error.issues[0]?.message },
             timestamp: new Date().toISOString(),
           },
           { status: 400 }

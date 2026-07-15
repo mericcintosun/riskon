@@ -14,7 +14,7 @@ import { z } from "zod";
  * Stellar network types
  */
 const stellarNetworkSchema = z.enum(["TESTNET", "PUBLIC"], {
-  errorMap: () => ({ message: "STELLAR_NETWORK must be either 'TESTNET' or 'PUBLIC'" }),
+  error: () => "STELLAR_NETWORK must be either 'TESTNET' or 'PUBLIC'",
 });
 
 /**
@@ -68,7 +68,7 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_FACTORY_CONTRACT_ID: contractIdSchema,
 
   // Passkey Configuration
-  NEXT_PUBLIC_PASSKEY_ENABLED: booleanEnvSchema.optional().default("true"),
+  NEXT_PUBLIC_PASSKEY_ENABLED: booleanEnvSchema.optional().prefault("true"),
   NEXT_PUBLIC_WEBAUTHN_ORIGIN: urlSchema.optional(),
 
   // API Endpoints
@@ -93,21 +93,21 @@ const serverEnvSchema = z.object({
 
   // Redis Configuration
   REDIS_HOST: z.string().optional().default("localhost"),
-  REDIS_PORT: portSchema.optional().default("6379"),
+  REDIS_PORT: portSchema.optional().prefault("6379"),
   REDIS_PASSWORD: z.string().optional(),
 
   // Backend Services
-  MONITORING_INTERVAL: numberEnvSchema.optional().default("300000"),
-  LIQUIDITY_API_PORT: portSchema.optional().default("3001"),
+  MONITORING_INTERVAL: numberEnvSchema.optional().prefault("300000"),
+  LIQUIDITY_API_PORT: portSchema.optional().prefault("3001"),
 
   // API Configuration
-  HORIZON_API_TIMEOUT: numberEnvSchema.optional().default("30000"),
-  RPC_API_TIMEOUT: numberEnvSchema.optional().default("15000"),
+  HORIZON_API_TIMEOUT: numberEnvSchema.optional().prefault("30000"),
+  RPC_API_TIMEOUT: numberEnvSchema.optional().prefault("15000"),
 
   // Security
   JWT_SECRET: z.string().optional(),
-  RATE_LIMIT_REQUESTS_PER_MINUTE: numberEnvSchema.optional().default("100"),
-  RATE_LIMIT_WINDOW_MS: numberEnvSchema.optional().default("60000"),
+  RATE_LIMIT_REQUESTS_PER_MINUTE: numberEnvSchema.optional().prefault("100"),
+  RATE_LIMIT_WINDOW_MS: numberEnvSchema.optional().prefault("60000"),
 
   // External Services
   LAUNCHTUBE_JWT: z.string().optional(),
@@ -116,17 +116,17 @@ const serverEnvSchema = z.object({
   COINGECKO_API_KEY: z.string().optional(),
 
   // Feature Flags
-  FEATURE_PASSKEY_WALLET: booleanEnvSchema.optional().default("true"),
-  FEATURE_LIQUIDITY_MONITORING: booleanEnvSchema.optional().default("true"),
-  FEATURE_RISK_TIER_SYSTEM: booleanEnvSchema.optional().default("true"),
-  FEATURE_AUTO_RISK_ANALYSIS: booleanEnvSchema.optional().default("true"),
-  FEATURE_LAUNCHTUBE_SPONSORSHIP: booleanEnvSchema.optional().default("true"),
+  FEATURE_PASSKEY_WALLET: booleanEnvSchema.optional().prefault("true"),
+  FEATURE_LIQUIDITY_MONITORING: booleanEnvSchema.optional().prefault("true"),
+  FEATURE_RISK_TIER_SYSTEM: booleanEnvSchema.optional().prefault("true"),
+  FEATURE_AUTO_RISK_ANALYSIS: booleanEnvSchema.optional().prefault("true"),
+  FEATURE_LAUNCHTUBE_SPONSORSHIP: booleanEnvSchema.optional().prefault("true"),
 
   // Debug Flags
-  DEBUG_LIQUIDITY_MONITORING: booleanEnvSchema.optional().default("false"),
-  DEBUG_RISK_CALCULATIONS: booleanEnvSchema.optional().default("false"),
-  DEBUG_PASSKEY_OPERATIONS: booleanEnvSchema.optional().default("false"),
-  DEBUG_CONTRACT_CALLS: booleanEnvSchema.optional().default("false"),
+  DEBUG_LIQUIDITY_MONITORING: booleanEnvSchema.optional().prefault("false"),
+  DEBUG_RISK_CALCULATIONS: booleanEnvSchema.optional().prefault("false"),
+  DEBUG_PASSKEY_OPERATIONS: booleanEnvSchema.optional().prefault("false"),
+  DEBUG_CONTRACT_CALLS: booleanEnvSchema.optional().prefault("false"),
 
   // Node Environment
   NODE_ENV: z.enum(["development", "production", "test"]).optional().default("development"),
@@ -213,7 +213,7 @@ export function validateEnv(): Env {
  * Formats Zod validation errors into a readable string
  */
 function formatZodError(error: z.ZodError): string {
-  return error.errors
+  return error.issues
     .map((err) => {
       const path = err.path.join(".");
       const message = err.message;

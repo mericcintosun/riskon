@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'Invalid request body',
           code: 'INVALID_INPUT',
-          details: { validation_errors: error.errors },
+          details: { validation_errors: error.issues },
           timestamp: new Date().toISOString(),
         },
         { status: 400 }

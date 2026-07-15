@@ -1,0 +1,38 @@
+version: 2
+updates:
+  # Frontend (Next.js app)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "frontend"]
+
+  # Backend (liquidity monitor)
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend"]
+
+  # Smart contract (Rust / Soroban)
+  - package-ecosystem: "cargo"
+    directory: "/risk_score"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "contract"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]

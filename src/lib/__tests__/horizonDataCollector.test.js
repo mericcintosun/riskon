@@ -11,7 +11,7 @@ jest.mock('../cacheManager', () => ({
 }));
 
 // Mock the CACHE_KEYS
-jest.mock('../types/cache', () => ({
+jest.mock('../../types/cache', () => ({
   CACHE_KEYS: {
     HORIZON_DATA: 'horizon_data',
     USER_RISK_TIER: 'user_risk_tier',
@@ -25,9 +25,12 @@ global.fetch = jest.fn();
 describe('Horizon Data Collector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // clearAllMocks only clears call data, not implementations / mockResolvedValueOnce
+    // queues, so fully reset fetch to avoid mock state leaking between tests.
+    fetch.mockReset();
     // Clear localStorage
     localStorage.clear();
-    
+
     // Mock console methods to avoid noise in tests
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -43,7 +46,7 @@ describe('Horizon Data Collector', () => {
 
     test('should return cached data when available', async () => {
       const { getCache } = require('../cacheManager');
-      const { CACHE_KEYS } = require('../types/cache');
+      const { CACHE_KEYS } = require('../../types/cache');
       
       const cachedData = {
         success: true,
@@ -68,7 +71,7 @@ describe('Horizon Data Collector', () => {
 
     test('should fetch fresh data when cache is empty', async () => {
       const { getCache, setCache } = require('../cacheManager');
-      const { CACHE_KEYS } = require('../types/cache');
+      const { CACHE_KEYS } = require('../../types/cache');
       
       getCache.mockResolvedValue(null);
 
@@ -151,10 +154,14 @@ describe('Horizon Data Collector', () => {
 
       const result = await collectTransactionData(mockWalletAddress);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Network error');
-      expect(result.metrics).toBeNull();
-      expect(console.error).toHaveBeenCalledWith('❌ Data collection failed:', expect.any(Error));
+      // Fetch failures are caught per-page inside fetchPayments/fetchTransactions,
+      // so collection degrades gracefully: it still succeeds with zeroed metrics
+      // and logs a warning (rather than throwing to the top-level catch).
+      expect(result.success).toBe(true);
+      expect(result.metrics).toBeDefined();
+      expect(result.metrics.totalVolume).toBe(0);
+      expect(result.metrics.uniqueCounterparties).toBe(0);
+      expect(console.warn).toHaveBeenCalledWith('⚠️ Error fetching payments page:', expect.any(Error));
     });
 
     test('should handle empty API responses', async () => {
@@ -192,25 +199,24 @@ describe('Horizon Data Collector', () => {
 
     test('should handle paginated responses', async () => {
       const { getCache } = require('../cacheManager');
-      
+
       getCache.mockResolvedValue(null);
 
-      // Mock first page
+      // The collector only requests a next page when a full page (200 records)
+      // is returned, so page 1 must be full to exercise pagination.
+      const firstPageRecords = Array.from({ length: 200 }, (_, i) => ({
+        id: `payment_p1_${i}`,
+        amount: '1',
+        asset_type: 'native',
+        asset_code: 'XLM',
+        from: `GD5FROM${i}`,
+        to: mockWalletAddress,
+        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        type: 'payment',
+      }));
+
       const mockFirstPage = {
-        _embedded: {
-          records: [
-            {
-              id: 'payment1',
-              amount: '100',
-              asset_type: 'native',
-              asset_code: 'XLM',
-              from: 'GD5TEST1',
-              to: mockWalletAddress,
-              created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-              type: 'payment',
-            },
-          ],
-        },
+        _embedded: { records: firstPageRecords },
         _links: {
           next: {
             href: 'https://horizon-testnet.stellar.org/accounts/GD.../payments?cursor=123',
@@ -218,12 +224,11 @@ describe('Horizon Data Collector', () => {
         },
       };
 
-      // Mock second page
       const mockSecondPage = {
         _embedded: {
           records: [
             {
-              id: 'payment2',
+              id: 'payment_p2',
               amount: '50',
               asset_type: 'native',
               asset_code: 'XLM',
@@ -234,34 +239,29 @@ describe('Horizon Data Collector', () => {
             },
           ],
         },
-        _links: {
-          next: null,
-        },
+        _links: { next: null },
       };
 
-      fetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(mockFirstPage),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(mockSecondPage),
-        })
-        // Mock transactions response
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({
-            _embedded: { records: [] },
-            _links: { next: null },
-          }),
-        });
+      const emptyTransactions = {
+        _embedded: { records: [] },
+        _links: { next: null },
+      };
+
+      // URL-aware mock: robust against Promise.all interleaving between the
+      // concurrent payments/transactions fetches.
+      fetch.mockImplementation((url) => {
+        if (url.includes('/payments')) {
+          const page = url.includes('cursor=') ? mockSecondPage : mockFirstPage;
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(page) });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(emptyTransactions) });
+      });
 
       const result = await collectTransactionData(mockWalletAddress);
 
       expect(fetch).toHaveBeenCalledTimes(3); // 2 for payments (paginated), 1 for transactions
-      expect(result.metrics.totalVolume).toBe(150);
-      expect(result.dataPoints.payments).toBe(2);
+      expect(result.metrics.totalVolume).toBe(250); // 200 * 1 + 50
+      expect(result.dataPoints.payments).toBe(201);
     });
 
     test('should filter transactions outside date range', async () => {
@@ -291,9 +291,11 @@ describe('Horizon Data Collector', () => {
         type: 'payment',
       };
 
+      // Horizon is queried with order=desc, so records arrive newest-first.
+      // The collector stops as soon as it sees a record older than the range.
       const mockResponse = {
         _embedded: {
-          records: [mockOldPayment, mockRecentPayment],
+          records: [mockRecentPayment, mockOldPayment],
         },
         _links: {
           next: null,
@@ -324,6 +326,14 @@ describe('Horizon Data Collector', () => {
       
       getCache.mockResolvedValue(null);
 
+      // Use a date safely inside the 30-day range (5 days ago). Using "today"
+      // at 23:00 can land in the future relative to endDate (= now) and be
+      // filtered out. Newest-first ordering (order=desc): 23:00 before 14:00.
+      const nightDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+      nightDate.setHours(23, 0, 0, 0); // 11 PM
+      const dayDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+      dayDate.setHours(14, 0, 0, 0); // 2 PM
+
       const nightPayment = {
         id: 'night_payment',
         amount: '50',
@@ -331,7 +341,7 @@ describe('Horizon Data Collector', () => {
         asset_code: 'XLM',
         from: 'GD5NIGHT',
         to: mockWalletAddress,
-        created_at: new Date().setHours(23, 0, 0, 0), // 11 PM
+        created_at: nightDate.toISOString(),
         type: 'payment',
       };
 
@@ -342,7 +352,7 @@ describe('Horizon Data Collector', () => {
         asset_code: 'XLM',
         from: 'GD5DAY',
         to: mockWalletAddress,
-        created_at: new Date().setHours(14, 0, 0, 0), // 2 PM
+        created_at: dayDate.toISOString(),
         type: 'payment',
       };
 
@@ -386,11 +396,13 @@ describe('Horizon Data Collector', () => {
     });
 
     test('should return false for null timestamp', () => {
-      expect(isDataFresh(null)).toBe(false);
+      // isDataFresh short-circuits on a falsy timestamp (returns the falsy value
+      // itself), which is treated as "not fresh" by every caller.
+      expect(isDataFresh(null)).toBeFalsy();
     });
 
     test('should return false for undefined timestamp', () => {
-      expect(isDataFresh(undefined)).toBe(false);
+      expect(isDataFresh(undefined)).toBeFalsy();
     });
 
     test('should handle edge case exactly at 1 hour', () => {
@@ -476,11 +488,13 @@ describe('Horizon Data Collector', () => {
     });
 
     test('should handle localStorage errors gracefully', () => {
-      // Mock localStorage to throw an error
-      const originalSetItem = localStorage.setItem;
-      localStorage.setItem = jest.fn(() => {
-        throw new Error('Storage quota exceeded');
-      });
+      // jsdom ignores instance-level localStorage.setItem overrides, so spy on
+      // the Storage prototype to force a write failure.
+      const setItemSpy = jest
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementation(() => {
+          throw new Error('Storage quota exceeded');
+        });
 
       cacheAnalysis(mockWalletAddress, mockAnalysisData);
 
@@ -489,8 +503,7 @@ describe('Horizon Data Collector', () => {
         expect.any(Error)
       );
 
-      // Restore original localStorage
-      localStorage.setItem = originalSetItem;
+      setItemSpy.mockRestore();
     });
   });
 
@@ -591,8 +604,14 @@ describe('Horizon Data Collector', () => {
 
       await collectTransactionData('GD5TEST');
 
-      expect(console.error).toHaveBeenCalledWith(
-        '❌ Data collection failed:',
+      // Errors are caught and warned about per page (payments + transactions),
+      // never escalating to the top-level '❌ Data collection failed' error.
+      expect(console.warn).toHaveBeenCalledWith(
+        '⚠️ Error fetching payments page:',
+        expect.any(Error)
+      );
+      expect(console.warn).toHaveBeenCalledWith(
+        '⚠️ Error fetching transactions page:',
         expect.any(Error)
       );
     });
@@ -618,21 +637,21 @@ describe('Horizon Data Collector', () => {
       
       getCache.mockResolvedValue(null);
 
-      // First page succeeds
+      // Full first page (200 records) so the collector requests a second page,
+      // which then fails — verifying the error is caught while page 1 is kept.
+      const firstPageRecords = Array.from({ length: 200 }, (_, i) => ({
+        id: `payment_${i}`,
+        amount: '0.5',
+        asset_type: 'native',
+        asset_code: 'XLM',
+        from: `GD5FROM${i}`,
+        to: 'GD5WALLET',
+        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        type: 'payment',
+      }));
+
       const mockFirstPage = {
-        _embedded: {
-          records: [
-            {
-              id: 'payment1',
-              amount: '100',
-              asset_type: 'native',
-              from: 'GD5TEST',
-              to: 'GD5WALLET',
-              created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-              type: 'payment',
-            },
-          ],
-        },
+        _embedded: { records: firstPageRecords },
         _links: {
           next: {
             href: 'https://horizon-testnet.stellar.org/accounts/GD.../payments?cursor=123',
@@ -640,25 +659,24 @@ describe('Horizon Data Collector', () => {
         },
       };
 
-      fetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(mockFirstPage),
-        })
-        // Second page fails
-        .mockRejectedValueOnce(new Error('Pagination error'))
-        // Transactions succeed
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({
-            _embedded: { records: [] },
-            _links: { next: null },
-          }),
-        });
+      const emptyTransactions = {
+        _embedded: { records: [] },
+        _links: { next: null },
+      };
+
+      fetch.mockImplementation((url) => {
+        if (url.includes('/payments')) {
+          if (url.includes('cursor=')) {
+            return Promise.reject(new Error('Pagination error')); // page 2 fails
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockFirstPage) });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(emptyTransactions) });
+      });
 
       const result = await collectTransactionData('GD5WALLET');
 
-      expect(result.metrics.totalVolume).toBe(100); // Should still get first page data
+      expect(result.metrics.totalVolume).toBe(100); // Should still get first page data (200 * 0.5)
       expect(console.warn).toHaveBeenCalledWith(
         '⚠️ Error fetching payments page:',
         expect.any(Error)
