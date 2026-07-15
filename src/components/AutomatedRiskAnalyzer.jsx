@@ -15,7 +15,6 @@ import {
   recordUpdate,
   formatRemainingTime,
 } from "../lib/rateLimiter";
-import { writeScoreToBlockchainEnhanced } from "../app/lib/writeScore";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
@@ -47,17 +46,29 @@ export default function AutomatedRiskAnalyzer() {
   const [showDetails, setShowDetails] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
 
-  // Check rate limit when wallet connects
+  // Check rate limit when wallet connects.
+  // checkRateLimit is async — awaiting it matters: assigning the bare Promise to
+  // state left `rateLimitStatus.canUpdate` undefined, which permanently rendered
+  // the update button as rate-limited/disabled.
   useEffect(() => {
-    if (walletAddress) {
-      const status = checkRateLimit(walletAddress);
+    if (!walletAddress) return;
+
+    let cancelled = false;
+    (async () => {
+      const status = await checkRateLimit(walletAddress);
+      if (cancelled) return;
+
       setRateLimitStatus(status);
 
       // Start countdown timer if rate limited
       if (!status.canUpdate && status.remainingTime > 0) {
         setCountdown(status.remainingTime);
       }
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [walletAddress]);
 
   // Countdown timer effect
@@ -67,10 +78,9 @@ export default function AutomatedRiskAnalyzer() {
         setCountdown((prev) => {
           const newTime = prev - 1000;
           if (newTime <= 0) {
-            // Refresh rate limit status when countdown ends
+            // Refresh rate limit status when countdown ends (async — see above)
             if (walletAddress) {
-              const status = checkRateLimit(walletAddress);
-              setRateLimitStatus(status);
+              checkRateLimit(walletAddress).then(setRateLimitStatus);
             }
             return 0;
           }
@@ -189,13 +199,14 @@ export default function AutomatedRiskAnalyzer() {
    * Update risk score on blockchain
    */
   const updateRiskScoreOnChain = async () => {
-    if (!riskAnalysis || !walletAddress || !kit) {
+    if (!riskAnalysis || !walletAddress) {
       toast.error("⚠️ Risk analysis or wallet connection missing");
       return;
     }
 
-    // Check rate limit
-    const rateLimitCheck = checkRateLimit(walletAddress);
+    // Advisory only — the authoritative 24h limit is enforced server-side from
+    // the contract's own timestamp (the server answers 429).
+    const rateLimitCheck = await checkRateLimit(walletAddress);
     if (!rateLimitCheck.canUpdate) {
       toast.warning(
         `⏰ You can update in ${formatRemainingTime(
@@ -209,57 +220,71 @@ export default function AutomatedRiskAnalyzer() {
 
     try {
       const updatingToast = toast.loading(
-        "🔗 Saving risk score to the blockchain..."
+        "🔗 Requesting a signed risk attestation..."
       );
 
-      // Write to blockchain using existing system
-      const result = await writeScoreToBlockchainEnhanced({
-        kit,
-        address: walletAddress,
-        score: riskAnalysis.riskScore,
-        chosenTier: riskAnalysis.tier,
+      // The score is NOT submitted from the browser. The oracle re-derives it
+      // from data the server fetches from Horizon and signs the write with the
+      // contract admin key, so a user cannot self-report an arbitrary score.
+      const response = await fetch("/api/risk/attest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: walletAddress,
+          chosenTier: riskAnalysis.tier,
+        }),
       });
 
+      const payload = await response.json();
       toast.dismiss(updatingToast);
 
-      if (result.successful) {
-        // Record the update for rate limiting
-        recordUpdate(walletAddress);
+      if (!response.ok || !payload.success) {
+        const err = new Error(payload?.error || "Attestation failed");
+        err.code = payload?.code;
+        err.details = payload?.details;
+        throw err;
+      }
 
-        // Update rate limit status
-        const newStatus = checkRateLimit(walletAddress);
-        setRateLimitStatus(newStatus);
-        setCountdown(newStatus.remainingTime);
+      const attested = payload.data;
 
-        if (
-          result.method === "local_storage" ||
-          result.method === "memory_only"
-        ) {
-          toast.warning("⚠️ Blockchain save failed - saved locally");
-        } else {
-          toast.success("✅ Risk score successfully saved to the blockchain!");
+      recordUpdate(walletAddress);
+      const newStatus = await checkRateLimit(walletAddress);
+      setRateLimitStatus(newStatus);
+      setCountdown(newStatus.remainingTime);
 
-          if (result.hash) {
-            setTimeout(() => {
-              toast.info(`🔗 Transaction: ${result.hash.substring(0, 8)}...`, {
-                duration: 5000,
-              });
-            }, 1000);
-          }
-        }
-      } else {
-        throw new Error(result.error || "Blockchain update failed");
+      // Show the attested (authoritative) score — it can differ from the local
+      // preview if the browser was looking at stale/partial data.
+      if (attested.score !== riskAnalysis.riskScore) {
+        setRiskAnalysis((prev) => ({
+          ...prev,
+          riskScore: attested.score,
+          tier: attested.tier,
+        }));
+        toast.info(
+          `ℹ️ Oracle-verified score: ${attested.score} (${attested.tier})`
+        );
+      }
+
+      toast.success("✅ Risk score attested on-chain by the oracle!");
+
+      if (attested.hash) {
+        setTimeout(() => {
+          toast.info(`🔗 Transaction: ${attested.hash.substring(0, 8)}...`, {
+            duration: 5000,
+          });
+        }, 1000);
       }
     } catch (error) {
-      console.error("❌ Blockchain update failed:", error);
+      console.error("❌ Attestation failed:", error);
 
-      if (
-        error.message?.includes("cancelled") ||
-        error.message?.includes("rejected")
-      ) {
-        toast.info("ℹ️ Transaction cancelled by user");
+      if (error.code === "RATE_LIMITED") {
+        toast.warning("⏰ This wallet was already scored in the last 24 hours");
+      } else if (error.code === "ACCOUNT_NOT_FOUND") {
+        toast.error("❌ This account doesn't exist on the Stellar network yet");
+      } else if (error.code === "NOT_CONFIGURED") {
+        toast.error("❌ Risk oracle is not configured on the server");
       } else {
-        toast.error(`❌ Blockchain update failed: ${error.message}`);
+        toast.error(`❌ Attestation failed: ${error.message}`);
       }
     } finally {
       setIsUpdatingScore(false);

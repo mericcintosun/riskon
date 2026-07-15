@@ -1,4 +1,6 @@
-"use client";
+// NOTE: intentionally NOT a "use client" module. The scoring math is pure
+// (no browser APIs), so the server-side risk oracle imports it too and both
+// sides produce identical scores.
 
 /**
  * Lightweight Risk Scoring Model

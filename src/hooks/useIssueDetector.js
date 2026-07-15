@@ -224,7 +224,7 @@ export function useIssueDetector() {
       const contractId =
         process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID ||
         process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID ||
-        "CD6NTP2JCX4F3V4RLIJFLGSG7SVTAPXMKKD3BTF4DY5NCV7YAO3OLABN";
+        "CCGZV37C3FC2GLVNIHFEC6OVDHRFLQCELPTQLII44Z7RXZBEER5POPRO";
       if (!contractId || contractId === "your_risk_tier_contract_id_here") {
         contractIssues.push("Risk score contract ID not configured");
         return contractIssues;

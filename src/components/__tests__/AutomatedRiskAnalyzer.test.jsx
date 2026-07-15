@@ -26,9 +26,27 @@ jest.mock('../../lib/rateLimiter', () => ({
   formatRemainingTime: jest.fn((ms) => '2h 30m'),
 }));
 
-jest.mock('../../app/lib/writeScore', () => ({
-  writeScoreToBlockchainEnhanced: jest.fn(),
-}));
+// The on-chain write now goes through the server-side risk oracle
+// (POST /api/risk/attest) instead of a browser-signed transaction, so the
+// component's network call is what we stub.
+const mockAttestResponse = (body, ok = true, status = 200) => ({
+  ok,
+  status,
+  json: async () => body,
+});
+
+const okAttestation = (overrides = {}) => ({
+  success: true,
+  data: {
+    address: 'GTEST123456789',
+    score: 25,
+    tier: 'TIER_1',
+    chosenTier: 'TIER_1',
+    hash: '0x123456789abcdef',
+    attestedBy: 'GORACLE123',
+    ...overrides,
+  },
+});
 
 jest.mock('../../contexts/WalletContext', () => ({
   useWallet: jest.fn(),
@@ -123,7 +141,6 @@ describe('AutomatedRiskAnalyzer Component', () => {
     const { collectTransactionData, getCachedAnalysis } = require('../../lib/horizonDataCollector');
     const { calculateRiskScore, getDataQualityScore } = require('../../lib/lightweightRiskModel');
     const { checkRateLimit } = require('../../lib/rateLimiter');
-    const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
 
     useWallet.mockReturnValue({
       walletAddress: mockWalletAddress,
@@ -151,16 +168,15 @@ describe('AutomatedRiskAnalyzer Component', () => {
       needsMoreData: false,
     });
 
-    checkRateLimit.mockReturnValue({
+    checkRateLimit.mockResolvedValue({
       canUpdate: true,
       remainingTime: 0,
     });
 
-    writeScoreToBlockchainEnhanced.mockResolvedValue({
-      successful: true,
-      hash: '0x1234567890abcdef',
-      method: 'blockchain',
-    });
+    // Default: the oracle attests successfully.
+    global.fetch = jest.fn().mockResolvedValue(
+      mockAttestResponse(okAttestation())
+    );
   });
 
   afterEach(() => {
@@ -309,13 +325,29 @@ describe('AutomatedRiskAnalyzer Component', () => {
         expect(screen.getByText('25')).toBeInTheDocument();
       });
 
-      // Then update on blockchain
+      // Then request an on-chain attestation from the oracle
       const updateButton = screen.getByRole('button', { name: /🔗 Update Score/ });
       await user.click(updateButton);
 
-      expect(mockToast.loading).toHaveBeenCalledWith('🔗 Saving risk score to the blockchain...');
-      expect(mockToast.success).toHaveBeenCalledWith('✅ Risk score successfully saved to the blockchain!');
-      
+      // The browser must not submit a score itself — it asks the oracle.
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/risk/attest',
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+
+      // The wallet address is sent; the score is NOT trusted from the client.
+      const sentBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+      expect(sentBody.address).toBe(mockWalletAddress);
+      expect(sentBody).not.toHaveProperty('score');
+
+      await waitFor(() => {
+        expect(mockToast.success).toHaveBeenCalledWith(
+          '✅ Risk score attested on-chain by the oracle!'
+        );
+      });
+
       // The transaction toast is emitted from a setTimeout(..., 1000), so allow
       // more than waitFor's default 1000ms timeout.
       await waitFor(
@@ -350,16 +382,16 @@ describe('AutomatedRiskAnalyzer Component', () => {
       expect(updateButton).toBeDisabled();
     });
 
-    test('should handle blockchain update failures', async () => {
+    test('should surface oracle attestation failures', async () => {
       const user = userEvent.setup();
-      const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
-      
-      // The "saved locally" fallback is reported on a successful write that had
-      // to fall back to local storage (a non-successful result throws instead).
-      writeScoreToBlockchainEnhanced.mockResolvedValue({
-        successful: true,
-        method: 'local_storage',
-      });
+
+      global.fetch = jest.fn().mockResolvedValue(
+        mockAttestResponse(
+          { success: false, error: 'Contract simulation failed', code: 'SIMULATION_FAILED' },
+          false,
+          502
+        )
+      );
 
       render(<AutomatedRiskAnalyzer />);
 
@@ -376,15 +408,28 @@ describe('AutomatedRiskAnalyzer Component', () => {
       await user.click(updateButton);
 
       await waitFor(() => {
-        expect(mockToast.warning).toHaveBeenCalledWith('⚠️ Blockchain save failed - saved locally');
+        expect(mockToast.error).toHaveBeenCalledWith(
+          expect.stringContaining('Contract simulation failed')
+        );
       });
     });
 
-    test('should handle user cancelled transactions', async () => {
+    test('should surface the server-enforced 24h rate limit', async () => {
       const user = userEvent.setup();
-      const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
-      
-      writeScoreToBlockchainEnhanced.mockRejectedValue(new Error('User cancelled transaction'));
+
+      // The authoritative limit lives on the server (read from the contract's
+      // own timestamp), so the client must handle a 429.
+      global.fetch = jest.fn().mockResolvedValue(
+        mockAttestResponse(
+          {
+            success: false,
+            error: 'This wallet was already scored in the last 24 hours.',
+            code: 'RATE_LIMITED',
+          },
+          false,
+          429
+        )
+      );
 
       render(<AutomatedRiskAnalyzer />);
 
@@ -401,7 +446,9 @@ describe('AutomatedRiskAnalyzer Component', () => {
       await user.click(updateButton);
 
       await waitFor(() => {
-        expect(mockToast.info).toHaveBeenCalledWith('ℹ️ Transaction cancelled by user');
+        expect(mockToast.warning).toHaveBeenCalledWith(
+          '⏰ This wallet was already scored in the last 24 hours'
+        );
       });
     });
   });
@@ -576,16 +623,17 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
     test('should show loading state during blockchain update', async () => {
       const user = userEvent.setup();
-      const { writeScoreToBlockchainEnhanced } = require('../../app/lib/writeScore');
-      
-      // Make the blockchain update take longer
-      writeScoreToBlockchainEnhanced.mockImplementation(() => new Promise(resolve => {
-        setTimeout(() => resolve({
-          successful: true,
-          hash: '0x1234567890abcdef',
-          method: 'blockchain',
-        }), 100);
-      }));
+
+      // Make the oracle attestation take longer
+      global.fetch = jest.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () => resolve(mockAttestResponse(okAttestation())),
+              100
+            );
+          })
+      );
 
       render(<AutomatedRiskAnalyzer />);
 
