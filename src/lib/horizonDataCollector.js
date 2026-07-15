@@ -18,8 +18,30 @@ const HORIZON_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for Horizon data
  * @param {string} walletAddress - User's Stellar address
  * @returns {Promise<Object>} Analysis data with 4 key metrics
  */
+/**
+ * Horizon's /accounts endpoints are ed25519-only: every one of them answers 400
+ * for a contract address. A passkey smart wallet is a C... contract, so asking
+ * Horizon about it produced a pair of guaranteed-400 requests and a red console
+ * on every analysis. Detect it before the network call instead of after.
+ */
+export function isSmartWalletAddress(address) {
+  return typeof address === "string" && /^C[A-Z2-7]{55}$/.test(address.trim());
+}
+
 export async function collectTransactionData(walletAddress) {
   try {
+    if (isSmartWalletAddress(walletAddress)) {
+      // Not an error and not a zero score — unknown. See the note in
+      // riskOracle.assertValidStellarAddress for why this is structural.
+      return {
+        success: false,
+        unscorable: true,
+        reason:
+          "Smart wallets (C...) have no classic payment history. Horizon indexes payments for account addresses (G...) only.",
+        timestamp: Date.now(),
+      };
+    }
+
     // Check cache first
     const cacheKey = `${CACHE_KEYS.HORIZON_DATA}_${walletAddress}`;
     const cachedData = await getCache(cacheKey);
@@ -234,27 +256,16 @@ function calculateRiskMetrics(payments, transactions, walletAddress) {
   });
   const assetDiversity = assets.size;
 
-  // 4. Night/Day Transaction Ratio
-  let nightTransactions = 0;
-  let dayTransactions = 0;
-
-  payments.forEach((payment) => {
-    const hour = new Date(payment.created_at).getHours();
-    if (hour >= 22 || hour <= 6) {
-      nightTransactions++;
-    } else {
-      dayTransactions++;
-    }
-  });
-
-  const nightDayRatio =
-    dayTransactions > 0 ? nightTransactions / dayTransactions : 0;
+  // nightDayRatio was removed in model v3.0.0 — see the note in
+  // lightweightRiskModel.js. Beyond the reasons given there, this copy used
+  // getHours() (the visitor's local timezone) while the server used
+  // getUTCHours(), so the score shown in the browser and the score written on
+  // chain disagreed for the same wallet depending on where the visitor was.
 
   return {
     totalVolume: Math.round(totalVolume * 100) / 100,
     uniqueCounterparties,
     assetDiversity,
-    nightDayRatio: Math.round(nightDayRatio * 100) / 100,
     // Additional context
     totalPayments: payments.length,
     totalTransactions: transactions.length,

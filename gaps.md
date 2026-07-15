@@ -50,12 +50,39 @@ The wallet score is the weakest of the three and the most prominently displayed.
 
 Also: **"no data" ≠ "risky."** An empty wallet returns `insufficientData: true`, the oracle rejects it with 422, and the UI shows no score or tier rather than inventing one.
 
-### Remaining known weakness: nightDayRatio
-Measured: a 200-payment window covers only **~0.64 days** for the median wallet (p95: 10 days). Over a window that short, a "night/day ratio" is not measuring behaviour — it measures which hour of the day the wallet happened to be active, which is largely noise. On top of that the night window is 9 hours against 15 for day, so a wallet active 24/7 has an *expected* ratio of ≈0.6 — the floor is not zero. The feature is still the highest-weighted "risk" signal (+0.875) and needs a time-windowed redefinition, or a lower weight.
+### What the model is now (v3.0.0-activity-index)
+Three features, all pointing the same direction: `totalVolume`, `uniqueCounterparties`, `assetDiversity`, each mapped to its percentile in the real Stellar population, plus a volume×counterparty interaction. Every weight is negative, so the score is literally "how inactive is this wallet relative to everyone else". That is what the UI says it is.
+
+`nightDayRatio` was removed — see Resolved below. It was the only term that made this look like a risk model rather than an activity index.
+
+**The honest limit is unchanged and unfixable here:** a wallet escapes a bad score by opening a new address. No amount of feature work touches that. It is why the asset issuer layer, whose subject cannot Sybil, is now the headline.
 
 ---
 
 ## ✅ Resolved
+
+### This round (smart wallets — found by the user in a real browser, not by any test)
+- **The headline wallet could never be scored, and it failed dishonestly.** Connecting a passkey smart wallet fired two guaranteed-400 Horizon requests and then failed attestation with *"A valid Stellar account address (G...) is required."* The smart wallet address is minted by this very app, so calling it invalid was both wrong and confusing. Reported from a live production console; no test here caught it.
+- **Worse than the 400: the client fabricated an analysis for it.** `analyzePasskeySmartContract()` returned invented constants — `txCount: 1`, `assetTypes: 1` ("Assume XLM support"), `nightRatio: 0.5` ("Neutral"), `activityScore: 20` — and gated them on `GET /contracts/{id}`, **an endpoint Horizon does not have** (404 for everything). So the `ok` branch was dead code, every passkey wallet silently took the fallback, and every one was labelled `new_or_inactive` with a hardcoded score — including `CB5R46H4…`, which is demonstrably live on chain. Same family as the passkey and liquidity mocks: fake data behind a real-looking function. Deleted.
+- **Measured why it cannot be scored** — this is structural, not a missing feature:
+  - Horizon's `/accounts` endpoints are ed25519-only: `/accounts`, `/payments`, `/transactions` and `/operations` all answer **400** for a contract address.
+  - Soroban RPC retains roughly **7 days** of events (measured: ledgers 3494424-3615383) — too short to place a wallet against a population.
+  - The model's percentiles are calibrated on classic-payment G wallets. A contract is not a member of that population.
+- **Fixed honestly:** `422 UNSCORABLE_ADDRESS` with the real reason, instead of `400 invalid address`. The client no longer asks Horizon about C addresses at all, and the UI explains the situation and points to `/assets`, which needs no wallet. Verified in a real browser: the exact reported address now returns 422 with the reason, garbage still returns 400, and **Horizon 400s dropped from 2 per analysis to 0**.
+- **My own error, corrected:** I had written into `/api/docs` that attest accepts *"Stellar address (G...) or smart wallet contract (C...)"*. I never verified the C claim; it was false. The docs now state the 422 explicitly.
+- **The oracle is testable for the first time.** It had zero tests because importing `@stellar/stellar-sdk` under Jest died at module load — the SDK's dependency chain reaches for `TextEncoder`/`TextDecoder`, which jsdom omits, and pulls ESM-only packages (`@noble/*`, `uint8array-extras`) through `transformIgnorePatterns`. Both fixed in `jest.setup.js` / `jest.config.js`.
+
+### This round (nightDayRatio removed — model v3.0.0)
+- **The model's highest-weighted risk signal was inverted for a third of the population.** The formula was `day > 0 ? night / day : 0`. A wallet active *only* at night has `day === 0` and therefore scored **0 — the safest possible value** — on a term whose stated meaning was "more night activity = higher risk". Measured on 300 real mainnet wallets: **31.3% (94/300) are entirely nocturnal**, and every one of them was handed a perfect score on the model's biggest risk term. Same class as the inverted-composite bug fixed earlier, hidden inside a single feature.
+- **It measured geography, not behaviour.** "Night" was UTC 22:00-06:00 — which is 07:00-15:00 in Tokyo and 06:00-14:00 in Beijing. On a global permissionless network, hour-of-day in UTC is a timezone proxy, so the largest risk term effectively penalised Asian users. The advice it generated ("Make more transactions during daytime hours") told a Tokyo user to transact between midnight and 07:00 local.
+- **The window could not support it.** 40.7% of real wallets have their entire 200-payment history inside a single day (median span 1.94 days). Over that window, hour-of-day is the hour a wallet happened to transact, not a pattern. The windows were also asymmetric (9 night hours vs 15 day), so a uniformly-active wallet's *expected* ratio was 0.6, not 0.
+- **Client and server disagreed on it anyway.** The browser copy used `getHours()` (the visitor's local timezone) while the oracle used `getUTCHours()`, so the score shown and the score written on chain differed for the same wallet depending on where the visitor was sitting.
+- **Removed rather than repaired.** Fixing the arithmetic addresses the inversion and the window; nothing makes a UTC hour mean the same thing in Tokyo and London. The premise — "nocturnal implies risky" — is imported from card-fraud heuristics and has never been validated on Stellar, where no outcome label exists to validate it against.
+- **Measured result (300 real wallets, recalibrated):** the distribution did **not** collapse. Score p5-p95 `4-92` → **`6-96`**; distinct scores `86` → **`93`**; tiers `32/36/32%` → **`32.5/43.7/23.7%`**. The composite percentile mapping keeps the spread by construction.
+- **What removal revealed:** every remaining weight is negative. The model is — and always was — an **activity index**, not a risk model. `nightDayRatio` was the only term pretending otherwise. Renamed to `3.0.0-activity-index` to say so.
+
+### This round (positioning)
+- The home page led with *"AI-Powered Risk Scoring"* and four invented stats (`<5s`, `100% Privacy Protected`, `Instant`). It now leads with the finding that cannot be gamed by its subject — *"387 issuers call themselves USDC. One is Circle."* — and four **measured** facts, each checkable from the pages linked beneath them. The wallet score, the weakest of the three subjects, is no longer the headline.
 
 ### This round (asset issuer risk)
 - **Added the first rated subject that cannot Sybil.** `/api/assets/risk?code=USDC` + `/assets`. A wallet escapes a bad score by opening a new address; an asset issuer cannot, because the issuer address *is* the asset's identity. It answers two questions from live chain data that no Stellar tool surfaces: *is this the real asset*, and *what can the issuer do to your balance*.

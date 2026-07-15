@@ -23,7 +23,6 @@ const MODEL_WEIGHTS = {
   totalVolume: -0.375, // Higher volume = lower risk (up to a point)
   uniqueCounterparties: -0.625, // More diverse counterparties = lower risk
   assetDiversity: -0.5, // More asset variety = lower risk
-  nightDayRatio: 0.875, // More night activity = higher risk
 
   // Interaction weights (combined effects)
   volumeCounterpartyInteraction: -0.25, // High volume + high counterparties = very low risk
@@ -31,6 +30,47 @@ const MODEL_WEIGHTS = {
   // Bias term
   bias: 0.35,
 };
+
+/**
+ * REMOVED IN v3.0.0: nightDayRatio (weight +0.875, "more night activity = higher
+ * risk"). It was the highest-weighted risk signal in the model and it was broken
+ * in three independent ways, each measured against 300 real mainnet wallets:
+ *
+ * 1. IT WAS INVERTED FOR A THIRD OF THE POPULATION. The formula was
+ *    `day > 0 ? night / day : 0`. A wallet active ONLY at night has day === 0
+ *    and therefore scored 0 — the safest possible value on the feature — which
+ *    is the exact opposite of what the feature claimed to detect. 31.3% of real
+ *    wallets (94/300) are entirely nocturnal by this definition and every one of
+ *    them was handed a perfect score on the model's biggest risk term. This is
+ *    the same class of bug as the inverted composite fixed earlier, hidden
+ *    inside one feature.
+ *
+ * 2. IT MEASURED GEOGRAPHY, NOT BEHAVIOUR. "Night" was UTC hours 22-06. That is
+ *    07:00-15:00 in Tokyo and 06:00-14:00 in Beijing — business hours. On a
+ *    global permissionless network, hour-of-day in UTC is a timezone proxy, so
+ *    the model's largest risk term effectively penalised Asian users. The
+ *    accompanying advice ("Make more transactions during daytime hours") told a
+ *    Tokyo user to transact between midnight and 07:00 local.
+ *
+ * 3. THE WINDOW COULD NOT SUPPORT IT. 40.7% of real wallets have their entire
+ *    200-payment history inside a single day (median span 1.94 days). Over a
+ *    window that short, hour-of-day is not a behavioural pattern — it is the
+ *    hour the wallet happened to transact. The windows were also asymmetric
+ *    (9 night hours vs 15 day hours), so a uniformly-active wallet's expected
+ *    ratio was 0.6 rather than 0.
+ *
+ * Fixing the arithmetic would only have addressed (1) and (3). Nothing fixes
+ * (2): no window length makes a UTC hour mean the same thing in Tokyo and
+ * London. And the premise itself — "nocturnal implies risky" — is imported from
+ * card-fraud heuristics and has never been validated on Stellar, where no
+ * default or liquidation label exists to validate it against.
+ *
+ * Removing it leaves three features that all point the same direction
+ * (more activity -> lower score). That is not a loss of signal; it makes plain
+ * what this model already was and what the UI already says it is: an ACTIVITY
+ * INDEX relative to the population, not a risk prediction. nightDayRatio was
+ * the only term pretending otherwise.
+ */
 
 /**
  * Feature normalization — empirical, not invented.
@@ -102,11 +142,10 @@ export function calculateRiskScore(metrics) {
 
     // Convert to a 0-100 risk score.
     //
-    // MODEL_WEIGHTS are signed so risky behaviour (nightDayRatio) pushes the
-    // composite UP and safe behaviour (volume/counterparties/asset diversity)
-    // pushes it DOWN, so the sigmoid already yields P(risky) — it is NOT
-    // inverted (an earlier version returned `(1 - logitScore) * 100`, which gave
-    // risky wallets LOW scores).
+    // All MODEL_WEIGHTS are negative, so more activity pushes the composite DOWN
+    // and the sigmoid yields "how inactive is this wallet relative to the
+    // population" — it is NOT inverted (an earlier version returned
+    // `(1 - logitScore) * 100`, which gave risky wallets LOW scores).
     //
     // The composite is then mapped to its PERCENTILE among real Stellar wallets.
     // A weighted sum of ~independent features concentrates around its mean (CLT)
@@ -146,7 +185,7 @@ export function calculateRiskScore(metrics) {
       recommendations: generateRecommendations(featureImportance),
       rawMetrics: metrics,
       normalizedFeatures,
-      modelVersion: "2.0.0-empirical",
+      modelVersion: "3.0.0-activity-index",
     };
 
     return result;
@@ -183,7 +222,6 @@ function calculateLogisticRegression(features) {
   linearScore +=
     features.uniqueCounterparties * MODEL_WEIGHTS.uniqueCounterparties;
   linearScore += features.assetDiversity * MODEL_WEIGHTS.assetDiversity;
-  linearScore += features.nightDayRatio * MODEL_WEIGHTS.nightDayRatio;
 
   // Add interaction term
   const volumeCounterpartyInteraction =
@@ -300,10 +338,6 @@ function generateExplanation(riskScore, featureImportance) {
       } else {
         explanation.push("⚠️ Single asset usage increases risk");
       }
-    } else if (feature === "nightDayRatio") {
-      if (!data.isPositive && data.rawValue > 0.5) {
-        explanation.push("⚠️ High night activity increases risk");
-      }
     }
   });
 
@@ -326,9 +360,6 @@ function generateRecommendations(featureImportance) {
     if (feature === "assetDiversity" && data.rawValue < 2) {
       recommendations.push("🎯 Diversify transactions with different assets");
     }
-    if (feature === "nightDayRatio" && data.rawValue > 0.3) {
-      recommendations.push("🌞 Make more transactions during daytime hours");
-    }
   });
 
   if (recommendations.length === 0) {
@@ -350,7 +381,6 @@ function fallbackRiskCalculation(metrics) {
   if (metrics.totalVolume > 100) score -= 15;
   if (metrics.uniqueCounterparties > 5) score -= 10;
   if (metrics.assetDiversity > 2) score -= 10;
-  if (metrics.nightDayRatio > 0.5) score += 20;
 
   score = Math.max(0, Math.min(100, score));
 

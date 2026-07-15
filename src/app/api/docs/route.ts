@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
               name: 'address',
               type: 'string',
               required: true,
-              description: 'Stellar address (G...) or smart wallet contract (C...) to score',
+              description:
+                'Stellar account address (G...) to score. A smart wallet (C...) is accepted as input but cannot be scored — see the 422 below.',
             },
           ],
         },
@@ -69,6 +70,12 @@ export async function GET(request: NextRequest) {
               code: 'INVALID_INPUT',
               message:
                 'Wallet has too little history to score. No score is invented for thin accounts.',
+            },
+            {
+              status: 422,
+              code: 'UNSCORABLE_ADDRESS',
+              message:
+                'A smart wallet (C...) has no classic payment history: Horizon indexes payments for account addresses only, and Soroban event history is too short-lived to place a wallet against the population. Well-formed, but nothing to measure.',
             },
             {
               status: 429,

@@ -194,7 +194,7 @@ describe('Horizon Data Collector', () => {
       expect(result.metrics.totalVolume).toBe(0);
       expect(result.metrics.uniqueCounterparties).toBe(0);
       expect(result.metrics.assetDiversity).toBe(0);
-      expect(result.metrics.nightDayRatio).toBe(0);
+      expect(result.metrics.nightDayRatio).toBeUndefined();
     });
 
     test('should handle paginated responses', async () => {
@@ -321,70 +321,24 @@ describe('Horizon Data Collector', () => {
       expect(result.dataPoints.payments).toBe(1);
     });
 
-    test('should calculate night/day ratio correctly', async () => {
+    test('refuses to ask Horizon about a smart wallet instead of 400ing twice', async () => {
       const { getCache } = require('../cacheManager');
-      
       getCache.mockResolvedValue(null);
+      global.fetch = jest.fn();
 
-      // Use a date safely inside the 30-day range (5 days ago). Using "today"
-      // at 23:00 can land in the future relative to endDate (= now) and be
-      // filtered out. Newest-first ordering (order=desc): 23:00 before 14:00.
-      const nightDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-      nightDate.setHours(23, 0, 0, 0); // 11 PM
-      const dayDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-      dayDate.setHours(14, 0, 0, 0); // 2 PM
+      // Horizon's /accounts endpoints are ed25519-only and answer 400 for a
+      // contract address. This used to fire two guaranteed-400 requests per
+      // analysis and paint the console red.
+      const result = await collectTransactionData(
+        'CB5R46H4YMSP7YGXDEBIX7C6DI5ENIFDXV6EJ34UTGPTO56VVZWP4PGF'
+      );
 
-      const nightPayment = {
-        id: 'night_payment',
-        amount: '50',
-        asset_type: 'native',
-        asset_code: 'XLM',
-        from: 'GD5NIGHT',
-        to: mockWalletAddress,
-        created_at: nightDate.toISOString(),
-        type: 'payment',
-      };
-
-      const dayPayment = {
-        id: 'day_payment',
-        amount: '50',
-        asset_type: 'native',
-        asset_code: 'XLM',
-        from: 'GD5DAY',
-        to: mockWalletAddress,
-        created_at: dayDate.toISOString(),
-        type: 'payment',
-      };
-
-      const mockResponse = {
-        _embedded: {
-          records: [nightPayment, dayPayment],
-        },
-        _links: {
-          next: null,
-        },
-      };
-
-      fetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(mockResponse),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({
-            _embedded: { records: [] },
-            _links: { next: null },
-          }),
-        });
-
-      const result = await collectTransactionData(mockWalletAddress);
-
-      expect(result.metrics.nightDayRatio).toBe(1); // 1 night / 1 day = 1
+      expect(result.unscorable).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.reason).toMatch(/no classic payment history/i);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
-  });
 
-  describe('isDataFresh', () => {
     test('should return true for fresh data', () => {
       const freshTimestamp = Date.now() - 30 * 60 * 1000; // 30 minutes ago
       expect(isDataFresh(freshTimestamp)).toBe(true);
