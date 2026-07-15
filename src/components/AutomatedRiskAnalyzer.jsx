@@ -15,6 +15,7 @@ import {
   recordUpdate,
   formatRemainingTime,
 } from "../lib/rateLimiter";
+import { csrfFetch } from "../lib/csrfFetch";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
@@ -226,7 +227,7 @@ export default function AutomatedRiskAnalyzer() {
       // The score is NOT submitted from the browser. The oracle re-derives it
       // from data the server fetches from Horizon and signs the write with the
       // contract admin key, so a user cannot self-report an arbitrary score.
-      const response = await fetch("/api/risk/attest", {
+      const response = await csrfFetch("/api/risk/attest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

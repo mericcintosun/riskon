@@ -9,6 +9,7 @@ import UserRiskProfile from "../components/UserRiskProfile.jsx";
 import AutomatedRiskAnalyzer from "../components/AutomatedRiskAnalyzer.jsx";
 import Header from "../components/Header.jsx";
 import Link from "next/link";
+import { csrfFetch } from "../lib/csrfFetch";
 import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
 import { useIssueDetector } from "../hooks/useIssueDetector";
@@ -375,7 +376,7 @@ export default function RiskScoringApp() {
       // the server fetches from Horizon and signs the write with the contract
       // admin key, so the locally entered inputs cannot influence what lands
       // on-chain.
-      const response = await fetch("/api/risk/attest", {
+      const response = await csrfFetch("/api/risk/attest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: walletAddress }),

@@ -173,6 +173,10 @@ describe('AutomatedRiskAnalyzer Component', () => {
       remainingTime: 0,
     });
 
+    // csrfFetch echoes the middleware's double-submit cookie back as a header;
+    // seeding the cookie keeps it from having to prime one with an extra GET.
+    document.cookie = 'riskon-csrf-token=test-csrf-token';
+
     // Default: the oracle attests successfully.
     global.fetch = jest.fn().mockResolvedValue(
       mockAttestResponse(okAttestation())
@@ -337,8 +341,15 @@ describe('AutomatedRiskAnalyzer Component', () => {
         );
       });
 
+      const attestCall = global.fetch.mock.calls.find(
+        ([url]) => url === '/api/risk/attest'
+      );
+
+      // The CSRF token from the middleware's cookie must be echoed back.
+      expect(attestCall[1].headers['x-csrf-token']).toBe('test-csrf-token');
+
       // The wallet address is sent; the score is NOT trusted from the client.
-      const sentBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+      const sentBody = JSON.parse(attestCall[1].body);
       expect(sentBody.address).toBe(mockWalletAddress);
       expect(sentBody).not.toHaveProperty('score');
 
