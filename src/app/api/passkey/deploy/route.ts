@@ -20,7 +20,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { Networks, TransactionBuilder } from "@stellar/stellar-sdk";
+import { BASE_FEE, Keypair, Networks, TransactionBuilder } from "@stellar/stellar-sdk";
 import { Server } from "@stellar/stellar-sdk/rpc";
 
 export const dynamic = "force-dynamic";
@@ -69,9 +69,64 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // passkey-kit builds the deploy with the SDK's default 100-stroop inclusion fee
+  // (PasskeyClient.deploy() is called without a `fee` option) because it expects
+  // its relayer to fee-bump the envelope. Submitting it as-is gets
+  // `txInsufficientFee` from RPC — which is exactly what the first real browser
+  // test produced.
+  //
+  // A fee bump is the relayer's job done locally: it wraps the already-signed
+  // inner transaction so a funded account can pay whatever the network wants,
+  // without invalidating the passkey/deployer signatures inside.
+  const sponsorSecret =
+    process.env.PASSKEY_FEE_SPONSOR_SECRET || process.env.RISK_ORACLE_SECRET_KEY;
+  if (!sponsorSecret) {
+    return fail(
+      "No fee sponsor configured (PASSKEY_FEE_SPONSOR_SECRET / RISK_ORACLE_SECRET_KEY).",
+      "NOT_CONFIGURED",
+      500
+    );
+  }
+
+  let sponsor;
+  try {
+    sponsor = Keypair.fromSecret(sponsorSecret.trim());
+  } catch {
+    return fail(
+      "The configured fee sponsor secret is not a valid Stellar secret key.",
+      "NOT_CONFIGURED",
+      500
+    );
+  }
+
+  let feeBump;
+  try {
+    // Outer fee must cover the inner fee; the inner Soroban resource fee is
+    // already baked into `transaction.fee`, so bumping by that amount is safe.
+    const innerFee = Number(transaction.fee) || Number(BASE_FEE);
+    const bumpBaseFee = String(Math.max(innerFee, Number(BASE_FEE) * 100));
+
+    feeBump = TransactionBuilder.buildFeeBumpTransaction(
+      sponsor,
+      bumpBaseFee,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transaction as any,
+      NETWORK_PASSPHRASE
+    );
+    feeBump.sign(sponsor);
+  } catch (error) {
+    return fail(
+      `Could not fee-bump the deploy transaction: ${
+        error instanceof Error ? error.message : "unknown error"
+      }`,
+      "FEE_BUMP_FAILED",
+      500
+    );
+  }
+
   try {
     const server = new Server(RPC_URL);
-    const sent = await server.sendTransaction(transaction);
+    const sent = await server.sendTransaction(feeBump);
 
     if (sent.status === "ERROR") {
       // Surface WHY. `errorResult` is an xdr.TransactionResult whose switch name
