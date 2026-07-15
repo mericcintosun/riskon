@@ -78,12 +78,6 @@ jest.mock('../BlendDashboard.jsx', () => {
   };
 });
 
-jest.mock('../EnhancedLiquidityPools.jsx', () => {
-  return function MockEnhancedLiquidityPools() {
-    return <div data-testid="enhanced-liquidity-pools">Mock Liquidity Pools</div>;
-  };
-});
-
 describe('AutomatedRiskAnalyzer Component', () => {
   const mockWalletAddress = 'GD5TESTEXAMPLEADDRESS123456789';
   const mockKit = { signTransaction: jest.fn() };
@@ -600,14 +594,17 @@ describe('AutomatedRiskAnalyzer Component', () => {
 
       expect(screen.getByTestId('blend-history-performance')).toBeInTheDocument();
       expect(screen.getByTestId('blend-dashboard')).toBeInTheDocument();
-      expect(screen.getByTestId('enhanced-liquidity-pools')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /View pool ratings/ })).toHaveAttribute(
+        'href',
+        '/pools'
+      );
     });
 
     test('should not render Blend components without analysis', () => {
       render(<AutomatedRiskAnalyzer />);
 
       expect(screen.queryByTestId('blend-dashboard')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('enhanced-liquidity-pools')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /View pool ratings/ })).not.toBeInTheDocument();
     });
   });
 

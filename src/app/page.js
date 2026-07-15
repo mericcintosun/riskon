@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { testContractExists, getContractInfo } from "./lib/testContract";
 import { performAutoRiskAnalysis } from "../lib/autoRiskAnalyzer";
 import BlendDashboard from "../components/BlendDashboard.jsx";
-import EnhancedLiquidityPools from "../components/EnhancedLiquidityPools.jsx";
 import UserRiskProfile from "../components/UserRiskProfile.jsx";
 import AutomatedRiskAnalyzer from "../components/AutomatedRiskAnalyzer.jsx";
 import Header from "../components/Header.jsx";
@@ -58,9 +57,7 @@ export default function RiskScoringApp() {
   const [transactionHash, setTransactionHash] = useState("");
   const [contractStatus, setContractStatus] = useState("unknown");
   const [showBlendDashboard, setShowBlendDashboard] = useState(false);
-  const [showEnhancedPools, setShowEnhancedPools] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
-  const [selectedTier, setSelectedTier] = useState(null);
   const [riskScore, setRiskScore] = useState(0);
 
   // Simplified risk score calculation
@@ -414,10 +411,7 @@ export default function RiskScoringApp() {
         });
       }, 1000);
 
-      // Show Enhanced Liquidity Pools after successful risk score submission
-      // This should ALWAYS happen regardless of storage method
       setShowBlendDashboard(true);
-      setShowEnhancedPools(true);
     } catch (error) {
       console.error("❌ Blockchain write error:", error);
       toast.dismiss(loadingToast);
@@ -438,7 +432,6 @@ export default function RiskScoringApp() {
       // Even if there's an error, if we have a valid risk score, show the pools
       if (riskScore > 0) {
         setShowBlendDashboard(true);
-        setShowEnhancedPools(true);
 
         toast.info(
           "💡 Risk score calculated - you can still explore features!",
@@ -1153,13 +1146,13 @@ export default function RiskScoringApp() {
                         <span className="mr-2">👤</span>
                         View Risk Profile & Pool Access
                       </button>
-                      <button
-                        onClick={() => setShowEnhancedPools(true)}
+                      <Link
+                        href="/pools"
                         className="btn-accent px-8 py-3 flex items-center justify-center"
                       >
                         <span className="mr-2">🎯</span>
                         Explore Investment Pools
-                      </button>
+                      </Link>
                     </div>
                   )}
                 </div>
@@ -1181,39 +1174,7 @@ export default function RiskScoringApp() {
                   </p>
                 </div>
               </div>
-              <UserRiskProfile
-                walletAddress={walletAddress}
-                riskScore={riskScore}
-                onTierSelect={(tier) => {
-                  setSelectedTier(tier);
-                  setShowEnhancedPools(true);
-                  setShowUserProfile(false);
-                }}
-              />
-            </div>
-          )}
-
-          {/* Enhanced Liquidity Pools */}
-          {showEnhancedPools && walletAddress && (
-            <div className="mt-12 animate-fade-in">
-              <div className="card-glass max-w-4xl mx-auto mb-8">
-                <div className="text-center">
-                  <h2 className="text-heading mb-4">
-                    🎯 Risk-Based Liquidity Pools
-                  </h2>
-                  <p className="text-body">
-                    Access tier-classified liquidity pools based on your risk
-                    score. Following Goldfinch/Maple methodology for responsible
-                    DeFi.
-                    {selectedTier && (
-                      <span className="block mt-2 text-accent">
-                        Showing {selectedTier} pools based on your selection
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <EnhancedLiquidityPools selectedTier={selectedTier} />
+              <UserRiskProfile walletAddress={walletAddress} riskScore={riskScore} />
             </div>
           )}
 

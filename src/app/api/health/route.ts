@@ -18,14 +18,14 @@ export async function GET(request: NextRequest) {
       service: 'Riskon API Layer',
       uptime_seconds: uptime,
       endpoints: {
-        liquidity: {
-          all_pools: 'GET /api/liquidity/pools/all',
-          pools_by_tier: 'GET /api/liquidity/pools/tier/:tier',
-          pool_details: 'GET /api/liquidity/pool/:poolId',
-          statistics: 'GET /api/liquidity/stats',
+        pools: {
+          ratings: 'GET /api/pools/ratings',
         },
-        cache: {
-          invalidate: 'POST /api/cache/invalidate',
+        risk: {
+          attest: 'POST /api/risk/attest',
+        },
+        passkey: {
+          deploy: 'POST /api/passkey/deploy',
         },
         system: {
           health: 'GET /api/health',

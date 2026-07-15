@@ -7,7 +7,6 @@ import AutomatedRiskAnalyzer from "./AutomatedRiskAnalyzer.jsx";
 import UserRiskProfile from "./UserRiskProfile.jsx";
 import BlendDashboard from "./BlendDashboard.jsx";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
-import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
 import useAnalyzeRisk from "../hooks/useAnalyzeRisk.js";
 import { useWallet } from "../contexts/WalletContext.js";
 
@@ -91,10 +90,6 @@ const LandingPage = () => {
         >
           <BlendDashboard />
           <BlendHistoryPerformance />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <EnhancedLiquidityPools />
         </motion.div>
 
         {/* Hero Section */}

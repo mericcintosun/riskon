@@ -20,7 +20,7 @@ import { useWallet } from "../contexts/WalletContext";
 import { useToast } from "../contexts/ToastContext";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
 import BlendDashboard from "./BlendDashboard.jsx";
-import EnhancedLiquidityPools from "./EnhancedLiquidityPools.jsx";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Info, AlertTriangle, FileText, Zap, Settings } from "lucide-react";
 
@@ -760,21 +760,26 @@ export default function AutomatedRiskAnalyzer() {
         </div>
       )}
 
-      {/* Enhanced Liquidity Pools */}
+      {/* Pool ratings live on their own page, rated from on-chain Blend state. */}
       {riskAnalysis && walletAddress && (
         <div className="mt-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="text-center">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                🎯 Risk-Based Liquidity Pools
+                🎯 Lending Pool Ratings
               </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Access tier-classified liquidity pools based on your risk score
-                ({riskAnalysis.tier}).
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                See how Blend&apos;s lending pools rate on utilization, leverage,
+                concentration and depth — read live from mainnet.
               </p>
+              <Link
+                href="/pools"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
+              >
+                View pool ratings
+              </Link>
             </div>
           </div>
-          <EnhancedLiquidityPools />
         </div>
       )}
     </div>
