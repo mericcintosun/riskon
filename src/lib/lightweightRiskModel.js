@@ -128,10 +128,19 @@ export function calculateRiskScore(metrics) {
       metrics
     );
 
+    // "No history" is NOT "high risk" — it is unknown. A brand-new wallet has
+    // every feature at the bottom of the population, which the composite reads
+    // as a risky profile (it scored 87/TIER_3). Surface the distinction instead
+    // of laundering absence of evidence into evidence of risk.
+    const dataQuality = getDataQualityScore(metrics);
+    const insufficientData = dataQuality.needsMoreData;
+
     const result = {
       riskScore,
       tier,
-      confidence: calculateConfidence(normalizedFeatures),
+      dataQuality,
+      insufficientData,
+      confidence: calculateConfidence(normalizedFeatures, metrics),
       featureImportance,
       explanation: generateExplanation(riskScore, featureImportance),
       recommendations: generateRecommendations(featureImportance),
@@ -198,11 +207,17 @@ function calculateTier(riskScore) {
 }
 
 /**
- * Calculate model confidence based on feature consistency
+ * Calculate model confidence.
+ *
+ * Confidence is dominated by HOW MUCH HISTORY we saw. The previous version used
+ * only the variance of the feature vector, which produced the exact opposite of
+ * the truth: a brand-new wallet is all zeros, all zeros has zero variance, so an
+ * empty wallet scored the MAXIMUM confidence (95) on a profile we know nothing
+ * about.
+ *
+ * Feature-vector homogeneity is kept as a secondary, smaller term.
  */
-function calculateConfidence(features) {
-  // Calculate how "typical" this feature combination is
-  // Higher variance = lower confidence
+function calculateConfidence(features, metrics) {
   const featureValues = Object.values(features);
   const mean =
     featureValues.reduce((sum, val) => sum + val, 0) / featureValues.length;
@@ -210,11 +225,17 @@ function calculateConfidence(features) {
     featureValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
     featureValues.length;
 
-  // Convert variance to confidence (0-100%)
-  const confidence = Math.round(
-    Math.max(60, Math.min(95, (1 - variance) * 100))
-  );
-  return confidence;
+  // Primary term: data sufficiency (0-1).
+  const quality = getDataQualityScore(metrics || {}).score / 100;
+
+  // Secondary term: how homogeneous the feature vector is (0-1).
+  const homogeneity = Math.max(0, 1 - variance);
+
+  // No history -> near-floor confidence, regardless of how "consistent" the
+  // zeros look.
+  const raw = 0.75 * quality + 0.25 * homogeneity;
+
+  return Math.round(Math.max(5, Math.min(95, raw * 100)));
 }
 
 /**

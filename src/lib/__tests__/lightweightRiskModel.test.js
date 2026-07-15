@@ -14,6 +14,7 @@ describe('Lightweight Risk Model', () => {
         uniqueCounterparties: 24,
         assetDiversity: 56,
         nightDayRatio: 0,
+        totalPayments: 200,
       };
 
       const result = calculateRiskScore(metrics);
@@ -31,6 +32,7 @@ describe('Lightweight Risk Model', () => {
         uniqueCounterparties: 18,
         assetDiversity: 30,
         nightDayRatio: 2.28,
+        totalPayments: 200,
       };
 
       const result = calculateRiskScore(metrics);
@@ -47,6 +49,7 @@ describe('Lightweight Risk Model', () => {
         uniqueCounterparties: 5,
         assetDiversity: 4,
         nightDayRatio: 13.29,
+        totalPayments: 200,
       };
 
       const result = calculateRiskScore(metrics);
@@ -194,6 +197,7 @@ describe('Lightweight Risk Model', () => {
         uniqueCounterparties: 18,
         assetDiversity: 30,
         nightDayRatio: 2.28,
+        totalPayments: 200,
       };
 
       // Extremes on opposite ends -> percentiles near 0 and 1 -> high variance.
@@ -212,18 +216,35 @@ describe('Lightweight Risk Model', () => {
       );
     });
 
-    test('should return confidence within the documented 60-95 band', () => {
+    test('should return confidence within the documented 5-95 band', () => {
       const metrics = {
         totalVolume: 5000,
         uniqueCounterparties: 25,
         assetDiversity: 5,
         nightDayRatio: 0.4,
+        totalPayments: 200,
       };
 
       const result = calculateRiskScore(metrics);
 
-      expect(result.confidence).toBeGreaterThanOrEqual(60);
+      expect(result.confidence).toBeGreaterThanOrEqual(5);
       expect(result.confidence).toBeLessThanOrEqual(95);
+    });
+
+    // A wallet with no history must NOT come back confident. The old
+    // variance-only formula gave an all-zero wallet the MAXIMUM confidence (95)
+    // precisely because zeros have no variance.
+    test('should report low confidence and flag insufficient data for an empty wallet', () => {
+      const result = calculateRiskScore({
+        totalVolume: 0,
+        uniqueCounterparties: 0,
+        assetDiversity: 0,
+        nightDayRatio: 0,
+        totalPayments: 0,
+      });
+
+      expect(result.insufficientData).toBe(true);
+      expect(result.confidence).toBeLessThan(50);
     });
   });
 
@@ -387,6 +408,7 @@ describe('Lightweight Risk Model', () => {
         uniqueCounterparties: 5,
         assetDiversity: 4,
         nightDayRatio: 13.29,
+        totalPayments: 200,
       };
 
       const goodMetrics = {
@@ -394,6 +416,7 @@ describe('Lightweight Risk Model', () => {
         uniqueCounterparties: 18,
         assetDiversity: 30,
         nightDayRatio: 2.28,
+        totalPayments: 200,
       };
 
       const excellentMetrics = {
@@ -401,6 +424,7 @@ describe('Lightweight Risk Model', () => {
         uniqueCounterparties: 24,
         assetDiversity: 56,
         nightDayRatio: 0,
+        totalPayments: 200,
       };
 
       const poorResult = calculateRiskScore(poorMetrics);

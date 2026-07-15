@@ -278,7 +278,11 @@ export default function AutomatedRiskAnalyzer() {
     } catch (error) {
       console.error("❌ Attestation failed:", error);
 
-      if (error.code === "RATE_LIMITED") {
+      if (error.code === "INSUFFICIENT_HISTORY") {
+        toast.warning(
+          "📭 Bu cüzdanın puanlanacak kadar işlem geçmişi yok — riskli olduğu için değil, bilinmediği için."
+        );
+      } else if (error.code === "RATE_LIMITED") {
         toast.warning("⏰ This wallet was already scored in the last 24 hours");
       } else if (error.code === "ACCOUNT_NOT_FOUND") {
         toast.error("❌ This account doesn't exist on the Stellar network yet");
@@ -395,10 +399,16 @@ export default function AutomatedRiskAnalyzer() {
                       : "text-gray-400"
                   }`}
                 >
-                  {riskAnalysis ? riskAnalysis.riskScore : "--"}
+                  {!riskAnalysis
+                    ? "--"
+                    : riskAnalysis.insufficientData
+                    ? "?"
+                    : riskAnalysis.riskScore}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-[-10px]">
-                  Activity Percentile
+                  {riskAnalysis?.insufficientData
+                    ? "Yetersiz geçmiş"
+                    : "Activity Percentile"}
                 </div>
               </div>
             </div>
@@ -409,7 +419,22 @@ export default function AutomatedRiskAnalyzer() {
               a population percentile — not a probability of default. Nobody can
               claim the latter on Stellar: there is no public outcome-label
               (default/liquidation) dataset to validate against. */}
-          {riskAnalysis && (
+          {riskAnalysis && riskAnalysis.insufficientData && (
+            <div className="mb-4 mx-auto max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-left">
+              <p className="text-xs leading-relaxed text-amber-200/90">
+                <span className="font-medium text-amber-100">
+                  Bu cüzdan henüz puanlanamıyor.
+                </span>{" "}
+                Yeterli işlem geçmişi yok — bu, cüzdanın{" "}
+                <strong>riskli olduğu anlamına gelmez</strong>, sadece
+                <strong> bilinmediği</strong> anlamına gelir. Kanıtın yokluğunu
+                risk kanıtı gibi sunmuyoruz. Stellar&apos;da bir süre kullanıp
+                tekrar deneyin. (Veri kalitesi: {riskAnalysis.dataQuality?.score ?? 0}/100)
+              </p>
+            </div>
+          )}
+
+          {riskAnalysis && !riskAnalysis.insufficientData && (
             <div className="mb-4 mx-auto max-w-md rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-left">
               <p className="text-xs leading-relaxed text-slate-400">
                 <span className="font-medium text-slate-300">
@@ -433,7 +458,7 @@ export default function AutomatedRiskAnalyzer() {
           )}
 
           {/* Tier Badge */}
-          {riskAnalysis && (
+          {riskAnalysis && !riskAnalysis.insufficientData && (
             <div className="mb-6 space-y-3">
               <span
                 className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${

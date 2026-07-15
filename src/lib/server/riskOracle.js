@@ -236,6 +236,27 @@ export async function attestRiskScore(rawAddress, options = {}) {
   }
 
   const analysis = calculateRiskScore(metrics);
+
+  // Refuse to write a score for a wallet we know nothing about.
+  //
+  // Every feature of a brand-new wallet sits at the bottom of the population, so
+  // the composite reads it as a risky profile (a freshly created wallet scored
+  // 87 -> TIER_3). That is absence of evidence, not evidence of risk, and
+  // stamping TIER_3 on-chain for it is materially wrong — the tier is what the
+  // contract gates access on.
+  if (analysis.insufficientData) {
+    throw new OracleError(
+      "INSUFFICIENT_HISTORY",
+      "This wallet has too little transaction history to be scored. " +
+        "Use it on Stellar for a while and try again.",
+      422,
+      {
+        data_quality: analysis.dataQuality?.score ?? 0,
+        total_payments: metrics.totalPayments ?? 0,
+      }
+    );
+  }
+
   const score = analysis.riskScore;
   const tier = tierForScore(score);
 
