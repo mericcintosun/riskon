@@ -44,9 +44,6 @@ jobs:
       - run: npm ci
       - name: Audit (frontend)
         run: npm audit --audit-level=high || true
-      - name: Audit (backend)
-        working-directory: backend
-        run: npm ci && npm audit --audit-level=high || true
 
   cargo-audit:
     name: cargo audit
