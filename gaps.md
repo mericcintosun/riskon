@@ -61,6 +61,15 @@ Three features, all pointing the same direction: `totalVolume`, `uniqueCounterpa
 
 ## ✅ Resolved
 
+### This round (three scoring paths collapsed into one)
+- **The app computed the same wallet's score three different ways, and only one of them was the score that landed on chain.**
+  - `enhanced` → `AutomatedRiskAnalyzer` → the calibrated model (v3). Matches what the oracle re-derives and writes. ✅
+  - `auto` → `autoRiskAnalyzer.js` → its own uncalibrated formula on real chain data.
+  - `manual` → the user typed three numbers, and `page.js`'s own hand-rolled if/else ladder (`score += 40; // Very low activity = high risk`) produced a "risk score".
+- **Manual mode was theatre.** Measured: `/api/risk/attest` sends `{ address }` and nothing else — the oracle derives the score server-side from Horizon. So the user typed numbers, saw a score with a tier badge and a progress bar, clicked "Save Risk Score to Blockchain", and **a completely different number landed on chain**. The displayed figure was never used for anything.
+- **A third instance of the silent-dropped-props bug.** `LandingPage` passed `onAnalyze`, `analysisResult`, `isLoading` and `error` to `AutomatedRiskAnalyzer`, which declares **no props** — so `handleAnalyze` never fired, `analysisResult` stayed `null`, and the `UserRiskProfile` block behind it never rendered. Same family as `BlendHistoryPerformance`'s dropped `onScoreImpactChange`.
+- **Collapsed to one path.** Removed the mode toggle, the typed-number form, `page.js`'s scoring ladder, `useAnalyzeRisk`, and `autoRiskAnalyzer.js` (475 lines). `page.js` went **1310 → 742 lines**. There is now one score, produced by one calibrated model, identical to what the oracle writes on chain. Verified in a real browser on `/` and `/landing`: no mode toggle, no typed-number form, analyzer renders, zero console errors.
+
 ### This round (the Blend integration was a demo wearing production labels)
 
 **The worst thing in the repo: the app told users a DeFi transaction succeeded when nothing happened.**

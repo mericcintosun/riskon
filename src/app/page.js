@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { testContractExists, getContractInfo } from "./lib/testContract";
-import { performAutoRiskAnalysis } from "../lib/autoRiskAnalyzer";
 import BlendDashboard from "../components/BlendDashboard.jsx";
 import UserRiskProfile from "../components/UserRiskProfile.jsx";
 import AutomatedRiskAnalyzer from "../components/AutomatedRiskAnalyzer.jsx";
@@ -35,19 +34,8 @@ export default function RiskScoringApp() {
     issues,
     isAnalyzing,
     analyzeApplication,
-    validateFormInputs,
     runQuickHealthCheck,
   } = useIssueDetector();
-
-  // Form state - simplified (keeping for fallback)
-  const [txCount, setTxCount] = useState("");
-  const [avgHours, setAvgHours] = useState("");
-  const [assetTypes, setAssetTypes] = useState("");
-
-  // Auto risk analysis state
-  const [autoAnalysisResult, setAutoAnalysisResult] = useState(null);
-  const [isAnalyzingWallet, setIsAnalyzingWallet] = useState(false);
-  const [analysisMode, setAnalysisMode] = useState("enhanced"); // "enhanced", "auto" or "manual"
 
   // Collateral calculator state
   const [collateralAmount, setCollateralAmount] = useState("");
@@ -60,106 +48,7 @@ export default function RiskScoringApp() {
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [riskScore, setRiskScore] = useState(0);
 
-  // Simplified risk score calculation
-  const calculateRiskScore = (
-    txCountInput = txCount,
-    medianHoursInput = avgHours,
-    assetKindsInput = assetTypes
-  ) => {
-    // Input validation
-    const inputs = [
-      parseFloat(txCountInput) || 0,
-      parseFloat(medianHoursInput) || 0,
-      parseFloat(assetKindsInput) || 0,
-    ];
-
-    // Basic field validation
-    if (
-      isNaN(inputs[0]) ||
-      isNaN(inputs[1]) ||
-      isNaN(inputs[2]) ||
-      inputs[0] < 0 ||
-      inputs[0] > 100 ||
-      inputs[1] < 0 ||
-      inputs[1] > 24 ||
-      inputs[2] < 0 ||
-      inputs[2] > 10
-    ) {
-      return 0; // Return 0 instead of null for invalid inputs
-    }
-
-    const [txCount, medianHours, assetKinds] = inputs;
-
-    // Simple risk score calculation
-    let score = 0;
-
-    // Transaction count factor (0-100)
-    if (txCount < 5) {
-      score += 40; // Very low activity = high risk
-    } else if (txCount < 20) {
-      score += 20; // Low activity = medium risk
-    } else if (txCount > 80) {
-      score += 30; // Very high activity = high risk
-    } else {
-      score += 10; // Normal activity = low risk
-    }
-
-    // Time interval factor (0-24 hours)
-    if (medianHours < 1) {
-      score += 25; // Very fast transactions = high risk
-    } else if (medianHours > 20) {
-      score += 20; // Very slow transactions = medium risk
-    } else {
-      score += 5; // Normal time interval = low risk
-    }
-
-    // Asset diversity factor (0-10)
-    if (assetKinds <= 1) {
-      score += 30; // Single asset = high risk
-    } else if (assetKinds <= 2) {
-      score += 15; // Low diversity = medium risk
-    } else if (assetKinds >= 8) {
-      score += 10; // Too much diversity = low risk but complex
-    } else {
-      score += 5; // Good diversity = low risk
-    }
-
-    return Math.min(100, Math.max(0, score));
-  };
-
-  // Auto risk analysis when wallet connects
-  useEffect(() => {
-    if (walletAddress && analysisMode === "auto" && !autoAnalysisResult) {
-      performWalletAnalysis();
-    }
-  }, [walletAddress, analysisMode]);
-
-  // Calculate risk score when form values change with validation (manual mode)
-  useEffect(() => {
-    if (analysisMode === "manual") {
-      const calculatedScore = calculateRiskScore();
-      setRiskScore(calculatedScore);
-
-      // Validate form inputs and show issues if any
-      const validationErrors = validateFormInputs(
-        txCount,
-        avgHours,
-        assetTypes
-      );
-      if (validationErrors.length > 0) {
-        validationErrors.forEach((error) => {
-          toast.warning(error, { duration: 3000 });
-        });
-      }
-    } else if (autoAnalysisResult) {
-      setRiskScore(autoAnalysisResult.riskScore);
-    }
-  }, [txCount, avgHours, assetTypes, analysisMode, autoAnalysisResult]);
-
-  const isValidInput =
-    analysisMode === "auto"
-      ? autoAnalysisResult && autoAnalysisResult.riskScore !== null
-      : riskScore !== null && (txCount || avgHours || assetTypes);
+  const isValidInput = riskScore !== null && riskScore > 0;
 
   // Test contract when kit is available
   useEffect(() => {
@@ -232,7 +121,6 @@ export default function RiskScoringApp() {
       const result = disconnectWallet();
       if (result.success) {
         // Reset analysis when wallet disconnects
-        setAutoAnalysisResult(null);
         setRiskScore(0);
         toast.success("👛 Wallet disconnected successfully");
       } else {
@@ -243,103 +131,6 @@ export default function RiskScoringApp() {
     }
   };
 
-  // Perform automatic wallet analysis
-  const performWalletAnalysis = async () => {
-    if (!walletAddress) return;
-
-    try {
-      setIsAnalyzingWallet(true);
-
-      // Detect wallet type and customize loading message
-      const isPasskeyWallet = walletAddress.startsWith("C");
-      const loadingMessage = isPasskeyWallet
-        ? "🔐 Analyzing Passkey smart contract..."
-        : "🔍 Analyzing wallet transaction history...";
-
-      const loadingToast = toast.loading(loadingMessage);
-
-      const analysisResult = await performAutoRiskAnalysis(walletAddress);
-
-      toast.dismiss(loadingToast);
-      setAutoAnalysisResult(analysisResult);
-
-      // Customize success message based on wallet type
-      if (analysisResult.addressType === "contract") {
-        toast.success(
-          `✅ Passkey analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
-          { duration: 6000 }
-        );
-
-        // Show Passkey-specific information
-        setTimeout(() => {
-          toast.info(
-            `🔐 Passkey smart contract analyzed - Contract status: ${analysisResult.analysis.contractStatus}`,
-            {
-              duration: 8000,
-            }
-          );
-        }, 2000);
-
-        // Show additional info about Passkey wallets
-        setTimeout(() => {
-          toast.info(
-            "💡 Passkey wallets are new-generation smart contracts with enhanced security",
-            {
-              duration: 6000,
-            }
-          );
-        }, 4000);
-      } else {
-        // Traditional wallet analysis
-        toast.success(
-          `✅ Account analysis completed! Risk Score: ${analysisResult.riskScore} (${analysisResult.confidence} confidence)`,
-          { duration: 6000 }
-        );
-
-        // Show detailed factors
-        setTimeout(() => {
-          toast.info(
-            `📊 Analysis: ${analysisResult.analysis.txCount} transactions, ${analysisResult.analysis.assetTypes} assets, ${analysisResult.analysis.avgHours}h avg interval`,
-            {
-              duration: 8000,
-            }
-          );
-        }, 2000);
-      }
-    } catch (error) {
-      console.error("❌ Auto analysis error:", error);
-      toast.dismiss();
-
-      if (
-        error.message.includes("404") ||
-        error.message.includes("not found")
-      ) {
-        toast.warning(
-          "⚠️ No transaction history found. Switch to manual mode or fund your wallet first.",
-          {
-            duration: 6000,
-          }
-        );
-        setAnalysisMode("manual");
-      } else if (
-        error.message.includes("Invalid Stellar address format") ||
-        error.message.includes("Invalid length")
-      ) {
-        toast.error(
-          "❌ Invalid wallet address format. Please reconnect your wallet.",
-          {
-            duration: 6000,
-          }
-        );
-      } else {
-        showCategorizedError(error, "Automatic wallet analysis failed");
-        // Fallback to manual mode on error
-        setAnalysisMode("manual");
-      }
-    } finally {
-      setIsAnalyzingWallet(false);
-    }
-  };
 
   // Submit risk score to blockchain
   const submitRiskScore = async () => {
@@ -352,13 +143,6 @@ export default function RiskScoringApp() {
       toast.error(
         "⛓️ Smart contract not available. Please check your connection."
       );
-      return;
-    }
-
-    // Final validation
-    const validationErrors = validateFormInputs(txCount, avgHours, assetTypes);
-    if (validationErrors.length > 0) {
-      toast.error(`⚠️ Validation errors: ${validationErrors.join(", ")}`);
       return;
     }
 
@@ -446,35 +230,6 @@ export default function RiskScoringApp() {
   };
 
   // Handle form input changes with real-time validation
-  const handleTxCountChange = (e) => {
-    const value = e.target.value;
-    setTxCount(value);
-
-    if (value && (isNaN(value) || value < 0 || value > 100)) {
-      toast.warning("Transaction count must be between 0-100", {
-        duration: 2000,
-      });
-    }
-  };
-
-  const handleAvgHoursChange = (e) => {
-    const value = e.target.value;
-    setAvgHours(value);
-
-    if (value && (isNaN(value) || value < 0 || value > 24)) {
-      toast.warning("Average hours must be between 0-24", { duration: 2000 });
-    }
-  };
-
-  const handleAssetTypesChange = (e) => {
-    const value = e.target.value;
-    setAssetTypes(value);
-
-    if (value && (isNaN(value) || value < 0 || value > 10)) {
-      toast.warning("Asset types must be between 0-10", { duration: 2000 });
-    }
-  };
-
   const handleCollateralChange = (e) => {
     const value = e.target.value;
     setCollateralAmount(value);
@@ -756,332 +511,12 @@ export default function RiskScoringApp() {
                 </p>
               </div>
 
-              {/* Analysis Mode Toggle */}
-              <div className="flex items-center justify-center space-x-4 mb-12 flex-wrap">
-                <button
-                  onClick={() => setAnalysisMode("enhanced")}
-                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
-                    analysisMode === "enhanced"
-                      ? "bg-gradient-to-r from-emerald-500/20 to-blue-500/20 text-emerald-400 border border-emerald-500/30"
-                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                    />
-                  </svg>
-                  🧠 AI Enhanced
-                </button>
-                <button
-                  onClick={() => setAnalysisMode("auto")}
-                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
-                    analysisMode === "auto"
-                      ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
-                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                  ⚡ Quick Auto
-                </button>
-                <button
-                  onClick={() => setAnalysisMode("manual")}
-                  className={`px-6 py-4 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center ${
-                    analysisMode === "manual"
-                      ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
-                      : "bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:bg-slate-700/50 hover:text-white"
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                    />
-                  </svg>
-                  ✍️ Manual
-                </button>
-              </div>
-
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8">
-                {/* Enhanced AI Analysis */}
-                {analysisMode === "enhanced" && <AutomatedRiskAnalyzer />}
+                {/* The one scoring path: the calibrated model, which is also
+                    what the oracle re-derives and writes on chain. */}
+                <AutomatedRiskAnalyzer />
 
-                {/* Auto Analysis Display */}
-                {analysisMode === "auto" && (
-                  <div className="space-y-6">
-                    {!autoAnalysisResult && !isAnalyzingWallet && (
-                      <div className="text-center p-8 bg-gradient-to-br from-violet-500/10 to-purple-600/10 rounded-2xl">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-violet-500/20 rounded-2xl flex items-center justify-center">
-                          <svg
-                            className="w-8 h-8 text-violet-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M13 10V3L4 14h7v7l9-11h-7z"
-                            />
-                          </svg>
-                        </div>
-                        <h3 className="text-lg font-semibold text-white/90 mb-2">
-                          Ready for Auto Analysis
-                        </h3>
-                        <p className="text-white/70 mb-4">
-                          Click the button below to analyze your wallet's
-                          transaction history automatically
-                        </p>
-                        <button
-                          onClick={performWalletAnalysis}
-                          disabled={isAnalyzing}
-                          className="btn-primary px-6 py-3"
-                        >
-                          <svg
-                            className="w-5 h-5 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                            />
-                          </svg>
-                          Analyze Wallet
-                        </button>
-                      </div>
-                    )}
 
-                    {isAnalyzing && (
-                      <div className="text-center p-8 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-2xl">
-                        <div className="loading-modern mb-4">
-                          <div className="loading-dot"></div>
-                          <div className="loading-dot"></div>
-                          <div className="loading-dot"></div>
-                        </div>
-                        <h3 className="text-lg font-semibold text-white/90 mb-2">
-                          Analyzing Transaction History
-                        </h3>
-                        <p className="text-white/70">
-                          Fetching data from Stellar Horizon API...
-                        </p>
-                      </div>
-                    )}
-
-                    {autoAnalysisResult && (
-                      <div className="space-y-4">
-                        <div className="bg-gradient-to-br from-emerald-500/10 to-green-600/10 rounded-2xl p-6">
-                          <h3 className="text-lg font-semibold text-emerald-400 mb-4">
-                            Analysis Results
-                          </h3>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-white/70">
-                                Transactions:
-                              </span>
-                              <span className="text-white/90 ml-2 font-mono">
-                                {autoAnalysisResult.analysis.txCount}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-white/70">Avg Hours:</span>
-                              <span className="text-white/90 ml-2 font-mono">
-                                {autoAnalysisResult.analysis.avgHours}h
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-white/70">
-                                Asset Types:
-                              </span>
-                              <span className="text-white/90 ml-2 font-mono">
-                                {autoAnalysisResult.analysis.assetTypes}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-white/70">Confidence:</span>
-                              <span
-                                className={`ml-2 font-semibold ${
-                                  autoAnalysisResult.confidence === "High"
-                                    ? "text-emerald-400"
-                                    : autoAnalysisResult.confidence === "Medium"
-                                    ? "text-amber-400"
-                                    : "text-red-400"
-                                }`}
-                              >
-                                {autoAnalysisResult.confidence}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="mt-4 pt-4 border-t border-white/10">
-                            {/* Passkey-specific information */}
-                            {autoAnalysisResult.addressType === "contract" &&
-                              autoAnalysisResult.passkeyInfo && (
-                                <div className="mb-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                                  <div className="flex items-center mb-2">
-                                    <svg
-                                      className="w-4 h-4 text-purple-400 mr-2"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                      />
-                                    </svg>
-                                    <span className="text-sm font-medium text-purple-300">
-                                      Passkey Smart Contract
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-purple-200/80">
-                                    {autoAnalysisResult.passkeyInfo.message}
-                                  </p>
-                                  <p className="text-xs text-purple-200/60 mt-1">
-                                    {autoAnalysisResult.passkeyInfo.note}
-                                  </p>
-                                  {autoAnalysisResult.analysis
-                                    .contractStatus && (
-                                    <div className="mt-2 text-xs">
-                                      <span className="text-purple-300">
-                                        Status:{" "}
-                                      </span>
-                                      <span
-                                        className={`capitalize ${
-                                          autoAnalysisResult.analysis
-                                            .contractStatus === "active"
-                                            ? "text-emerald-400"
-                                            : autoAnalysisResult.analysis
-                                                .contractStatus ===
-                                              "new_or_inactive"
-                                            ? "text-amber-400"
-                                            : "text-gray-400"
-                                        }`}
-                                      >
-                                        {autoAnalysisResult.analysis.contractStatus.replace(
-                                          "_",
-                                          " "
-                                        )}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                            <p className="text-sm text-white/70 mb-2">
-                              Risk Factors:
-                            </p>
-                            <ul className="text-xs text-white/60 space-y-1">
-                              {autoAnalysisResult.factors
-                                .slice(0, 3)
-                                .map((factor, index) => (
-                                  <li key={index}>• {factor}</li>
-                                ))}
-                            </ul>
-                          </div>
-                          <button
-                            onClick={performWalletAnalysis}
-                            className="btn-secondary text-sm px-4 py-2 mt-4"
-                          >
-                            Refresh Analysis
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Manual Entry Form */}
-                {analysisMode === "manual" && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                        Transaction Count (0-100)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={txCount}
-                        onChange={handleTxCountChange}
-                        className="input-modern"
-                        placeholder="e.g. 25"
-                      />
-                      <p className="text-caption mt-2">
-                        Number of transactions in the last 30 days
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                        Average Time Interval (0-24 hours)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="24"
-                        step="0.1"
-                        value={avgHours}
-                        onChange={handleAvgHoursChange}
-                        className="input-modern"
-                        placeholder="e.g. 8.5"
-                      />
-                      <p className="text-caption mt-2">
-                        Average time between transactions
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-white/90 mb-3 font-montserrat">
-                        Asset Types (0-10)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={assetTypes}
-                        onChange={handleAssetTypesChange}
-                        className="input-modern"
-                        placeholder="e.g. 3"
-                      />
-                      <p className="text-caption mt-2">
-                        Number of different asset/token types used
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 {/* Risk Score Display */}
                 <div className="mt-8 animate-scale-in">
@@ -1149,11 +584,8 @@ export default function RiskScoringApp() {
                       )}
                     </button>
                     <p className="text-caption mt-3">
-                      {analysisMode === "auto" && autoAnalysisResult
-                        ? `Automatically calculated score: ${riskScore} (${autoAnalysisResult.confidence} confidence)`
-                        : analysisMode === "manual"
-                        ? "Manual entry - your risk score will be saved to the blockchain"
-                        : "Complete analysis to save your risk score"}
+                      The oracle re-derives this score from chain data it fetches
+                      itself, so what lands on chain is what you see here.
                     </p>
                   </div>
 

@@ -4,14 +4,11 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import AutomatedRiskAnalyzer from "./AutomatedRiskAnalyzer.jsx";
-import UserRiskProfile from "./UserRiskProfile.jsx";
 import BlendDashboard from "./BlendDashboard.jsx";
 import BlendHistoryPerformance from "./BlendHistoryPerformance.jsx";
-import useAnalyzeRisk from "../hooks/useAnalyzeRisk.js";
 import { useWallet } from "../contexts/WalletContext.js";
 
 const LandingPage = () => {
-  const { handleAnalyze, analysisResult, isLoading, error } = useAnalyzeRisk();
   const { walletAddress } = useWallet();
 
   const containerVariants = {
@@ -66,23 +63,14 @@ const LandingPage = () => {
           </p>
         </motion.div>
 
+        {/* AutomatedRiskAnalyzer owns its own state and runs the calibrated
+            model — the same score the oracle re-derives and writes on chain.
+            It takes no props; the four this used to pass (onAnalyze,
+            analysisResult, isLoading, error) were silently dropped, so the
+            second scoring path behind them never ran. */}
         <motion.div variants={itemVariants} className="mb-8 sm:mb-12">
-          <AutomatedRiskAnalyzer
-            onAnalyze={() => handleAnalyze(walletAddress)}
-            analysisResult={analysisResult}
-            isLoading={isLoading}
-            error={error}
-          />
+          <AutomatedRiskAnalyzer />
         </motion.div>
-
-        {analysisResult && (
-          <motion.div variants={itemVariants} className="mb-8 sm:mb-12">
-            <UserRiskProfile
-              walletAddress={walletAddress}
-              riskScore={analysisResult.riskScore}
-            />
-          </motion.div>
-        )}
 
         <motion.div
           variants={itemVariants}
