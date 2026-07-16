@@ -36,7 +36,7 @@
     "babel-jest": "^30.4.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.10",
-    "globals": "^15.15.0",
+    "globals": "^17.7.0",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
