@@ -40,7 +40,6 @@ export default function AutomatedRiskAnalyzer() {
   // classic payment history). Distinct from an error and from a low score.
   const [unscorable, setUnscorable] = useState(null);
   const [isUpdatingScore, setIsUpdatingScore] = useState(false);
-  const [blendScoreImpact, setBlendScoreImpact] = useState(null);
 
   // Rate limiting state
   const [rateLimitStatus, setRateLimitStatus] = useState(null);
@@ -152,25 +151,7 @@ export default function AutomatedRiskAnalyzer() {
 
       const riskAnalysisResult = calculateRiskScore(horizonData.metrics);
 
-      // Step 3: Apply Blend history impact if available
-      if (blendScoreImpact && blendScoreImpact.totalChange) {
-        const adjustedScore = Math.max(
-          0,
-          Math.min(
-            100,
-            riskAnalysisResult.riskScore + blendScoreImpact.totalChange
-          )
-        );
-        riskAnalysisResult.riskScore = adjustedScore;
-        riskAnalysisResult.blendImpact = blendScoreImpact;
-        riskAnalysisResult.explanation.unshift(
-          `🏦 Blend history: ${blendScoreImpact.totalChange > 0 ? "+" : ""}${
-            blendScoreImpact.totalChange
-          } points`
-        );
-      }
-
-      // Step 4: Check data quality
+      // Step 3: Check data quality
       const dataQuality = getDataQualityScore(horizonData.metrics);
 
       toast.dismiss(calculatingToast);
@@ -502,24 +483,6 @@ export default function AutomatedRiskAnalyzer() {
               >
                 {getTierBadge(riskAnalysis.tier).text}
               </span>
-
-              {/* Blend Impact Badge */}
-              {riskAnalysis.blendImpact &&
-                riskAnalysis.blendImpact.totalChange !== 0 && (
-                  <div>
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        riskAnalysis.blendImpact.totalChange > 0
-                          ? "bg-purple-100 text-purple-800 border border-purple-200"
-                          : "bg-orange-100 text-orange-800 border border-orange-200"
-                      }`}
-                    >
-                      🏦 Blend:{" "}
-                      {riskAnalysis.blendImpact.totalChange > 0 ? "+" : ""}
-                      {riskAnalysis.blendImpact.totalChange} points
-                    </span>
-                  </div>
-                )}
             </div>
           )}
 
@@ -770,7 +733,7 @@ export default function AutomatedRiskAnalyzer() {
 
       {/* Blend Historical Performance */}
       {walletAddress && (
-        <BlendHistoryPerformance onScoreImpactChange={setBlendScoreImpact} />
+        <BlendHistoryPerformance />
       )}
 
       {/* Blend DeFi Dashboard */}

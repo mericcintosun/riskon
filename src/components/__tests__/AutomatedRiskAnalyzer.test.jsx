@@ -56,14 +56,9 @@ jest.mock('../../contexts/ToastContext', () => ({
   useToast: jest.fn(),
 }));
 
-// Captures the real onScoreImpactChange callback the component passes down, so a
-// test can simulate BlendHistoryPerformance reporting a score impact.
-const mockBlendImpactRef = { current: null };
-
 // Mock child components
 jest.mock('../BlendHistoryPerformance.jsx', () => {
-  return function MockBlendHistoryPerformance({ onScoreImpactChange }) {
-    mockBlendImpactRef.current = onScoreImpactChange;
+  return function MockBlendHistoryPerformance() {
     return <div data-testid="blend-history-performance">Mock Blend History</div>;
   };
 });
@@ -291,25 +286,11 @@ describe('AutomatedRiskAnalyzer Component', () => {
       );
     });
 
-    test('should apply blend score impact when available', async () => {
-      const user = userEvent.setup();
-
-      render(<AutomatedRiskAnalyzer />);
-
-      // Simulate BlendHistoryPerformance reporting a -5 score impact. This must
-      // land before the analysis runs, since runAutomatedAnalysis reads the
-      // blendScoreImpact state when computing the final score.
-      await act(async () => {
-        mockBlendImpactRef.current({ totalChange: -5 });
-      });
-
-      const startButton = screen.getByRole('button', { name: /🧠 Start Analysis/ });
-      await user.click(startButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('20')).toBeInTheDocument(); // 25 - 5 = 20
-      });
-    });
+    // The old "blend score impact" feature was removed: BlendHistoryPerformance
+    // takes no props, so the onScoreImpactChange callback this test used to drive
+    // never fired in the real app. The score is now solely the calibrated model's
+    // output, with no ad-hoc adjustment. The score-adjustment test that lived here
+    // validated wiring that did not exist.
   });
 
   describe('Blockchain Update Flow', () => {
