@@ -4,7 +4,6 @@ import { Server } from "@stellar/stellar-sdk/rpc";
 
 const server = new Server("https://soroban-testnet.stellar.org");
 const CONTRACT_ID =
-  process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID ||
   process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID ||
   "CBTYHTWNY3HP6TIZCYKI6HP47YWVZCKQTWAD7SEK7AAVGCWY2ZIB6GRQ";
 

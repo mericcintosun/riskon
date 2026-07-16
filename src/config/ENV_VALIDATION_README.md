@@ -92,7 +92,6 @@ These are accessible in the browser:
 - `NEXT_PUBLIC_RPC_URL` - Stellar RPC endpoint
 - `NEXT_PUBLIC_NETWORK_PASSPHRASE` - Network passphrase
 - `NEXT_PUBLIC_RISK_TIER_CONTRACT_ID` - Risk tier contract address
-- `NEXT_PUBLIC_RISK_SCORE_CONTRACT_ID` - Risk score contract address
 - `NEXT_PUBLIC_FACTORY_CONTRACT_ID` - Passkey factory contract
 - `NEXT_PUBLIC_PASSKEY_ENABLED` - Enable/disable passkey features
 - `NEXT_PUBLIC_WEBAUTHN_ORIGIN` - WebAuthn origin URL

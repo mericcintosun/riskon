@@ -64,7 +64,6 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_RPC_URL: urlSchema,
   NEXT_PUBLIC_NETWORK_PASSPHRASE: z.string().min(1, "Network passphrase is required"),
   NEXT_PUBLIC_RISK_TIER_CONTRACT_ID: contractIdSchema,
-  NEXT_PUBLIC_RISK_SCORE_CONTRACT_ID: contractIdSchema,
   NEXT_PUBLIC_FACTORY_CONTRACT_ID: contractIdSchema,
 
   // Passkey Configuration

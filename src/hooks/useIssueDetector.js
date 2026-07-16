@@ -98,7 +98,7 @@ export function useIssueDetector() {
       }
 
       // Check 3: Environment variables
-      const requiredEnvVars = ["NEXT_PUBLIC_RISKSCORE_CONTRACT_ID"];
+      const requiredEnvVars = ["NEXT_PUBLIC_RISK_TIER_CONTRACT_ID"];
 
       requiredEnvVars.forEach((envVar) => {
         if (!process.env[envVar]) {
@@ -107,7 +107,7 @@ export function useIssueDetector() {
       });
 
       // Check 4: Contract ID format validation
-      const contractId = process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID;
+      const contractId = process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID;
       if (contractId && contractId.length !== 56) {
         detectedIssues.push(
           "Contract ID format appears invalid - should be 56 characters"
@@ -222,7 +222,6 @@ export function useIssueDetector() {
     try {
       // Basic contract ID validation
       const contractId =
-        process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID ||
         process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID ||
         "CBTYHTWNY3HP6TIZCYKI6HP47YWVZCKQTWAD7SEK7AAVGCWY2ZIB6GRQ";
       if (!contractId || contractId === "your_risk_tier_contract_id_here") {
