@@ -14,7 +14,10 @@ export default function Header() {
     isLoading,
     connectWallet: connectWalletContext,
     disconnectWallet: disconnectWalletContext,
-    walletName,
+    // The context exposes connectedWallet, not walletName. Destructuring
+    // walletName gave undefined, so the header's wallet-name label always
+    // rendered blank.
+    connectedWallet,
   } = useWallet();
 
   // Handle scroll effect
@@ -138,7 +141,7 @@ export default function Header() {
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-full border border-slate-700/50">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-slate-300">{walletName}</span>
+                    <span className="text-xs text-slate-300">{connectedWallet}</span>
                     <span className="text-xs text-slate-400 font-mono">
                       {formatAddress(walletAddress)}
                     </span>
@@ -237,7 +240,7 @@ export default function Header() {
                           Connected Wallet
                         </span>
                       </div>
-                      <div className="text-base text-slate-400 mb-1">{walletName}</div>
+                      <div className="text-base text-slate-400 mb-1">{connectedWallet}</div>
                       <div className="text-sm text-slate-500 font-mono">
                         {formatAddress(walletAddress)}
                       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Shield,
   Scale,
@@ -12,9 +12,7 @@ import {
   Info,
 } from "lucide-react";
 
-const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
-  const [showRiskModal, setShowRiskModal] = useState(false);
-  const [selectedTier, setSelectedTier] = useState(null);
+const UserRiskProfile = ({ walletAddress, riskScore }) => {
 
   // Risk score interpretation
   const getRiskInterpretation = (score) => {
@@ -104,63 +102,11 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
     };
   };
 
-  // Handle tier selection with risk confirmation
-  const handleTierSelect = (tier) => {
-    const tierAccess = getTierAccess(riskScore);
-    if (!tierAccess[tier].accessible) {
-      return;
-    }
-
-    if (tier === "TIER_3" && riskScore >= 70) {
-      setSelectedTier(tier);
-      setShowRiskModal(true);
-    } else {
-      onTierSelect?.(tier);
-    }
-  };
-
-  // Risk confirmation modal
-  const RiskConfirmationModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-        <div className="text-center">
-          <div className="text-6xl mb-4 text-red-500 flex justify-center">
-            <AlertTriangle className="w-16 h-16" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
-            High-Risk Tier Acknowledgment
-          </h3>
-          <div className="text-gray-600 mb-6 space-y-2">
-            <p>
-              Pools in this tier may have low liquidity and high volatility,
-              which can lead to rapid and significant losses.
-            </p>
-            <p className="font-semibold text-red-600">
-              The risk of capital loss is significant.
-            </p>
-            <p>Do you wish to proceed?</p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowRiskModal(false)}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                setShowRiskModal(false);
-                onTierSelect?.(selectedTier);
-              }}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              Acknowledge & Proceed
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // The tier cards below are informational: they show which tiers this score can
+  // access. They used to be clickable (handleTierSelect -> onTierSelect + a
+  // Tier-3 confirmation modal), but the only mount never passed onTierSelect, so
+  // every click was a no-op. Rather than dress up an inert control, the cards are
+  // now plainly non-interactive. Tier-specific pools live at /pools.
 
   if (typeof riskScore !== "number" || riskScore < 0 || riskScore > 100) {
     return (
@@ -219,12 +165,11 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
             {Object.entries(tierAccess).map(([tier, access]) => (
               <div
                 key={tier}
-                className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`p-4 rounded-lg border-2 transition-all ${
                   access.accessible
-                    ? `${access.bgColor} border-gray-200 hover:shadow-md`
-                    : "bg-gray-50 border-gray-200 cursor-not-allowed opacity-60"
+                    ? `${access.bgColor} border-gray-200`
+                    : "bg-gray-50 border-gray-200 opacity-60"
                 }`}
-                onClick={() => handleTierSelect(tier)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -289,7 +234,6 @@ const UserRiskProfile = ({ walletAddress, riskScore, onTierSelect }) => {
       </div>
 
       {/* Risk Confirmation Modal */}
-      {showRiskModal && <RiskConfirmationModal />}
     </>
   );
 };

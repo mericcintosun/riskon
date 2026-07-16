@@ -24,32 +24,30 @@ describe('UserRiskProfile', () => {
     expect(screen.getByText(/strong on-chain history/)).toBeInTheDocument();
   });
 
-  test('should prevent selection of restricted tiers', () => {
-    render(<UserRiskProfile walletAddress="GABC123..." riskScore={25} onTierSelect={mockOnTierSelect} />);
+  // The tier cards are informational now. They used to be clickable with an
+  // onTierSelect callback + a Tier-3 confirmation modal, but the only mount never
+  // passed onTierSelect, so every click was inert. These tests assert the honest
+  // behaviour: the cards show tier status and nothing pretends to be actionable.
 
-    const tier2Card = screen.getByText('TIER-2').closest('div');
-    fireEvent.click(tier2Card);
+  test('shows which tiers a low score can access, without an interactive modal', () => {
+    render(<UserRiskProfile walletAddress="GABC123..." riskScore={25} />);
 
-    expect(mockOnTierSelect).not.toHaveBeenCalled();
+    expect(screen.getByText('TIER-1')).toBeInTheDocument();
+    expect(screen.getByText('Accessible')).toBeInTheDocument();
+    // TIER-2 and TIER-3 are restricted at score 25.
+    expect(screen.getAllByText('Restricted').length).toBeGreaterThan(0);
+    // No confirmation modal exists anymore.
+    expect(screen.queryByText('High-Risk Tier Acknowledgment')).not.toBeInTheDocument();
   });
 
-  test('should require confirmation for high-risk tier selection', () => {
-    render(<UserRiskProfile walletAddress="GABC123..." riskScore={85} onTierSelect={mockOnTierSelect} />);
+  test('a high score unlocks the high-risk tier as a status, not a clickable action', () => {
+    render(<UserRiskProfile walletAddress="GABC123..." riskScore={85} />);
 
+    expect(screen.getByText('TIER-3')).toBeInTheDocument();
+    expect(screen.getByText('High-Risk Tier')).toBeInTheDocument();
+    // Clicking must not open a modal — there is no interactive tier selection.
     const tier3Card = screen.getByText('TIER-3').closest('div');
     fireEvent.click(tier3Card);
-
-    expect(screen.getByText('High-Risk Tier Acknowledgment')).toBeInTheDocument();
-    expect(screen.getByText(/low liquidity and high volatility/)).toBeInTheDocument();
-  });
-
-  test('should handle high-risk confirmation flow', () => {
-    render(<UserRiskProfile walletAddress="GABC123..." riskScore={85} onTierSelect={mockOnTierSelect} />);
-
-    const tier3Card = screen.getByText('TIER-3').closest('div');
-    fireEvent.click(tier3Card);
-    fireEvent.click(screen.getByText('Acknowledge & Proceed'));
-
-    expect(mockOnTierSelect).toHaveBeenCalledWith('TIER_3');
+    expect(screen.queryByText('Acknowledge & Proceed')).not.toBeInTheDocument();
   });
 });
