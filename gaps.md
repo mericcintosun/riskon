@@ -4,13 +4,15 @@
 > Low-priority findings (code style, dead code, minor config) are deliberately excluded.
 >
 > First written: 2026-07-15
-> **Updated: 2026-07-15 — after the liquidity-surface removal.**
-> This round closed the last remaining data gap, and corrected the framing of what
-> that gap actually was.
+> **Updated: 2026-07-16 — after a full-project audit ("look at everything").**
+> This round closed the contract self-attestation hole, purged the marketing
+> fabrications, fixed the small real defects, and deleted the dead subsystems.
 
-**Active contract (testnet):** `CCGZV37C3FC2GLVNIHFEC6OVDHRFLQCELPTQLII44Z7RXZBEER5POPRO`
+**Active contract (testnet):** `CBTYHTWNY3HP6TIZCYKI6HP47YWVZCKQTWAD7SEK7AAVGCWY2ZIB6GRQ`
 · admin: `GBMF7MDHLF6E5GWNCUJZKDBID5LCU5U5K7J26MRUJCM2FK7J7VZXTZZ3`
-*(Earlier contract IDs were wiped by a testnet reset — the app was pointing at a contract that did not exist.)*
+*(Redeployed 2026-07-16 to remove `set_risk_tier`. The previous contract
+`CCGZV37…` is still live but has the self-attestation hole; production Vercel env
+was moved to the new address and verified writing to it.)*
 
 ---
 
@@ -61,7 +63,21 @@ Three features, all pointing the same direction: `totalVolume`, `uniqueCounterpa
 
 ## ✅ Resolved
 
-### This round (three scoring paths collapsed into one)
+### This round (full-project audit)
+
+**The central claim was false on-chain, and it was the worst finding.** gaps.md said "the score can no longer be self-reported" because the oracle writes it. Verified on-chain that the contract still exposed `set_risk_tier(user, …)` gated only by `user.require_auth()` — a `set_risk_tier(self, score=5, TIER_1)` simulated successfully with just the source account's signature, so any user could self-grant TIER_1. **Fixed:** removed `set_risk_tier` (scores now write only via `admin_set_risk_tier`, oracle-signed), fixed a stale tier-membership index bug found alongside it, redeployed to `CBTYHTWN…`, verified on-chain (`set_risk_tier` → "unrecognized subcommand", oracle write + read-back works), moved production Vercel env to the new address, and confirmed prod attests land on the new contract. 43 contract tests pass.
+
+**Marketing pages shipped fabricated metrics and false claims** — the same disease as the Blend dashboard, in prose. Removed/corrected: "95%+ accuracy trained on extensive DeFi data" (no accuracy exists; the model is a percentile), "TensorFlow.js"/neural-network framing (it's logistic regression; the dead tfjs dep was removed), "Stellar Mainnet" (it's testnet), "your data never leaves your device" (false — the oracle reads chain data server-side), an "NFT badge system" marked *completed* (never built), a wall of invented stats (100%/99.9% uptime, 0.8s, $0.001, "thousands of users", animated 1200/8500/95 counters), and a pricing page selling $1/$2 tiers of unbuilt features ("Real-time Alerts", "Predictive Risk Modeling") behind a button that just opened /wallet. All live in production.
+
+**Small real defects:** Header rendered a blank wallet name (destructured `walletName`; context exposes `connectedWallet`). UserRiskProfile's tier cards looked clickable but the only mount never passed `onTierSelect`, so every click was inert — made informational. Footer pointed every link at `href="#"` and claimed a nonexistent MIT license — now real GitHub + Stellar-Explorer links only.
+
+**Dead code deleted** (all verified zero live importers): `riskTierClient.ts`, the cache-dashboard + service-worker branch, the TensorFlow model path (+ the `@tensorflow/tfjs` dependency), `src/lib/Transaction Engine/`, and a hollow `integration_tests.rs` whose 8 tests asserted `u64 >= 0`.
+
+**A third instance of the dropped-props bug**, found by sweeping every component: `AutomatedRiskAnalyzer` still rendered `BlendHistoryPerformance` with `onScoreImpactChange`, driving a dead "score + N points" adjustment path (which would have uncalibrated the percentile). Removed.
+
+**Audit also confirmed as REAL (not fake), closing the knowledge gaps:** the passkey layer, wallet connection (StellarWalletsKit), the CSRF double-submit middleware, `/api/passkey/deploy`'s fee-bump, and the cache core (IndexedDB + localStorage). The Soroban contract's production code was clean; only its self-attestation door (now closed) was the problem.
+
+### Previous round (three scoring paths collapsed into one)
 - **The app computed the same wallet's score three different ways, and only one of them was the score that landed on chain.**
   - `enhanced` → `AutomatedRiskAnalyzer` → the calibrated model (v3). Matches what the oracle re-derives and writes. ✅
   - `auto` → `autoRiskAnalyzer.js` → its own uncalibrated formula on real chain data.
