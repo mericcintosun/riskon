@@ -6,7 +6,7 @@ const server = new Server("https://soroban-testnet.stellar.org");
 const CONTRACT_ID =
   process.env.NEXT_PUBLIC_RISKSCORE_CONTRACT_ID ||
   process.env.NEXT_PUBLIC_RISK_TIER_CONTRACT_ID ||
-  "CCGZV37C3FC2GLVNIHFEC6OVDHRFLQCELPTQLII44Z7RXZBEER5POPRO";
+  "CBTYHTWNY3HP6TIZCYKI6HP47YWVZCKQTWAD7SEK7AAVGCWY2ZIB6GRQ";
 
 export async function testContractExists() {
   try {

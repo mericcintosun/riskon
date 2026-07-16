@@ -154,7 +154,7 @@ These are only available in server-side code:
 - Must be 56 characters long
 - Must start with 'C'
 - Must contain only uppercase A-Z and 0-9
-- Example: `CCGZV37C3FC2GLVNIHFEC6OVDHRFLQCELPTQLII44Z7RXZBEER5POPRO`
+- Example: `CBTYHTWNY3HP6TIZCYKI6HP47YWVZCKQTWAD7SEK7AAVGCWY2ZIB6GRQ`
 
 ### Ports
 - Must be between 1 and 65535
