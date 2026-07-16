@@ -34,7 +34,7 @@ export default function FeaturesPage() {
         "Real-time analysis",
         "No data leaves device",
       ],
-      technical: "TensorFlow.js + WebAssembly",
+      technical: "Logistic regression + WebAssembly",
     },
     {
       title: "Stellar & Soroban Integration",
@@ -73,7 +73,7 @@ export default function FeaturesPage() {
     {
       title: "Blockchain Infrastructure",
       specs: [
-        { label: "Network", value: "Stellar Mainnet" },
+        { label: "Network", value: "Stellar Testnet" },
         { label: "Smart Contracts", value: "Soroban WASM" },
         { label: "Consensus", value: "Stellar Consensus Protocol" },
         { label: "Finality", value: "3-5 seconds" },
@@ -83,7 +83,7 @@ export default function FeaturesPage() {
     {
       title: "AI & Analytics",
       specs: [
-        { label: "ML Framework", value: "TensorFlow.js" },
+        { label: "Model", value: "Calibrated logistic regression" },
         { label: "Processing", value: "Client-side" },
         { label: "Privacy", value: "Zero data collection" },
         { label: "Performance", value: "Sub-second analysis" },
@@ -151,12 +151,14 @@ export default function FeaturesPage() {
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-2 gap-6 max-w-lg mx-auto mb-12">
               <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">6+</div>
-                <div className="text-sm text-slate-400">Wallet Support</div>
+                <div className="text-2xl font-bold text-white mb-1">3</div>
+                <div className="text-sm text-slate-400">
+                  Rated subjects: wallets, pools, asset issuers
+                </div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">24/7</div>
-                <div className="text-sm text-slate-400">Availability</div>
+                <div className="text-2xl font-bold text-white mb-1">Albedo · xBull · Freighter</div>
+                <div className="text-sm text-slate-400">Wallets supported</div>
               </div>
             </div>
           </div>
@@ -346,25 +348,30 @@ export default function FeaturesPage() {
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-white mb-4">
-                  Performance Metrics
+                  What we can actually measure
                 </h2>
                 <p className="text-slate-400">
-                  Real-world performance you can count on
+                  Checkable facts read from chain — not uptime or cost figures we
+                  have not instrumented.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                   <div className="text-2xl font-bold text-emerald-400 mb-2">
-                    99.9%
+                    387
                   </div>
-                  <div className="text-sm text-slate-400">Uptime</div>
+                  <div className="text-sm text-slate-400">
+                    Issuers calling themselves USDC (one is Circle)
+                  </div>
                 </div>
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                   <div className="text-2xl font-bold text-purple-400 mb-2">
-                    $0.001
+                    300
                   </div>
-                  <div className="text-sm text-slate-400">Cost per Tx</div>
+                  <div className="text-sm text-slate-400">
+                    Real wallets the score is calibrated against
+                  </div>
                 </div>
               </div>
             </div>
@@ -377,8 +384,8 @@ export default function FeaturesPage() {
                 Ready to Experience the Future?
               </h2>
               <p className="text-slate-400 mb-8 text-lg">
-                Join thousands of users who trust Riskon for their DeFi risk
-                assessment needs
+                See what the score is and is not, then run it on your own
+                wallet.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">

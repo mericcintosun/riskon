@@ -21,12 +21,6 @@ import {
 
 export default function AboutPage() {
   const [activeAdvantage, setActiveAdvantage] = useState(0);
-  const [stats, setStats] = useState({
-    users: 0,
-    scores: 0,
-    protocols: 0,
-    accuracy: 0,
-  });
 
   const advantages = [
     {
@@ -60,20 +54,20 @@ export default function AboutPage() {
       benefit: "Instant DeFi access",
     },
     {
-      title: "Privacy-First Architecture",
-      shortTitle: "Privacy by Design",
+      title: "Only Public Chain Data",
+      shortTitle: "Public Data Only",
       description:
-        "All computations happen locally in your browser using WebAssembly and TensorFlow.js - your data never leaves your device.",
+        "The score is derived from data that is already public on Stellar. The oracle fetches your address's history server-side to compute it — so the authoritative score cannot be self-reported — but there is no private, off-chain data to leak because none is collected.",
       details: [
-        "Client-side data processing",
-        "Zero server data transmission",
-        "Only compact scores stored on-chain",
-        "GDPR compliant by design",
+        "No private/off-chain data collected",
+        "Score computed from public on-chain history",
+        "Only a compact score is written on-chain",
+        "You can recompute it yourself from the same public data",
       ],
       icon: <Lock className="w-6 h-6" />,
       color: "emerald",
-      stat: "0% data shared",
-      benefit: "Complete privacy protection",
+      stat: "Public inputs",
+      benefit: "Auditable, not opaque",
     },
     {
       title: "Eco-Friendly Blockchain",
@@ -88,24 +82,24 @@ export default function AboutPage() {
       ],
       icon: <Leaf className="w-6 h-6" />,
       color: "green",
-      stat: "99.9% less energy",
+      stat: "Low energy (SCP, not PoW)",
       benefit: "Sustainable DeFi future",
     },
     {
-      title: "Future-Proof Technology Stack",
-      shortTitle: "Future-Proof",
+      title: "Subjects That Cannot Sybil",
+      shortTitle: "Sybil-Resistant",
       description:
-        "Advanced integration with NFTs, oracle systems, and modular DeFi protocols creates a bridge to next-generation credit markets.",
+        "Beyond the wallet score — which a user can dodge by opening a new address — Riskon rates asset issuers and Blend pools, whose identity is a contract that cannot be recreated to escape a bad rating.",
       details: [
-        "NFT badge achievements system",
-        "Oracle integration capabilities",
-        "Modular protocol architecture",
-        "Next-gen DeFi credit markets",
+        "Asset issuer risk: is this the real USDC, and can the issuer freeze or seize it",
+        "Blend pool ratings read live from mainnet",
+        "Transparent rubrics with the raw inputs returned",
+        "No NFT/badge system exists — that was never built",
       ],
       icon: <Rocket className="w-6 h-6" />,
       color: "purple",
-      stat: "100% modular",
-      benefit: "Evolves with DeFi innovation",
+      stat: "3 rated subjects",
+      benefit: "The strongest signal cannot be gamed",
     },
   ];
 
@@ -152,7 +146,7 @@ export default function AboutPage() {
       year: "2024",
       quarter: "Q3",
       title: "Soroban Integration",
-      description: "Deployed smart contracts and NFT badge system",
+      description: "Deployed the risk-tier Soroban contract with oracle-only scoring",
       status: "completed",
     },
     {
@@ -170,33 +164,6 @@ export default function AboutPage() {
       status: "planned",
     },
   ];
-
-  // Animate stats on mount
-  useEffect(() => {
-    const targets = { users: 1200, scores: 8500, protocols: 12, accuracy: 95 };
-    const duration = 2000;
-    const steps = 60;
-    const stepDuration = duration / steps;
-
-    const intervals = Object.keys(targets).map((key) => {
-      const target = targets[key];
-      const increment = target / steps;
-      let current = 0;
-
-      const intervalId = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-          current = target;
-          clearInterval(intervalId);
-        }
-        setStats((prev) => ({ ...prev, [key]: Math.floor(current) }));
-      }, stepDuration);
-
-      return intervalId;
-    });
-
-    return () => intervals.forEach(clearInterval);
-  }, []);
 
   // Auto-cycle advantages
   useEffect(() => {
@@ -572,7 +539,7 @@ export default function AboutPage() {
                 <Link href="/features">
                   <button className="btn-secondary text-lg px-8 py-4 inline-flex items-center">
                     <BookOpen className="mr-2 h-5 w-5" />
-                    Read Documentation
+                    Explore Features
                   </button>
                 </Link>
               </div>

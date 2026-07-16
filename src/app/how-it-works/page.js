@@ -138,7 +138,7 @@ export default function HowItWorksPage() {
       {
         title: "Blockchain Infrastructure",
         specs: [
-          { label: "Network", value: "Stellar Mainnet" },
+          { label: "Network", value: "Stellar Testnet" },
           { label: "Smart Contracts", value: "Soroban WASM" },
           { label: "Consensus", value: "Stellar Consensus Protocol" },
           { label: "Finality", value: "3-5 seconds" },
@@ -148,7 +148,7 @@ export default function HowItWorksPage() {
       {
         title: "AI & Analytics",
         specs: [
-          { label: "ML Framework", value: "TensorFlow.js" },
+          { label: "Model", value: "Calibrated logistic regression" },
           { label: "Processing", value: "Client-side" },
           { label: "Privacy", value: "Zero data collection" },
           { label: "Performance", value: "Sub-second analysis" },
@@ -201,14 +201,16 @@ export default function HowItWorksPage() {
                 <div className="text-sm text-slate-400">Setup Time</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-1">100%</div>
-                <div className="text-sm text-slate-400">Privacy Protected</div>
+                <div className="text-2xl font-bold text-white mb-1">Public</div>
+                <div className="text-sm text-slate-400">
+                  Inputs — no private data collected
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-white mb-1">
-                  Instant
+                  On demand
                 </div>
-                <div className="text-sm text-slate-400">Results</div>
+                <div className="text-sm text-slate-400">Score computed when you ask</div>
               </div>
             </div>
 
@@ -466,11 +468,13 @@ export default function HowItWorksPage() {
               </div>
               <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
                 <h3 className="font-semibold text-white mb-3">
-                  How accurate is the risk score?
+                  What does the score actually measure?
                 </h3>
                 <p className="text-slate-300 text-sm">
-                  Our AI model achieves 95%+ accuracy using advanced machine
-                  learning algorithms trained on extensive DeFi data.
+                  It is an activity percentile: where your wallet sits against
+                  300 real Stellar wallets. It is not a default prediction and we
+                  do not claim an accuracy figure — there is no on-chain
+                  default/liquidation label to measure accuracy against.
                 </p>
               </div>
               <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
@@ -487,8 +491,9 @@ export default function HowItWorksPage() {
                   How often is my score updated?
                 </h3>
                 <p className="text-slate-300 text-sm">
-                  Your risk score updates in real-time as new transactions are
-                  processed on the Stellar network.
+                  It is recomputed on demand when you run an analysis. There is
+                  no live streaming — the score reflects your history at the
+                  moment you ask for it.
                 </p>
               </div>
             </div>
@@ -499,31 +504,34 @@ export default function HowItWorksPage() {
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-white mb-4">
-                  Performance Metrics
+                  What we can actually measure
                 </h2>
                 <p className="text-slate-400">
-                  Real-world performance you can count on
+                  Checkable facts read from chain — not uptime or latency numbers
+                  we have not instrumented.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                   <div className="text-2xl font-bold text-emerald-400 mb-2">
-                    100%
+                    300
                   </div>
-                  <div className="text-sm text-slate-400">Uptime</div>
+                  <div className="text-sm text-slate-400">
+                    Real wallets the score is calibrated against
+                  </div>
                 </div>
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
-                  <div className="text-2xl font-bold text-blue-400 mb-2">
-                    0.8s
+                  <div className="text-2xl font-bold text-blue-400 mb-2">387</div>
+                  <div className="text-sm text-slate-400">
+                    Issuers calling themselves USDC (one is Circle)
                   </div>
-                  <div className="text-sm text-slate-400">Avg Analysis</div>
                 </div>
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
-                  <div className="text-2xl font-bold text-purple-400 mb-2">
-                    $0.001
+                  <div className="text-2xl font-bold text-purple-400 mb-2">2</div>
+                  <div className="text-sm text-slate-400">
+                    Blend pools rated live from mainnet
                   </div>
-                  <div className="text-sm text-slate-400">Cost per Tx</div>
                 </div>
               </div>
             </div>
@@ -536,8 +544,8 @@ export default function HowItWorksPage() {
                 Ready to Get Started?
               </h2>
               <p className="text-slate-400 mb-8 text-lg">
-                Join thousands of users who trust Riskon for their DeFi risk
-                assessment needs
+                Read what the score is and what it deliberately is not, then run it on your
+                own wallet.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">

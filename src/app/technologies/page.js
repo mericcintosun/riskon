@@ -32,9 +32,9 @@ export default function TechnologiesPage() {
       name: "AI & Analytics",
       techs: [
         {
-          name: "TensorFlow.js",
+          name: "Calibrated logistic regression",
           description:
-            "Powers our client-side AI model, ensuring user data privacy by processing all information in the browser.",
+            "A transparent scoring function whose weights and normalization are calibrated against percentiles of 300 real Stellar wallets. Not a neural network — the math is small, declared, and reproducible.",
         },
         {
           name: "WebAssembly (Wasm)",

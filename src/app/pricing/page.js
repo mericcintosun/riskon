@@ -16,16 +16,22 @@ import {
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState("monthly");
 
+  // Everything Riskon does today is free. There is no payment integration and
+  // no subscription. The previous page sold $1/$2 monthly tiers with features
+  // that do not exist ("Real-time Alerts", "Predictive Risk Modeling",
+  // "Priority Support") and referenced scoring modes that were removed. Those
+  // were not buildable behind a "Choose Plan" button that just opened /wallet.
   const tiers = [
     {
-      name: "Manual",
+      name: "Everything, free",
       price: "Free",
       description:
-        "For users who prefer manual control and occasional analysis.",
+        "The whole tool. No account, no subscription, no payment — the CTA connects a wallet, nothing is charged.",
       features: [
-        "Manual Score Refresh",
-        "Access to Tier-1 Pools",
-        "Basic On-Chain Analysis",
+        "Wallet activity score, written on-chain by the oracle",
+        "Asset issuer risk (is this the real USDC; can it be frozen or seized)",
+        "Blend pool ratings, read live from mainnet",
+        "Every rating ships with its raw inputs",
       ],
       icon: <User className="w-8 h-8 text-gray-500" />,
       cta: "Get Started",
@@ -34,40 +40,40 @@ export default function PricingPage() {
       buttonColor: "bg-gray-600 hover:bg-gray-700",
     },
     {
-      name: "Automated",
-      price: "$1",
-      priceSuffix: "/ month",
-      description: "For active users who need continuous risk monitoring.",
+      name: "Alerts & automation",
+      price: "Planned",
+      priceSuffix: "· not available",
+      description:
+        "Continuous monitoring and alerting would be a paid tier. It is not built, so it is not for sale.",
       features: [
-        "Automatic Score Updates",
-        "Access to Tier-2 Pools",
-        "Real-time Alerts",
-        "Priority Support",
+        "Score refresh on a schedule — not built",
+        "Alerts on tier changes — not built",
+        "No payment system exists yet",
       ],
       icon: <Bot className="w-8 h-8 text-blue-500" />,
-      cta: "Choose Plan",
+      cta: "Not available",
+      disabled: true,
       bgColor: "bg-blue-50",
       textColor: "text-blue-800",
       buttonColor: "bg-blue-600 hover:bg-blue-700",
     },
     {
-      name: "AI Enhanced",
-      price: "$2",
-      priceSuffix: "/ month",
+      name: "Predictive modeling",
+      price: "Planned",
+      priceSuffix: "· not available",
       description:
-        "For advanced users seeking predictive insights and optimized strategies.",
+        "A predictive model would need an outcome label (default/liquidation) that does not exist on Stellar. Until it does, this cannot be built honestly.",
       features: [
-        "All Automated Features",
-        "Predictive Risk Modeling",
-        "Access to All Tiers (Tier-3 included)",
-        "Exclusive Market Insights",
+        "Loss prediction — not possible without outcome labels",
+        "Market insights — not built",
+        "See the score's honest definition on the home page",
       ],
       icon: <Sparkles className="w-8 h-8 text-purple-500" />,
-      cta: "Choose Plan",
+      cta: "Not available",
+      disabled: true,
       bgColor: "bg-purple-50",
       textColor: "text-purple-800",
       buttonColor: "bg-purple-600 hover:bg-purple-700",
-      isFeatured: true,
     },
   ];
 
@@ -177,17 +183,20 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link href="/wallet">
+                {tier.disabled ? (
                   <button
-                    className={`w-full py-3 px-6 font-semibold rounded-lg transition-all duration-300 ${
-                      tier.isFeatured
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
-                        : "bg-slate-700 hover:bg-slate-600"
-                    }`}
+                    disabled
+                    className="w-full py-3 px-6 font-semibold rounded-lg bg-slate-800 text-slate-500 cursor-not-allowed"
                   >
                     {tier.cta}
                   </button>
-                </Link>
+                ) : (
+                  <Link href="/wallet">
+                    <button className="w-full py-3 px-6 font-semibold rounded-lg transition-all duration-300 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500">
+                      {tier.cta}
+                    </button>
+                  </Link>
+                )}
               </motion.div>
             ))}
           </motion.div>
