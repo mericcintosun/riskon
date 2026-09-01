@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@blend-capital/blend-sdk": "^3.3.0",
-    "@creit.tech/stellar-wallets-kit": "^1.9.5",
+    "@creit.tech/stellar-wallets-kit": "^2.6.0",
     "@stellar/stellar-sdk": "^16.0.1",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
